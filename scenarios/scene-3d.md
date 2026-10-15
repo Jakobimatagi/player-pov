@@ -63,7 +63,7 @@ The field is geometry, not a texture. Open http://127.0.0.1:5173 after `npm run 
 
 - 22 boxes stand on the formation at the snap.
 - Offense is `#c8102e`. Defense is `#f2f2f2`.
-- The front face of each box is darker than the sides.
+- The top of each box is the brightest face and the bottom is the darkest. The front is lighter than the sides. There are no scene lights.
 
 ## Scenario 6 — Jersey numbers from the sideline
 
@@ -105,3 +105,15 @@ The field is geometry, not a texture. Open http://127.0.0.1:5173 after `npm run 
 - The throw leaves the quarterback at 2.0 s, peaks halfway by the apex (3 yd) above the straight line between the hands, and is in H's hand at 2.9 s.
 - Before t = 0 and after the play ends, the ball holds still at the first and last hand positions.
 - Players are sampled once per frame, so facing is not smoothed twice.
+
+## Scenario 9 — Unlit daylight
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/?perf=1 .
+2. Read `src/scene/Field.tsx`.
+
+**Expected:**
+
+- The sky stays light blue (`#cfe3f5`). The grass stays green. The ball stays tan.
+- `Field.tsx` has no light. Draw calls stay at 6, the same as the lit phase 1 count in `docs/perf.md`.

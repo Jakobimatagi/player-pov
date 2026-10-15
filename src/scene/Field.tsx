@@ -24,8 +24,6 @@ export function Field({
 
   return (
     <group>
-      <hemisphereLight args={['#f4f7fb', '#3f8f3a', 0.85]} />
-      <directionalLight position={[20, 40, 10]} intensity={0.9} />
       <mesh geometry={grass} frustumCulled={false}>
         <meshBasicMaterial vertexColors />
       </mesh>
