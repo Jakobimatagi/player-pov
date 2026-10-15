@@ -1,0 +1,51 @@
+name: Backup
+
+on:
+  schedule:
+    # Nightly 10:00 UTC. Artifact is age-encrypted; the founder keeps the private key offline.
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [production, staging]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - name: Install age
+        run: |
+          curl -sSfL "https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz" \
+            | tar -xz -C /tmp
+          sudo mv /tmp/age/age /usr/local/bin/age
+      - name: Dump, gzip, and encrypt
+        env:
+          SUPABASE_DB_URL: ${{ matrix.target == 'production' && secrets.SUPABASE_DB_URL || secrets.STAGING_SUPABASE_DB_URL }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL}" ] || [ -z "${BACKUP_AGE_PUBLIC_KEY}" ]; then
+            echo "${TARGET}: missing database URL or age public key"
+            exit 1
+          fi
+          mkdir -p dump out
+          supabase db dump --db-url "${SUPABASE_DB_URL}" -f dump/schema.sql
+          supabase db dump --db-url "${SUPABASE_DB_URL}" --data-only -f dump/data.sql
+          tar -C dump -czf dump.tar.gz schema.sql data.sql
+          printf '%s\n' "${BACKUP_AGE_PUBLIC_KEY}" > recipient.pub
+          age -R recipient.pub -o "out/backup-${TARGET}.tar.gz.age" dump.tar.gz
+          rm -rf dump dump.tar.gz recipient.pub
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ matrix.target }}
+          path: out/*.age
+          retention-days: 30
