@@ -1,0 +1,52 @@
+# 3D scene
+
+The field is geometry, not a texture. Open http://127.0.0.1:5173 after `npm run dev`. The sample play must load.
+
+## Scenario 1 — Yard lines and numbers stay sharp
+
+**Preconditions:** WebGL available.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/?dpr is not required. In DevTools, set device pixel ratio emulation to 0.75, or append nothing and inspect the canvas `data-dpr` only as a cap. Reload at a narrow window so the field fills the view.
+
+**Expected:**
+
+- The sky is light blue.
+- Grass is green with alternating mow stripes.
+- White yard lines, hash marks, and block numbers are crisp edges, not a blurred texture.
+- Yellow goalposts stand on both goal lines.
+
+## Scenario 2 — NCAA hashes
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/?hash=ncaa .
+2. Compare the hash marks with http://127.0.0.1:5173/ .
+
+**Expected:**
+
+- The hash marks sit farther from the sidelines than the NFHS default.
+- The unit test `tests/field.test.ts` expects NFHS y = 17.78 and 35.56, and NCAA y = 20 and 33.33.
+
+## Scenario 3 — Ball spot on the 25
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/?spot=1 .
+
+**Expected:**
+
+- A red sphere sits on the near hash side of midfield, on the 25-yard line (field x = 35, y = 26.67), which is world x = −25 and z ≈ 0.
+
+## Scenario 4 — Triangle budget
+
+**Steps:**
+
+1. Run `npx vitest run tests/field.test.ts`.
+
+**Expected:**
+
+- Grass is 48 triangles.
+- Markings, including goalposts, are at or under 2,000 triangles.
+- The field is two draw calls besides the optional debug sphere: grass, then markings.

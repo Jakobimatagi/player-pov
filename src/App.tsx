@@ -12,7 +12,9 @@ import { registerContextRestore, runContextRestore } from './gfx/useContextResto
 import { detectWebGL } from './gfx/webglSupport'
 import { clockState, pauseKeepingPlace } from './playback/clockState'
 import { usePlay } from './play/usePlay'
+import { fieldConfigFromSearch } from './field/fieldConfig'
 import { AspectSync } from './scene/AspectSync'
+import { Field } from './scene/Field'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
 import { NoWebGL } from './ui/NoWebGL'
@@ -137,6 +139,12 @@ export function App() {
       >
         <color attach="background" args={['#cfe3f5']} />
         <AspectSync />
+        <Field
+          config={fieldConfigFromSearch(window.location.search)}
+          losX={loaded.play.meta.lineOfScrimmageX}
+          ballY={loaded.play.meta.ballY}
+          showSpot={new URLSearchParams(window.location.search).get('spot') === '1'}
+        />
         <RendererProbe onLost={handleLost} onRestored={handleRestored} />
       </Canvas>
       {loaded.warnings.length > 0 && (
