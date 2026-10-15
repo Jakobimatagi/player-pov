@@ -46,7 +46,7 @@ describe('box players', () => {
     const source = readFileSync('src/scene/Players.tsx', 'utf8')
     expect(source).not.toMatch(/BoxGeometry|MeshLambertMaterial|MeshBasicMaterial/)
     expect(source).toMatch(/PlayerVisual/)
-    expect(source).toMatch(/visual = boxVisual/)
+    expect(source).toMatch(/visual = blockyVisual/)
   })
 
   it('faces jersey numbers outward and samples one atlas cell', () => {

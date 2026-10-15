@@ -29,6 +29,8 @@ import { GestureInput } from './scene/GestureInput'
 import { Players } from './scene/Players'
 import { RouteLines } from './scene/RouteLines'
 import { CameraBar, HopChips } from './ui/CameraBar'
+import { FacemaskOverlay } from './ui/FacemaskOverlay'
+import { cameraState, subscribeCamera } from './camera/cameraState'
 import { Scrubber } from './ui/Scrubber'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
@@ -89,6 +91,8 @@ export function App() {
   const lossRef = useRef(loss)
   const perfMode = new URLSearchParams(window.location.search).get('perf') === '1'
   const [qualityLevel, setQualityLevel] = useState(qualityState.level)
+  const [camMode, setCamMode] = useState(cameraState.mode)
+  const [attached, setAttached] = useState(cameraState.attached)
   const dpr = useCappedDpr(QUALITY_LADDER[qualityLevel]?.dpr ?? 1.25)
 
   const commitLoss = useCallback((next: ContextLossState) => {
@@ -99,6 +103,15 @@ export function App() {
   useEffect(() => {
     exposeDevClock()
   }, [])
+
+  useEffect(
+    () =>
+      subscribeCamera(() => {
+        setCamMode(cameraState.mode)
+        setAttached(cameraState.attached)
+      }),
+    [],
+  )
 
   useEffect(() => {
     if (!perfMode) return
@@ -230,6 +243,10 @@ export function App() {
         </details>
       )}
       {loss.lost && <ContextLossOverlay heldT={heldT} />}
+      <FacemaskOverlay
+        active={camMode === 'pov'}
+        team={attached >= 0 && loaded.play.teams[attached] === 'defense' ? 'defense' : 'offense'}
+      />
       {perfMode && <PerfOverlay />}
       <span data-testid="play-t" hidden>
         {heldT.toFixed(2)}
