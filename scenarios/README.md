@@ -24,8 +24,11 @@ Number scenarios from 1 inside each file. Do not renumber a scenario once a pull
 
 ```bash
 npm install
+pip install -r schema/requirements.txt
 npm run dev
 ```
+
+`schema/requirements.txt` is the Python side of play validation. Without `jsonschema`, the tests that compare against `schema/validate.py` skip and say to install that file.
 
 Open http://127.0.0.1:5173 . The dev server exposes `window.__pov.tRef` and `window.__pov.playingRef` so a scenario can set the play clock from the console. Production builds do not.
 
