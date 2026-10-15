@@ -1,11 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { advanceClock, clockState, replayClock, seekClock } from '../src/playback/clockState'
+import {
+  advanceClock,
+  clockState,
+  earliestWaypoint,
+  replayClock,
+  seekClock,
+  spaceClock,
+} from '../src/playback/clockState'
 
 beforeEach(() => {
   clockState.tRef.current = 0
   clockState.playingRef.current = false
   clockState.rateRef.current = 1
   clockState.durationRef.current = 4
+  clockState.startRef.current = 0
   clockState.invalidateRef.current = () => undefined
 })
 
@@ -46,6 +54,29 @@ describe('playback clock', () => {
     seekClock(99)
     expect(clockState.tRef.current).toBe(4)
     seekClock(-2)
+    expect(clockState.tRef.current).toBe(0)
+  })
+
+  it('seeks and replays from the earliest waypoint when that is before the snap', () => {
+    clockState.startRef.current = -1.5
+    expect(earliestWaypoint(new Float32Array([-1.5, 0, 4]))).toBe(-1.5)
+    seekClock(-2)
+    expect(clockState.tRef.current).toBe(-1.5)
+    seekClock(1)
+    expect(clockState.tRef.current).toBe(1)
+    clockState.tRef.current = 4
+    replayClock()
+    expect(clockState.tRef.current).toBe(-1.5)
+    expect(clockState.playingRef.current).toBe(true)
+  })
+
+  it('replays from the end when Space is pressed', () => {
+    clockState.tRef.current = 4
+    spaceClock()
+    expect(clockState.tRef.current).toBe(0)
+    expect(clockState.playingRef.current).toBe(true)
+    spaceClock()
+    expect(clockState.playingRef.current).toBe(false)
     expect(clockState.tRef.current).toBe(0)
   })
 })

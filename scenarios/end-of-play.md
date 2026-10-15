@@ -25,5 +25,17 @@ v1 does not loop. The sample play is 4.00 seconds.
 
 **Expected:**
 
-- Time returns to 0.00 and the play runs again.
+- Time returns to 0.00 and the play runs again. If a play's first waypoint is before the snap, time returns to that waypoint instead of 0.
 - The camera mode and the attached player, once those exist, stay as they were.
+
+## Scenario 3 — Space at the end replays
+
+**Steps:**
+
+1. Let the play stop at the end, or drag the slider there.
+2. Press Space.
+
+**Expected:**
+
+- Space calls the same action as **Replay**: time returns to the first waypoint and the play runs.
+- Space during the play still toggles pause. It does not jump back to the start.

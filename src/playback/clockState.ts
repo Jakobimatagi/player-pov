@@ -9,6 +9,8 @@ export const clockState = {
   wasPlayingRef: { current: false },
   rateRef: { current: 1 },
   durationRef: { current: 0 },
+  /** Earliest waypoint time. Pre-snap plays start below 0. */
+  startRef: { current: 0 },
   /** Set by the canvas so a scrub outside the frame loop can redraw. */
   invalidateRef: { current: (): void => undefined },
 }
@@ -28,16 +30,39 @@ export function advanceClock(dt: number): void {
 }
 
 export function seekClock(t: number): void {
+  const startT = clockState.startRef.current
   const duration = clockState.durationRef.current
-  const clamped = Math.min(duration, Math.max(0, t))
+  const clamped = Math.min(duration, Math.max(startT, t))
   clockState.tRef.current = clamped
   clockState.invalidateRef.current()
 }
 
 export function replayClock(): void {
-  clockState.tRef.current = 0
+  clockState.tRef.current = clockState.startRef.current
   clockState.playingRef.current = true
   clockState.invalidateRef.current()
+}
+
+/** Space toggles play. At the stopped end it replays from the first waypoint. */
+export function spaceClock(): void {
+  const duration = clockState.durationRef.current
+  const atEnd =
+    !clockState.playingRef.current && duration > 0 && clockState.tRef.current >= duration - 1e-3
+  if (atEnd) {
+    replayClock()
+    return
+  }
+  clockState.playingRef.current = !clockState.playingRef.current
+  clockState.invalidateRef.current()
+}
+
+export function earliestWaypoint(times: ArrayLike<number>): number {
+  let min = Infinity
+  for (let i = 0; i < times.length; i += 1) {
+    const t = times[i] ?? 0
+    if (t < min) min = t
+  }
+  return Number.isFinite(min) ? min : 0
 }
 
 export function pauseKeepingPlace(): void {

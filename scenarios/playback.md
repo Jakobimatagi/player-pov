@@ -67,3 +67,18 @@ The scrubber sits on the viewer. `window.__pov` is available in `npm run dev`.
 
 - Pale lines trace each player's waypoints while shown.
 - They disappear when hidden. The play clock is unchanged.
+
+## Scenario 6 — Controls fit a 360px phone
+
+**Preconditions:** Sample play loaded.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/ at 360×800.
+2. Inspect **Play**, each speed chip, and the time slider.
+
+**Expected:**
+
+- The page does not scroll horizontally.
+- The scrubber wraps onto extra rows instead of running off the screen.
+- **Play**, each speed, and the slider's hit area are at least 44×44 px.

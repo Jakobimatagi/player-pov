@@ -10,7 +10,7 @@ import {
 import { useCappedDpr } from './gfx/useCappedDpr'
 import { registerContextRestore, runContextRestore } from './gfx/useContextRestore'
 import { detectWebGL } from './gfx/webglSupport'
-import { clockState, pauseKeepingPlace } from './playback/clockState'
+import { clockState, earliestWaypoint, pauseKeepingPlace } from './playback/clockState'
 import { useClock } from './playback/useClock'
 import { usePlay } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
@@ -168,6 +168,7 @@ export function App() {
       </Canvas>
       <Scrubber
         duration={loaded.play.meta.duration}
+        startT={earliestWaypoint(loaded.play.wpT)}
         showQuarter={showQuarter}
         onFrameloop={onFrameloop}
       />

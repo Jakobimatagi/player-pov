@@ -74,6 +74,8 @@ body,
   padding: 0.55rem 1rem;
   font: inherit;
   cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .btn.primary {
@@ -88,8 +90,10 @@ body,
   right: 0.75rem;
   bottom: 0.75rem;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.45rem;
   align-items: center;
+  max-width: calc(100vw - 1.5rem);
   padding: 0.45rem 0.6rem;
   background: #1c1c1c;
   border: 1px solid #3a3a3a;
@@ -98,7 +102,9 @@ body,
 }
 
 .scrubber input[type='range'] {
-  flex: 1;
+  flex: 1 1 8rem;
+  min-width: 0;
+  min-height: 44px;
 }
 
 .route-toggle {

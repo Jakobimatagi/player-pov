@@ -1,14 +1,22 @@
 import { useEffect, useState } from 'react'
-import { clockState, pauseKeepingPlace, replayClock, seekClock } from '../playback/clockState'
+import {
+  clockState,
+  pauseKeepingPlace,
+  replayClock,
+  seekClock,
+  spaceClock,
+} from '../playback/clockState'
 
 const BASE_RATES = [0.5, 1, 1.5, 2]
 
 export function Scrubber({
   duration,
+  startT = 0,
   showQuarter,
   onFrameloop,
 }: {
   duration: number
+  startT?: number
   showQuarter: boolean
   onFrameloop: (mode: 'always' | 'demand' | 'never') => void
 }) {
@@ -19,7 +27,9 @@ export function Scrubber({
 
   useEffect(() => {
     clockState.durationRef.current = duration
-  }, [duration])
+    clockState.startRef.current = startT
+    if (clockState.tRef.current < startT) clockState.tRef.current = startT
+  }, [duration, startT])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -47,8 +57,7 @@ export function Scrubber({
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
       if (event.code === 'Space') {
         event.preventDefault()
-        clockState.playingRef.current = !clockState.playingRef.current
-        clockState.invalidateRef.current()
+        spaceClock()
       } else if (event.key === ',') {
         seekClock(clockState.tRef.current - 0.1)
       } else if (event.key === '.') {
@@ -75,7 +84,7 @@ export function Scrubber({
       </button>
       <input
         type="range"
-        min={0}
+        min={startT}
         max={duration}
         step={0.01}
         value={t}
