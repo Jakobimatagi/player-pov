@@ -22,7 +22,7 @@ Covers §8a.1 and §8a.4. Run `npm run dev` and open http://127.0.0.1:5173 unles
 
 **Steps:**
 
-1. Launch Chrome with `--disable-webgl` aimed at http://127.0.0.1:5173 .
+1. Launch Chrome with `--disable-webgl` aimed at http://127.0.0.1:5173 . The same screen opens at http://127.0.0.1:5173/?webgl=0 without that flag.
 
 **Expected:**
 

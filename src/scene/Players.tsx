@@ -1,11 +1,14 @@
 import { useFrame } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
-import { Euler, InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three'
+import { Euler, InstancedMesh, Matrix4, Quaternion, Vector3, type Mesh } from 'three'
 import type { CompiledPlay } from '../play/types'
 import { yardsToWorld } from '../play/coords'
 import { clockState } from '../playback/clockState'
+import { sampleBall } from '../play/ball'
 import { samplePlayer } from '../play/sample'
+import type { BallPose } from '../play/types'
 import type { PlayerPose } from '../play/types'
+import { Ball } from './Ball'
 import { buildJerseyAtlas, createNumberMaterial, jerseyCells } from './jerseyAtlas'
 import { boxVisual, createNumberGeometry, type PlayerVisual } from './playerVisual'
 
@@ -15,21 +18,21 @@ const position = new Vector3()
 const scale = new Vector3(1, 1, 1)
 const euler = new Euler()
 const pose: PlayerPose = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, speed: 0 }
+const ballPose: BallPose = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, carrierIndex: -1 }
+const sampledXY = new Float32Array(64)
+const sampledHeading = new Float32Array(32)
+const sampledVel = new Float32Array(64)
 const world = { x: 0, y: 0, z: 0 }
 
-function writeTeam(
-  mesh: InstancedMesh | null,
-  play: CompiledPlay,
-  indexes: readonly number[],
-  t: number,
-  dt: number,
-): void {
+function writeFromSample(mesh: InstancedMesh | null, indexes: readonly number[]): void {
   if (mesh == null) return
   indexes.forEach((playerIndex, slot) => {
-    samplePlayer(play, playerIndex, t, dt, pose)
-    yardsToWorld(pose.x, pose.y, 0, world)
+    const x = sampledXY[playerIndex * 2] ?? 0
+    const y = sampledXY[playerIndex * 2 + 1] ?? 0
+    const heading = sampledHeading[playerIndex] ?? 0
+    yardsToWorld(x, y, 0, world)
     position.set(world.x, world.y, world.z)
-    euler.set(0, pose.heading, 0)
+    euler.set(0, heading, 0)
     quaternion.setFromEuler(euler)
     matrix.compose(position, quaternion, scale)
     mesh.setMatrixAt(slot, matrix)
@@ -47,6 +50,7 @@ export function Players({
   t?: number
   visual?: PlayerVisual
 }) {
+  const ballRef = useRef<Mesh>(null)
   const offenseRef = useRef<InstancedMesh>(null)
   const defenseRef = useRef<InstancedMesh>(null)
   const numbersRef = useRef<InstancedMesh>(null)
@@ -66,20 +70,42 @@ export function Players({
 
   const seenT = useRef(t)
   const place = (time: number, dt: number) => {
-    writeTeam(offenseRef.current, play, offense, time, dt)
-    writeTeam(defenseRef.current, play, defense, time, dt)
+    for (let i = 0; i < play.count; i += 1) {
+      samplePlayer(play, i, time, dt, pose)
+      sampledXY[i * 2] = pose.x
+      sampledXY[i * 2 + 1] = pose.y
+      sampledHeading[i] = pose.heading
+      sampledVel[i * 2] = pose.vx
+      sampledVel[i * 2 + 1] = pose.vy
+    }
+    writeFromSample(offenseRef.current, offense)
+    writeFromSample(defenseRef.current, defense)
     const numbers = numbersRef.current
-    if (numbers == null) return
-    order.forEach((playerIndex, slot) => {
-      samplePlayer(play, playerIndex, time, dt, pose)
-      yardsToWorld(pose.x, pose.y, 0, world)
-      position.set(world.x, world.y, world.z)
-      euler.set(0, pose.heading, 0)
-      quaternion.setFromEuler(euler)
-      matrix.compose(position, quaternion, scale)
-      numbers.setMatrixAt(slot, matrix)
-    })
-    numbers.instanceMatrix.needsUpdate = true
+    if (numbers != null) {
+      order.forEach((playerIndex, slot) => {
+        const x = sampledXY[playerIndex * 2] ?? 0
+        const y = sampledXY[playerIndex * 2 + 1] ?? 0
+        const heading = sampledHeading[playerIndex] ?? 0
+        yardsToWorld(x, y, 0, world)
+        position.set(world.x, world.y, world.z)
+        euler.set(0, heading, 0)
+        quaternion.setFromEuler(euler)
+        matrix.compose(position, quaternion, scale)
+        numbers.setMatrixAt(slot, matrix)
+      })
+      numbers.instanceMatrix.needsUpdate = true
+    }
+    sampleBall(play, time, sampledXY, sampledHeading, sampledVel, ballPose)
+    yardsToWorld(ballPose.x, ballPose.y, ballPose.z, world)
+    const ball = ballRef.current
+    if (ball != null) {
+      ball.position.set(world.x, world.y, world.z)
+      const yaw =
+        ballPose.carrierIndex >= 0
+          ? (sampledHeading[ballPose.carrierIndex] ?? 0)
+          : Math.atan2(ballPose.vy, ballPose.vx)
+      ball.rotation.set(0, yaw, 0)
+    }
   }
 
   useLayoutEffect(() => {
@@ -115,6 +141,7 @@ export function Players({
         args={[numberGeo, numberMat, order.length]}
         frustumCulled={false}
       />
+      <Ball ref={ballRef} />
     </group>
   )
 }

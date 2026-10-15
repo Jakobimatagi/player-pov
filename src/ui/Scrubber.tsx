@@ -91,7 +91,7 @@ export function Scrubber({
         aria-label="Play time"
         onChange={(event) => seekClock(Number(event.target.value))}
       />
-      <span data-testid="clock-readout">
+      <span className="clock-readout" data-testid="clock-readout">
         {t.toFixed(2)} / {duration.toFixed(2)}
       </span>
       {rates.map((value) => (

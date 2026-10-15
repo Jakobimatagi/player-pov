@@ -1,3 +1,4 @@
+import { compileBall } from './ball'
 import { samplePlayer } from './sample'
 import type { CompiledPlay, PlayFile, PlayerPose, Team } from './types'
 
@@ -118,6 +119,22 @@ export function compilePlay(file: PlayFile): CompiledPlay {
     hopOrder: { offense: new Uint8Array(0), defense: new Uint8Array(0) },
     facingState: new Float32Array(count),
     segmentCursor: new Uint16Array(count),
+    ball: {
+      count: 0,
+      kind: new Uint8Array(0),
+      t0: new Float64Array(0),
+      t1: new Float64Array(0),
+      from: new Int16Array(0),
+      to: new Int16Array(0),
+      apex: new Float32Array(0),
+      x0: new Float32Array(0),
+      y0: new Float32Array(0),
+      z0: new Float32Array(0),
+      x1: new Float32Array(0),
+      y1: new Float32Array(0),
+      z1: new Float32Array(0),
+      cursor: { index: 0 },
+    },
   }
 
   let cursor = 0
@@ -139,6 +156,7 @@ export function compilePlay(file: PlayFile): CompiledPlay {
   fillTangents(play)
   warnOvershoot(play)
   fillHop(play, play.teams)
+  play.ball = compileBall(file, play)
   for (let i = 0; i < count; i += 1) samplePlayer(play, i, 0, 1, pose)
   return play
 }

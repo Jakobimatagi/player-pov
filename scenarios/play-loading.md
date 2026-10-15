@@ -33,7 +33,7 @@ The engine loads one fixture, `/plays/trips-right-vs-cover2.json`. There is no p
 
 **Steps:**
 
-1. Point the loader at a missing URL, for example `/plays/missing.json`.
+1. Open http://127.0.0.1:5173/?play=/plays/missing.json . That query is the only accepted way to point the loader at another fixture. Anything other than `/plays/<name>.json` stays on the sample.
 
 **Expected:**
 

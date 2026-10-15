@@ -12,6 +12,7 @@ import { registerContextRestore, runContextRestore } from './gfx/useContextResto
 import { detectWebGL } from './gfx/webglSupport'
 import { clockState, earliestWaypoint, pauseKeepingPlace } from './playback/clockState'
 import { useClock } from './playback/useClock'
+import { playUrlFromSearch } from './play/load'
 import { usePlay } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
 import { AspectSync } from './scene/AspectSync'
@@ -70,8 +71,9 @@ function ClockMount() {
 }
 
 export function App() {
-  const loaded = usePlay()
+  const loaded = usePlay(playUrlFromSearch(window.location.search))
   const [webglOk] = useState(detectWebGL)
+  const forceFlat = new URLSearchParams(window.location.search).get('webgl') === '0'
   const [loss, setLoss] = useState<ContextLossState>(createContextLossState)
   const [heldT, setHeldT] = useState(0)
   const lossRef = useRef(loss)
@@ -119,11 +121,11 @@ export function App() {
     setFrameloop((current) => (current === mode ? current : mode))
   }, [])
   const showQuarter = new URLSearchParams(window.location.search).get('rate') === '0.25'
-  const gfx = !webglOk || loss.failed ? 'failed' : loss.lost ? 'lost' : 'ok'
+  const gfx = !webglOk || loss.failed || forceFlat ? 'failed' : loss.lost ? 'lost' : 'ok'
 
   if (loaded.status === 'loading') {
     return (
-      <p className="fallback" data-testid="loading">
+      <p className="fallback loading-line" data-testid="loading">
         Loading play…
       </p>
     )
@@ -133,10 +135,10 @@ export function App() {
     return <LoadError errors={loaded.errors} url={loaded.url} onRetry={loaded.retry} />
   }
 
-  if (!webglOk || loss.failed) {
+  if (!webglOk || loss.failed || forceFlat) {
     return (
       <div data-gfx={gfx}>
-        <NoWebGL showReload={loss.failed || !webglOk} />
+        <NoWebGL showReload={loss.failed || !webglOk || forceFlat} />
       </div>
     )
   }
@@ -177,7 +179,7 @@ export function App() {
       </button>
       {loaded.warnings.length > 0 && (
         <details className="banner" data-testid="warnings">
-          <summary>{loaded.warnings.length} warnings</summary>
+          <summary className="banner-summary">{loaded.warnings.length} warnings</summary>
           <ul>
             {loaded.warnings.map((warning) => (
               <li key={`${warning.path}:${warning.message}`}>{warning.message}</li>
