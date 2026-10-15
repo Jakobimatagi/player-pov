@@ -26,7 +26,7 @@ npx supabase start
 npx supabase db reset
 ```
 
-Studio is at http://127.0.0.1:54323 . The seeded team is **Demo Knights** (head coach `coach@demo.local`, local password `password1234`). Copy the API URL and anon key from `npx supabase status` into `.env.local` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Leave them unset to run the 3D viewer with no backend. Do not put the service-role key in `.env.local` or in any `VITE_` variable.
+Studio is at http://127.0.0.1:54323 . The seeded team is **Demo Knights**. Local passwords are `password1234` for head coach `coach@demo.local` and player `player@demo.local`. Copy the API URL and anon key from `npx supabase status` into `.env.local` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Leave them unset to run the 3D viewer with no backend. Do not put the service-role key in `.env.local` or in any `VITE_` variable.
 
 ## Hosting
 
