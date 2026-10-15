@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { cameraState } from '../camera/cameraState'
 import {
   clockState,
   pauseKeepingPlace,
@@ -37,7 +38,7 @@ export function Scrubber({
       setPlaying(clockState.playingRef.current)
       const hidden = document.hidden
       if (hidden) onFrameloop('never')
-      else if (clockState.playingRef.current) onFrameloop('always')
+      else if (clockState.playingRef.current || cameraState.movingRef.current) onFrameloop('always')
       else onFrameloop('demand')
     }, 100)
     return () => window.clearInterval(id)

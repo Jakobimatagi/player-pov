@@ -15,10 +15,11 @@ import { useClock } from './playback/useClock'
 import { playUrlFromSearch } from './play/load'
 import { usePlay } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
-import { AspectSync } from './scene/AspectSync'
+import { CameraRig } from './scene/CameraRig'
 import { Field } from './scene/Field'
 import { Players } from './scene/Players'
 import { RouteLines } from './scene/RouteLines'
+import { CameraBar } from './ui/CameraBar'
 import { Scrubber } from './ui/Scrubber'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
@@ -156,7 +157,6 @@ export function App() {
         }}
       >
         <color attach="background" args={['#cfe3f5']} />
-        <AspectSync />
         <Field
           config={fieldConfigFromSearch(window.location.search)}
           losX={loaded.play.meta.lineOfScrimmageX}
@@ -164,16 +164,20 @@ export function App() {
           showSpot={new URLSearchParams(window.location.search).get('spot') === '1'}
         />
         <Players play={loaded.play} />
+        <CameraRig play={loaded.play} />
         <RouteLines play={loaded.play} visible={showRoutes} />
         <ClockMount />
         <RendererProbe onLost={handleLost} onRestored={handleRestored} />
       </Canvas>
-      <Scrubber
-        duration={loaded.play.meta.duration}
-        startT={earliestWaypoint(loaded.play.wpT)}
-        showQuarter={showQuarter}
-        onFrameloop={onFrameloop}
-      />
+      <div className="hud">
+        <CameraBar play={loaded.play} onFrameloop={onFrameloop} />
+        <Scrubber
+          duration={loaded.play.meta.duration}
+          startT={earliestWaypoint(loaded.play.wpT)}
+          showQuarter={showQuarter}
+          onFrameloop={onFrameloop}
+        />
+      </div>
       <button type="button" className="btn route-toggle" onClick={() => setShowRoutes((v) => !v)}>
         {showRoutes ? 'Hide routes' : 'Show routes'}
       </button>
