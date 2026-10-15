@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { TEAM_COLOR, boxVisual } from '../src/scene/playerVisual'
+import { fieldConfig } from '../src/field/fieldConfig'
+import { buildFieldMarkings, buildGrass, triangleCount } from '../src/scene/fieldMarkings'
+import { TEAM_COLOR, boxVisual, createNumberGeometry } from '../src/scene/playerVisual'
 
 describe('box players', () => {
   it('is one 12-triangle box with a darker front face', () => {
@@ -42,5 +44,20 @@ describe('box players', () => {
     expect(source).not.toMatch(/BoxGeometry|MeshLambertMaterial|MeshBasicMaterial/)
     expect(source).toMatch(/PlayerVisual/)
     expect(source).toMatch(/visual = boxVisual/)
+  })
+
+  it('keeps the full scene within 2000 triangles and 10 meshes', () => {
+    const tris =
+      triangleCount(buildGrass()) +
+      triangleCount(buildFieldMarkings(fieldConfig())) +
+      triangleCount(boxVisual.geometry) * 2 +
+      triangleCount(createNumberGeometry(boxVisual.numberAnchor))
+    expect(tris).toBeLessThanOrEqual(2000)
+    const tags = (source: string) => source.match(/<(mesh|instancedMesh)\b/g)?.length ?? 0
+    const meshes =
+      tags(readFileSync('src/scene/Field.tsx', 'utf8')) +
+      tags(readFileSync('src/scene/Players.tsx', 'utf8'))
+    expect(meshes).toBeLessThanOrEqual(10)
+    expect(meshes).toBeGreaterThan(0)
   })
 })
