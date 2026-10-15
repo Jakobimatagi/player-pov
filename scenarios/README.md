@@ -46,6 +46,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `play-loading.md`              | Fetch, schema, semantic checks, LoadError |
 | `sampling.md`                  | Compile, Hermite motion, facing, clamp    |
 | `scene-3d.md`                  | Field, players, ball                      |
+| `responsive.md`                | Widths, touch targets, mockups            |
 | `playback.md`                  | Play, pause, scrub, speeds                |
 | `end-of-play.md`               | Replay                                    |
 | `camera-pov.md`                | POV camera                                |

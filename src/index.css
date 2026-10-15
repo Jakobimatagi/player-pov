@@ -1,7 +1,15 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
   color: #f4f1ea;
   background: #141414;
   font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 16px;
+  --page-pad: 16px;
 }
 
 html,
@@ -9,6 +17,11 @@ body,
 #root {
   height: 100%;
   margin: 0;
+}
+
+html,
+body {
+  max-width: 100%;
 }
 
 #root {
@@ -29,9 +42,10 @@ body,
 
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   align-items: baseline;
-  padding: 0.85rem 1.25rem;
+  padding: 0.85rem 1rem;
 }
 
 .wordmark {
@@ -41,15 +55,21 @@ body,
 
 .topbar-muted {
   color: #b9b4aa;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
+  margin: 0;
 }
 
 .fallback-grid {
   display: grid;
-  grid-template-columns: minmax(16rem, 1fr) minmax(16rem, 1.2fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
-  padding: 1.5rem 1.25rem 2rem;
+  padding: var(--page-pad);
   align-items: start;
+}
+
+.loading-line {
+  margin: var(--page-pad);
+  font-size: 1rem;
 }
 
 .fallback h1 {
@@ -72,10 +92,11 @@ body,
   border: 1px solid #4a4a4a;
   border-radius: 999px;
   padding: 0.55rem 1rem;
-  font: inherit;
-  cursor: pointer;
   min-height: 44px;
   min-width: 44px;
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
 }
 
 .btn.primary {
@@ -86,14 +107,14 @@ body,
 
 .scrubber {
   position: absolute;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: 0.75rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
   align-items: center;
-  max-width: calc(100vw - 1.5rem);
+  max-width: calc(100% - 1rem);
   padding: 0.45rem 0.6rem;
   background: #1c1c1c;
   border: 1px solid #3a3a3a;
@@ -107,6 +128,10 @@ body,
   min-height: 44px;
 }
 
+.clock-readout {
+  font-size: 0.875rem;
+}
+
 .route-toggle {
   position: absolute;
   top: 0.75rem;
@@ -116,14 +141,15 @@ body,
 
 .banner {
   position: absolute;
-  top: 0.75rem;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 4rem;
+  left: 0.5rem;
+  right: 0.5rem;
   background: #1c1c1c;
   border: 1px solid #c8102e;
   border-radius: 0.6rem;
   padding: 0.6rem 1rem;
   z-index: 2;
+  overflow-wrap: anywhere;
 }
 
 .diagram-card {
@@ -134,11 +160,12 @@ body,
 
 .error-panel {
   max-width: 40rem;
-  margin: 1.5rem;
+  margin: var(--page-pad);
   padding: 1rem 1.2rem;
   border: 1px solid #c8102e;
   border-radius: 0.6rem;
   background: #1c1c1c;
+  overflow-wrap: anywhere;
 }
 
 .error-panel h1 {
@@ -152,11 +179,36 @@ body,
 
 .diagram-card p {
   margin: 0.4rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
-@media (max-width: 800px) {
+@media (min-width: 768px) {
+  :root {
+    font-size: 17px;
+    --page-pad: 20px;
+  }
+
   .fallback-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+
+  .scrubber {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    font-size: 18px;
+    --page-pad: 24px;
+  }
+}
+
+@media (min-width: 1920px) {
+  :root {
+    font-size: 22px;
+    --page-pad: 48px;
   }
 }

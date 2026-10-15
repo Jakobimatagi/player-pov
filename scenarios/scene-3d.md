@@ -86,3 +86,21 @@ The field is geometry, not a texture. Open http://127.0.0.1:5173 after `npm run 
 
 - It takes a `PlayerVisual` and does not import `BoxGeometry` or a body material.
 - Passing a different visual is the only change required to swap the art.
+
+## Scenario 8 — The ball follows the sample
+
+**Preconditions:** Dev server running. WebGL available.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/ .
+2. Run `npx vitest run tests/ball.test.ts`.
+
+**Expected:**
+
+- A tan prolate ball is on the field with the players. It is one mesh, 80 triangles.
+- At the snap the ball leaves the center and arrives at the quarterback.
+- While the quarterback carries it, the ball stays at his hand (0.35 yd forward, 1.1 yd up) and moves with his velocity.
+- The throw leaves the quarterback at 2.0 s, peaks halfway by the apex (3 yd) above the straight line between the hands, and is in H's hand at 2.9 s.
+- Before t = 0 and after the play ends, the ball holds still at the first and last hand positions.
+- Players are sampled once per frame, so facing is not smoothed twice.

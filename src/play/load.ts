@@ -4,6 +4,13 @@ import type { CompiledPlay, PlayFile, PlayLoadError, PlayWarning } from './types
 
 export const SAMPLE_PLAY_URL = '/plays/trips-right-vs-cover2.json'
 
+/** `?play=/plays/<name>.json` selects a fixture. Anything else stays on the sample. */
+export function playUrlFromSearch(search: string): string {
+  const value = new URLSearchParams(search).get('play')
+  if (value != null && /^\/plays\/[a-z0-9-]+\.json$/.test(value)) return value
+  return SAMPLE_PLAY_URL
+}
+
 export type PlayValidation =
   { ok: true; play: PlayFile; warnings: PlayWarning[] } | { ok: false; errors: PlayLoadError[] }
 

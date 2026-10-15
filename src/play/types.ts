@@ -96,6 +96,38 @@ export interface CompiledPlay {
   hopOrder: { offense: Uint8Array; defense: Uint8Array }
   facingState: Float32Array
   segmentCursor: Uint16Array
+  ball: CompiledBall
+}
+
+export interface CompiledBall {
+  count: number
+  /** 0 = carried, 1 = flight. */
+  kind: Uint8Array
+  /** Author times. Float64 so a value such as 2.9 still compares equal to the JSON number. */
+  t0: Float64Array
+  t1: Float64Array
+  /** Carrier index, or the thrower for a flight. */
+  from: Int16Array
+  /** Receiver index, or -1 when carried. */
+  to: Int16Array
+  apex: Float32Array
+  x0: Float32Array
+  y0: Float32Array
+  z0: Float32Array
+  x1: Float32Array
+  y1: Float32Array
+  z1: Float32Array
+  cursor: { index: number }
+}
+
+export interface BallPose {
+  x: number
+  y: number
+  z: number
+  vx: number
+  vy: number
+  vz: number
+  carrierIndex: number
 }
 
 /** Field-frame pose. heading is radians, 0 = +x. */
