@@ -10,12 +10,15 @@ import {
 import { useCappedDpr } from './gfx/useCappedDpr'
 import { registerContextRestore, runContextRestore } from './gfx/useContextRestore'
 import { detectWebGL } from './gfx/webglSupport'
-import { clockState, pauseKeepingPlace } from './playback/clockState'
+import { clockState, earliestWaypoint, pauseKeepingPlace } from './playback/clockState'
+import { useClock } from './playback/useClock'
 import { usePlay } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
 import { AspectSync } from './scene/AspectSync'
 import { Field } from './scene/Field'
 import { Players } from './scene/Players'
+import { RouteLines } from './scene/RouteLines'
+import { Scrubber } from './ui/Scrubber'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
 import { NoWebGL } from './ui/NoWebGL'
@@ -58,6 +61,11 @@ function RendererProbe({ onLost, onRestored }: { onLost: () => void; onRestored:
     }
   }, [gl, dpr, size, onLost, onRestored])
 
+  return null
+}
+
+function ClockMount() {
+  useClock()
   return null
 }
 
@@ -105,6 +113,12 @@ export function App() {
     commitLoss(next)
   }, [commitLoss])
 
+  const [frameloop, setFrameloop] = useState<'always' | 'demand' | 'never'>('demand')
+  const [showRoutes, setShowRoutes] = useState(false)
+  const onFrameloop = useCallback((mode: 'always' | 'demand' | 'never') => {
+    setFrameloop((current) => (current === mode ? current : mode))
+  }, [])
+  const showQuarter = new URLSearchParams(window.location.search).get('rate') === '0.25'
   const gfx = !webglOk || loss.failed ? 'failed' : loss.lost ? 'lost' : 'ok'
 
   if (loaded.status === 'loading') {
@@ -130,6 +144,7 @@ export function App() {
   return (
     <div className="viewport" data-testid="viewport" data-dpr={dpr} data-gfx={gfx}>
       <Canvas
+        frameloop={frameloop}
         dpr={dpr}
         resize={{ debounce: 100 }}
         gl={{
@@ -147,8 +162,19 @@ export function App() {
           showSpot={new URLSearchParams(window.location.search).get('spot') === '1'}
         />
         <Players play={loaded.play} />
+        <RouteLines play={loaded.play} visible={showRoutes} />
+        <ClockMount />
         <RendererProbe onLost={handleLost} onRestored={handleRestored} />
       </Canvas>
+      <Scrubber
+        duration={loaded.play.meta.duration}
+        startT={earliestWaypoint(loaded.play.wpT)}
+        showQuarter={showQuarter}
+        onFrameloop={onFrameloop}
+      />
+      <button type="button" className="btn route-toggle" onClick={() => setShowRoutes((v) => !v)}>
+        {showRoutes ? 'Hide routes' : 'Show routes'}
+      </button>
       {loaded.warnings.length > 0 && (
         <details className="banner" data-testid="warnings">
           <summary>{loaded.warnings.length} warnings</summary>

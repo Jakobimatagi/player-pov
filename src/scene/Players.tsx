@@ -1,7 +1,9 @@
+import { useFrame } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { Euler, InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three'
 import type { CompiledPlay } from '../play/types'
 import { yardsToWorld } from '../play/coords'
+import { clockState } from '../playback/clockState'
 import { samplePlayer } from '../play/sample'
 import type { PlayerPose } from '../play/types'
 import { buildJerseyAtlas, createNumberMaterial, jerseyCells } from './jerseyAtlas'
@@ -20,10 +22,11 @@ function writeTeam(
   play: CompiledPlay,
   indexes: readonly number[],
   t: number,
+  dt: number,
 ): void {
   if (mesh == null) return
   indexes.forEach((playerIndex, slot) => {
-    samplePlayer(play, playerIndex, t, 1, pose)
+    samplePlayer(play, playerIndex, t, dt, pose)
     yardsToWorld(pose.x, pose.y, 0, world)
     position.set(world.x, world.y, world.z)
     euler.set(0, pose.heading, 0)
@@ -61,13 +64,14 @@ export function Players({
   )
   const order = useMemo(() => [...offense, ...defense], [offense, defense])
 
-  useLayoutEffect(() => {
-    writeTeam(offenseRef.current, play, offense, t)
-    writeTeam(defenseRef.current, play, defense, t)
+  const seenT = useRef(t)
+  const place = (time: number, dt: number) => {
+    writeTeam(offenseRef.current, play, offense, time, dt)
+    writeTeam(defenseRef.current, play, defense, time, dt)
     const numbers = numbersRef.current
     if (numbers == null) return
     order.forEach((playerIndex, slot) => {
-      samplePlayer(play, playerIndex, t, 1, pose)
+      samplePlayer(play, playerIndex, time, dt, pose)
       yardsToWorld(pose.x, pose.y, 0, world)
       position.set(world.x, world.y, world.z)
       euler.set(0, pose.heading, 0)
@@ -76,9 +80,23 @@ export function Players({
       numbers.setMatrixAt(slot, matrix)
     })
     numbers.instanceMatrix.needsUpdate = true
+  }
+
+  useLayoutEffect(() => {
     const cells = order.map((index) => play.jerseys[index] ?? 0)
     numberGeo.setAttribute('aCell', jerseyCells(cells))
+    place(t, 1)
+    seenT.current = t
+    // place closes over the latest play; the frame loop reads the clock ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [play, t, offense, defense, order, numberGeo])
+
+  useFrame((_, delta) => {
+    const time = clockState.tRef.current
+    const jump = Math.abs(time - seenT.current)
+    place(time, jump > 0.1 ? 1 : Math.min(delta, 0.1))
+    seenT.current = time
+  }, 0)
 
   return (
     <group>
