@@ -15,6 +15,7 @@ import { usePlay } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
 import { AspectSync } from './scene/AspectSync'
 import { Field } from './scene/Field'
+import { Players } from './scene/Players'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
 import { NoWebGL } from './ui/NoWebGL'
@@ -145,6 +146,7 @@ export function App() {
           ballY={loaded.play.meta.ballY}
           showSpot={new URLSearchParams(window.location.search).get('spot') === '1'}
         />
+        <Players play={loaded.play} />
         <RendererProbe onLost={handleLost} onRestored={handleRestored} />
       </Canvas>
       {loaded.warnings.length > 0 && (

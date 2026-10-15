@@ -50,3 +50,39 @@ The field is geometry, not a texture. Open http://127.0.0.1:5173 after `npm run 
 - Grass is 48 triangles.
 - Markings, including goalposts, are at or under 2,000 triangles.
 - The field is two draw calls besides the optional debug sphere: grass, then markings.
+
+## Scenario 5 — Twenty-two players at the snap
+
+**Preconditions:** The sample play has loaded.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/ .
+
+**Expected:**
+
+- 22 boxes stand on the formation at the snap.
+- Offense is `#c8102e`. Defense is `#f2f2f2`.
+- The front face of each box is darker than the sides.
+
+## Scenario 6 — Jersey numbers from the sideline
+
+**Steps:**
+
+1. Look at the formation from the sideline camera (the default frame, south of the field).
+
+**Expected:**
+
+- White jersey numbers are readable on the sides of the boxes, not only on the chest and back.
+- Numbers are one draw call for every player.
+
+## Scenario 7 — Swap the player visual
+
+**Steps:**
+
+1. Read `src/scene/Players.tsx`.
+
+**Expected:**
+
+- It takes a `PlayerVisual` and does not import `BoxGeometry` or a body material.
+- Passing a different visual is the only change required to swap the art.
