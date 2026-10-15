@@ -1,0 +1,56 @@
+# Scenarios
+
+These files are the manual checks for review and QA. Each feature area has one markdown file. A scenario is one numbered check with a precondition, exact steps, and the result you should see.
+
+## Format
+
+```markdown
+## Scenario 1 — Short name
+
+**Preconditions:** What is already true (server running, URL, play loaded).
+
+**Steps:**
+
+1. Exact URL, key, or click.
+
+**Expected:**
+
+- What you can see or measure. Include the words on screen when they are specified.
+```
+
+Number scenarios from 1 inside each file. Do not renumber a scenario once a pull request has cited it. Add new numbers at the end. If a step changes, edit that scenario in place and say so in the pull request.
+
+## Run the app locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open http://127.0.0.1:5173 . The dev server exposes `window.__pov.tRef` and `window.__pov.playingRef` so a scenario can set the play clock from the console. Production builds do not.
+
+Checks that every pull request runs before it opens:
+
+```bash
+npm run typecheck && npm run lint && npm test && npm run build
+```
+
+## Files
+
+| File                           | Covers                                    |
+| ------------------------------ | ----------------------------------------- |
+| `webgl-fallback-and-errors.md` | No WebGL, context loss, DPR cap, resize   |
+| `play-loading.md`              | Fetch, schema, semantic checks, LoadError |
+| `scene-3d.md`                  | Field, players, ball                      |
+| `camera-pov.md`                | POV camera                                |
+| `camera-broadcast.md`          | Broadcast camera                          |
+| `camera-top-down.md`           | Top-down camera                           |
+| `player-hop.md`                | Attach and hop                            |
+| `playback.md`                  | Play, pause, scrub, speeds                |
+| `end-of-play.md`               | Replay                                    |
+| `share-deep-links.md`          | Share and URL state                       |
+| `touch-mobile.md`              | Touch and portrait                        |
+| `keyboard-help.md`             | Shortcuts and help                        |
+| `performance.md`               | Frame budget and quality ladder           |
+
+A file appears in the pull request that builds that feature. The pull request description cites `scenarios/<file>.md` and the scenario numbers it covers.

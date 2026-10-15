@@ -1,0 +1,126 @@
+import { Canvas, useThree } from '@react-three/fiber'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  createContextLossState,
+  noteContextLost,
+  noteContextLossTick,
+  noteContextRestored,
+  type ContextLossState,
+} from './gfx/contextLoss'
+import { useCappedDpr } from './gfx/useCappedDpr'
+import { runContextRestore } from './gfx/useContextRestore'
+import { detectWebGL } from './gfx/webglSupport'
+import { clockState, pauseKeepingPlace } from './playback/clockState'
+import { AspectSync } from './scene/AspectSync'
+import { ContextLossOverlay } from './ui/ContextLossOverlay'
+import { NoWebGL } from './ui/NoWebGL'
+
+function exposeDevClock(): void {
+  if (!import.meta.env.DEV) return
+  window.__pov = {
+    tRef: clockState.tRef,
+    playingRef: clockState.playingRef,
+  }
+}
+
+/** Publishes the renderer's drawing buffer size and binds context-loss events. */
+function RendererProbe({ onLost, onRestored }: { onLost: () => void; onRestored: () => void }) {
+  const gl = useThree((s) => s.gl)
+  const dpr = useThree((s) => s.viewport.dpr)
+
+  useEffect(() => {
+    const canvas = gl.domElement
+    canvas.dataset['dpr'] = String(dpr)
+    canvas.dataset['drawingBufferWidth'] = String(canvas.width)
+    gl.shadowMap.enabled = false
+
+    const handleLost = (event: Event) => {
+      event.preventDefault()
+      onLost()
+    }
+    canvas.addEventListener('webglcontextlost', handleLost)
+    canvas.addEventListener('webglcontextrestored', onRestored)
+    return () => {
+      canvas.removeEventListener('webglcontextlost', handleLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
+    }
+  }, [gl, dpr, onLost, onRestored])
+
+  return null
+}
+
+export function App() {
+  const [webglOk] = useState(detectWebGL)
+  const [loss, setLoss] = useState<ContextLossState>(createContextLossState)
+  const [heldT, setHeldT] = useState(0)
+  const lossRef = useRef(loss)
+  const dpr = useCappedDpr()
+
+  const commitLoss = useCallback((next: ContextLossState) => {
+    lossRef.current = next
+    setLoss(next)
+  }, [])
+
+  useEffect(() => {
+    exposeDevClock()
+  }, [])
+
+  useEffect(() => {
+    if (!loss.lost) return
+    const id = window.setInterval(() => {
+      const next = noteContextLossTick(lossRef.current, performance.now())
+      if (next !== lossRef.current) commitLoss(next)
+    }, 250)
+    return () => window.clearInterval(id)
+  }, [loss.lost, commitLoss])
+
+  const handleLost = useCallback(() => {
+    pauseKeepingPlace()
+    setHeldT(clockState.tRef.current)
+    commitLoss(noteContextLost(lossRef.current, performance.now()))
+  }, [commitLoss])
+
+  const handleRestored = useCallback(() => {
+    const next = noteContextRestored(lossRef.current)
+    if (next.failed) {
+      commitLoss(next)
+      return
+    }
+    runContextRestore()
+    clockState.playingRef.current = false
+    setHeldT(clockState.tRef.current)
+    commitLoss(next)
+  }, [commitLoss])
+
+  const gfx = !webglOk || loss.failed ? 'failed' : loss.lost ? 'lost' : 'ok'
+
+  if (!webglOk || loss.failed) {
+    return (
+      <div data-gfx={gfx}>
+        <NoWebGL showReload={loss.failed || !webglOk} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="viewport" data-testid="viewport" data-dpr={dpr} data-gfx={gfx}>
+      <Canvas
+        dpr={dpr}
+        resize={{ debounce: 100 }}
+        gl={{
+          antialias: false,
+          powerPreference: 'high-performance',
+          failIfMajorPerformanceCaveat: false,
+        }}
+      >
+        <color attach="background" args={['#cfe3f5']} />
+        <AspectSync />
+        <RendererProbe onLost={handleLost} onRestored={handleRestored} />
+      </Canvas>
+      {loss.lost && <ContextLossOverlay heldT={heldT} />}
+      <span data-testid="play-t" hidden>
+        {heldT.toFixed(2)}
+      </span>
+    </div>
+  )
+}

@@ -1,0 +1,891 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "trips-right-flood-vs-cover2",
+    "name": "Trips Right Flood vs Cover 2",
+    "offenseFormation": "Gun Trips Right",
+    "defenseFront": "4-3 Over",
+    "coverage": "Cover 2",
+    "description": "3x1 gun Flood: Z go, H corner, Y seam, RB swing, X backside dig. Defense plays Cover 2 with corners squatting and safeties splitting halves. QB throws the corner to H at 2.0s, caught at 2.9s.",
+    "lineOfScrimmageX": 35.0,
+    "ballY": 26.67,
+    "duration": 4.0,
+    "offenseDirection": "+x"
+  },
+  "players": [
+    {
+      "id": "lt",
+      "team": "offense",
+      "position": "LT",
+      "jersey": 76,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 34.5,
+          "y": 30.0,
+          "face": 0
+        },
+        {
+          "t": 0.6,
+          "x": 33.2,
+          "y": 30.8,
+          "face": 0
+        },
+        {
+          "t": 1.5,
+          "x": 32.4,
+          "y": 30.8,
+          "face": 0
+        },
+        {
+          "t": 4.0,
+          "x": 32.0,
+          "y": 30.4,
+          "face": 0
+        }
+      ],
+      "role": "pass-pro"
+    },
+    {
+      "id": "lg",
+      "team": "offense",
+      "position": "LG",
+      "jersey": 66,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 34.5,
+          "y": 28.3,
+          "face": 0
+        },
+        {
+          "t": 0.6,
+          "x": 33.2,
+          "y": 29.1,
+          "face": 0
+        },
+        {
+          "t": 1.5,
+          "x": 32.4,
+          "y": 29.1,
+          "face": 0
+        },
+        {
+          "t": 4.0,
+          "x": 32.0,
+          "y": 28.7,
+          "face": 0
+        }
+      ],
+      "role": "pass-pro"
+    },
+    {
+      "id": "c",
+      "team": "offense",
+      "position": "C",
+      "jersey": 55,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 34.5,
+          "y": 26.67,
+          "face": 0
+        },
+        {
+          "t": 0.6,
+          "x": 33.2,
+          "y": 26.67,
+          "face": 0
+        },
+        {
+          "t": 1.5,
+          "x": 32.4,
+          "y": 26.67,
+          "face": 0
+        },
+        {
+          "t": 4.0,
+          "x": 32.0,
+          "y": 26.67,
+          "face": 0
+        }
+      ],
+      "role": "pass-pro"
+    },
+    {
+      "id": "rg",
+      "team": "offense",
+      "position": "RG",
+      "jersey": 64,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 34.5,
+          "y": 25.0,
+          "face": 0
+        },
+        {
+          "t": 0.6,
+          "x": 33.2,
+          "y": 24.2,
+          "face": 0
+        },
+        {
+          "t": 1.5,
+          "x": 32.4,
+          "y": 24.2,
+          "face": 0
+        },
+        {
+          "t": 4.0,
+          "x": 32.0,
+          "y": 24.6,
+          "face": 0
+        }
+      ],
+      "role": "pass-pro"
+    },
+    {
+      "id": "rt",
+      "team": "offense",
+      "position": "RT",
+      "jersey": 72,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 34.5,
+          "y": 23.3,
+          "face": 0
+        },
+        {
+          "t": 0.6,
+          "x": 33.2,
+          "y": 22.5,
+          "face": 0
+        },
+        {
+          "t": 1.5,
+          "x": 32.4,
+          "y": 22.5,
+          "face": 0
+        },
+        {
+          "t": 4.0,
+          "x": 32.0,
+          "y": 22.900000000000002,
+          "face": 0
+        }
+      ],
+      "role": "pass-pro"
+    },
+    {
+      "id": "qb",
+      "team": "offense",
+      "position": "QB",
+      "jersey": 7,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 30.0,
+          "y": 26.67,
+          "face": 0
+        },
+        {
+          "t": 0.5,
+          "x": 28.5,
+          "y": 26.67,
+          "face": 0
+        },
+        {
+          "t": 1.0,
+          "x": 27.5,
+          "y": 26.67,
+          "face": 0
+        },
+        {
+          "t": 1.6,
+          "x": 27.8,
+          "y": 26.37,
+          "face": -20
+        },
+        {
+          "t": 2.4,
+          "x": 28.6,
+          "y": 26.07,
+          "face": -25
+        },
+        {
+          "t": 4.0,
+          "x": 28.8,
+          "y": 26.07,
+          "face": -25
+        }
+      ],
+      "role": "3-step gun drop, eyes right to Flood"
+    },
+    {
+      "id": "rb",
+      "team": "offense",
+      "position": "RB",
+      "jersey": 22,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 30.0,
+          "y": 28.17,
+          "face": 0
+        },
+        {
+          "t": 0.6,
+          "x": 30.8,
+          "y": 27.17
+        },
+        {
+          "t": 1.3,
+          "x": 32.5,
+          "y": 24.17
+        },
+        {
+          "t": 2.0,
+          "x": 34.5,
+          "y": 20.17
+        },
+        {
+          "t": 2.8,
+          "x": 36.5,
+          "y": 16.17
+        },
+        {
+          "t": 4.0,
+          "x": 38.0,
+          "y": 12.170000000000002
+        }
+      ],
+      "role": "check-release, swing flat right"
+    },
+    {
+      "id": "x",
+      "team": "offense",
+      "position": "WR",
+      "jersey": 1,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 34.5,
+          "y": 47.0
+        },
+        {
+          "t": 0.9,
+          "x": 40.0,
+          "y": 47.0
+        },
+        {
+          "t": 1.7,
+          "x": 46.5,
+          "y": 46.7
+        },
+        {
+          "t": 2.0,
+          "x": 47.3,
+          "y": 45.5
+        },
+        {
+          "t": 2.8,
+          "x": 47.8,
+          "y": 38.5
+        },
+        {
+          "t": 4.0,
+          "x": 48.2,
+          "y": 29.0
+        }
+      ],
+      "role": "backside dig at 12"
+    },
+    {
+      "id": "z",
+      "team": "offense",
+      "position": "WR",
+      "jersey": 11,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 34.5,
+          "y": 5.0
+        },
+        {
+          "t": 1.0,
+          "x": 41.5,
+          "y": 5.0
+        },
+        {
+          "t": 2.0,
+          "x": 49.0,
+          "y": 5.3
+        },
+        {
+          "t": 3.0,
+          "x": 57.0,
+          "y": 5.8
+        },
+        {
+          "t": 4.0,
+          "x": 65.0,
+          "y": 6.0
+        }
+      ],
+      "role": "#1 go, clear the corner"
+    },
+    {
+      "id": "h",
+      "team": "offense",
+      "position": "WR",
+      "jersey": 84,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 34.5,
+          "y": 10.5
+        },
+        {
+          "t": 0.9,
+          "x": 40.0,
+          "y": 10.5
+        },
+        {
+          "t": 1.7,
+          "x": 45.5,
+          "y": 10.6
+        },
+        {
+          "t": 2.0,
+          "x": 47.2,
+          "y": 9.6
+        },
+        {
+          "t": 2.8,
+          "x": 51.5,
+          "y": 6.0
+        },
+        {
+          "t": 4.0,
+          "x": 55.0,
+          "y": 3.0
+        }
+      ],
+      "role": "#2 corner at 12 (Flood high)"
+    },
+    {
+      "id": "y",
+      "team": "offense",
+      "position": "TE",
+      "jersey": 88,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 34.5,
+          "y": 16.0
+        },
+        {
+          "t": 0.9,
+          "x": 40.0,
+          "y": 16.3
+        },
+        {
+          "t": 1.7,
+          "x": 46.0,
+          "y": 16.8
+        },
+        {
+          "t": 2.6,
+          "x": 52.0,
+          "y": 17.5
+        },
+        {
+          "t": 3.4,
+          "x": 57.0,
+          "y": 17.2
+        },
+        {
+          "t": 4.0,
+          "x": 61.0,
+          "y": 16.5
+        }
+      ],
+      "role": "#3 seam, split the safeties"
+    },
+    {
+      "id": "de_l",
+      "team": "defense",
+      "position": "DE",
+      "jersey": 95,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 36.2,
+          "y": 31.5,
+          "face": 180
+        },
+        {
+          "t": 0.6,
+          "x": 34.7,
+          "y": 32.5,
+          "face": 180
+        },
+        {
+          "t": 1.5,
+          "x": 33.2,
+          "y": 30.5,
+          "face": 180
+        },
+        {
+          "t": 4.0,
+          "x": 32.4,
+          "y": 29.3,
+          "face": 180
+        }
+      ],
+      "role": "rush"
+    },
+    {
+      "id": "dt_3",
+      "team": "defense",
+      "position": "DT",
+      "jersey": 97,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 36.0,
+          "y": 24.6,
+          "face": 180
+        },
+        {
+          "t": 0.6,
+          "x": 34.7,
+          "y": 24.6,
+          "face": 180
+        },
+        {
+          "t": 1.5,
+          "x": 33.2,
+          "y": 24.6,
+          "face": 180
+        },
+        {
+          "t": 4.0,
+          "x": 32.4,
+          "y": 24.900000000000002,
+          "face": 180
+        }
+      ],
+      "role": "3-tech"
+    },
+    {
+      "id": "dt_1",
+      "team": "defense",
+      "position": "DT",
+      "jersey": 93,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 36.0,
+          "y": 27.6,
+          "face": 180
+        },
+        {
+          "t": 0.6,
+          "x": 34.7,
+          "y": 27.6,
+          "face": 180
+        },
+        {
+          "t": 1.5,
+          "x": 33.2,
+          "y": 27.6,
+          "face": 180
+        },
+        {
+          "t": 4.0,
+          "x": 32.4,
+          "y": 27.3,
+          "face": 180
+        }
+      ],
+      "role": "1-tech"
+    },
+    {
+      "id": "de_r",
+      "team": "defense",
+      "position": "DE",
+      "jersey": 91,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 36.2,
+          "y": 21.8,
+          "face": 180
+        },
+        {
+          "t": 0.6,
+          "x": 34.7,
+          "y": 20.8,
+          "face": 180
+        },
+        {
+          "t": 1.5,
+          "x": 33.2,
+          "y": 22.8,
+          "face": 180
+        },
+        {
+          "t": 4.0,
+          "x": 32.4,
+          "y": 24.0,
+          "face": 180
+        }
+      ],
+      "role": "rush"
+    },
+    {
+      "id": "sam",
+      "team": "defense",
+      "position": "LB",
+      "jersey": 55,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 39.5,
+          "y": 19.0,
+          "face": 180
+        },
+        {
+          "t": 0.5,
+          "x": 40.5,
+          "y": 17.5,
+          "face": 170
+        },
+        {
+          "t": 1.2,
+          "x": 43.5,
+          "y": 16.5,
+          "face": 170
+        },
+        {
+          "t": 2.2,
+          "x": 45.5,
+          "y": 16.8,
+          "face": 165
+        },
+        {
+          "t": 3.0,
+          "x": 46.5,
+          "y": 17.0,
+          "face": 160
+        },
+        {
+          "t": 4.0,
+          "x": 48.0,
+          "y": 17.0,
+          "face": 160
+        }
+      ],
+      "role": "curl-to-flat, wall #3 then sink"
+    },
+    {
+      "id": "mike",
+      "team": "defense",
+      "position": "LB",
+      "jersey": 52,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 40.0,
+          "y": 26.67,
+          "face": 180
+        },
+        {
+          "t": 0.6,
+          "x": 42.5,
+          "y": 26.0,
+          "face": 180
+        },
+        {
+          "t": 1.4,
+          "x": 46.5,
+          "y": 24.0,
+          "face": 180
+        },
+        {
+          "t": 2.4,
+          "x": 50.0,
+          "y": 21.5,
+          "face": 175
+        },
+        {
+          "t": 3.2,
+          "x": 53.0,
+          "y": 19.0,
+          "face": 170
+        },
+        {
+          "t": 4.0,
+          "x": 55.0,
+          "y": 18.0,
+          "face": 170
+        }
+      ],
+      "role": "Tampa-ish middle hole, carry #3 seam"
+    },
+    {
+      "id": "will",
+      "team": "defense",
+      "position": "LB",
+      "jersey": 54,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 39.5,
+          "y": 33.5,
+          "face": 180
+        },
+        {
+          "t": 0.6,
+          "x": 41.5,
+          "y": 34.5,
+          "face": 190
+        },
+        {
+          "t": 1.4,
+          "x": 44.5,
+          "y": 35.5,
+          "face": 190
+        },
+        {
+          "t": 2.4,
+          "x": 46.5,
+          "y": 34.0,
+          "face": 185
+        },
+        {
+          "t": 3.2,
+          "x": 47.3,
+          "y": 32.5,
+          "face": 180
+        },
+        {
+          "t": 4.0,
+          "x": 47.8,
+          "y": 30.0,
+          "face": 180
+        }
+      ],
+      "role": "hook-curl weak, robs dig"
+    },
+    {
+      "id": "cb_r",
+      "team": "defense",
+      "position": "CB",
+      "jersey": 24,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 40.0,
+          "y": 6.5,
+          "face": 180
+        },
+        {
+          "t": 0.5,
+          "x": 40.5,
+          "y": 6.5,
+          "face": 180
+        },
+        {
+          "t": 1.2,
+          "x": 41.2,
+          "y": 7.0,
+          "face": 160
+        },
+        {
+          "t": 2.0,
+          "x": 40.5,
+          "y": 8.5,
+          "face": 150
+        },
+        {
+          "t": 2.8,
+          "x": 39.5,
+          "y": 11.0,
+          "face": 135
+        },
+        {
+          "t": 4.0,
+          "x": 39.0,
+          "y": 14.0,
+          "face": 120
+        }
+      ],
+      "role": "squat flat, re-route #1, sink then drive RB swing"
+    },
+    {
+      "id": "cb_l",
+      "team": "defense",
+      "position": "CB",
+      "jersey": 21,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 40.0,
+          "y": 46.0,
+          "face": 180
+        },
+        {
+          "t": 0.6,
+          "x": 41.0,
+          "y": 46.0,
+          "face": 180
+        },
+        {
+          "t": 1.4,
+          "x": 43.0,
+          "y": 45.5,
+          "face": 190
+        },
+        {
+          "t": 2.4,
+          "x": 44.0,
+          "y": 43.0,
+          "face": 200
+        },
+        {
+          "t": 4.0,
+          "x": 45.0,
+          "y": 40.0,
+          "face": 200
+        }
+      ],
+      "role": "weak flat, sink with no threat"
+    },
+    {
+      "id": "ss",
+      "team": "defense",
+      "position": "S",
+      "jersey": 31,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 47.0,
+          "y": 18.0,
+          "face": 180
+        },
+        {
+          "t": 0.8,
+          "x": 49.0,
+          "y": 15.5,
+          "face": 170
+        },
+        {
+          "t": 1.6,
+          "x": 51.5,
+          "y": 12.5,
+          "face": 160
+        },
+        {
+          "t": 2.4,
+          "x": 54.0,
+          "y": 10.0,
+          "face": 150
+        },
+        {
+          "t": 3.2,
+          "x": 57.5,
+          "y": 8.5,
+          "face": 145
+        },
+        {
+          "t": 4.0,
+          "x": 62.0,
+          "y": 7.5,
+          "face": 150
+        }
+      ],
+      "role": "deep half strong, widen to #1 then overlap corner"
+    },
+    {
+      "id": "fs",
+      "team": "defense",
+      "position": "S",
+      "jersey": 29,
+      "waypoints": [
+        {
+          "t": 0,
+          "x": 47.0,
+          "y": 35.3,
+          "face": 180
+        },
+        {
+          "t": 0.8,
+          "x": 49.0,
+          "y": 34.0,
+          "face": 190
+        },
+        {
+          "t": 1.6,
+          "x": 51.0,
+          "y": 31.5,
+          "face": 200
+        },
+        {
+          "t": 2.4,
+          "x": 53.0,
+          "y": 28.5,
+          "face": 210
+        },
+        {
+          "t": 3.2,
+          "x": 55.5,
+          "y": 24.0,
+          "face": 210
+        },
+        {
+          "t": 4.0,
+          "x": 58.0,
+          "y": 20.5,
+          "face": 210
+        }
+      ],
+      "role": "deep half weak, no #1 vertical, close on seam"
+    }
+  ],
+  "ball": {
+    "segments": [
+      {
+        "kind": "flight",
+        "t0": 0,
+        "t1": 0.35,
+        "from": "c",
+        "to": "qb",
+        "apex": 0.3
+      },
+      {
+        "kind": "carried",
+        "t0": 0.35,
+        "t1": 2.0,
+        "carrier": "qb"
+      },
+      {
+        "kind": "flight",
+        "t0": 2.0,
+        "t1": 2.9,
+        "from": "qb",
+        "to": "h",
+        "apex": 3.0
+      },
+      {
+        "kind": "carried",
+        "t0": 2.9,
+        "t1": 4.0,
+        "carrier": "h"
+      }
+    ]
+  }
+}
