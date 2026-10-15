@@ -4,3 +4,6 @@ dist
 *.local
 coverage
 .vite
+.env
+.env.*
+!.env.example

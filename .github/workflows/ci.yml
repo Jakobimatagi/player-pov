@@ -23,3 +23,16 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  db:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - run: supabase db start
+      - run: supabase db reset --local --yes
+      - run: supabase test db
+      - name: RLS is enabled on every public table
+        run: supabase db query --local --file scripts/check-rls.sql
