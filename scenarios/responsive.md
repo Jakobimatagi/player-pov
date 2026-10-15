@@ -39,8 +39,9 @@ Coach navigation, once those screens exist: bottom tab bar on the phone (Team, P
 **Expected:**
 
 - The canvas fills the viewport. The page does not scroll sideways.
-- **Play**, each speed, **Show routes** / **Hide routes**, and the time range are at least 44px in both axes.
-- The scrubber wraps inside the viewport on the phone instead of running off the right edge.
+- **Play**, each speed, **Show routes** / **Hide routes**, the time range, and the camera buttons are at least 44px in both axes.
+- The camera buttons and the scrubber wrap inside the viewport on the phone.
+- At 360 the camera words are `POV`, `Broad`, and `Top`. From 768 up they are `POV`, `Broadcast`, and `Top-down`. The accessible names stay `POV`, `Broadcast`, and `Top-down` at every width.
 - Body text is 16px at 360, 17px at 768 and 1024, 18px at 1366, and 22px at 1920.
 
 ## Scenario 2 — Loading

@@ -1,17 +1,7 @@
-import { useLayoutEffect, useMemo } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useMemo } from 'react'
 import { fieldConfig, type FieldConfig } from '../field/fieldConfig'
 import { yardsToWorld } from '../play/coords'
 import { buildFieldMarkings, buildGrass } from './fieldMarkings'
-
-function FrameCamera() {
-  const camera = useThree((s) => s.camera)
-  useLayoutEffect(() => {
-    camera.position.set(0, 28, 52)
-    camera.lookAt(0, 0, 0)
-  }, [camera])
-  return null
-}
 
 /** Grass plus one markings mesh. `?spot=1` drops a sphere on the ball mark. */
 export function Field({
@@ -34,7 +24,6 @@ export function Field({
 
   return (
     <group>
-      <FrameCamera />
       <hemisphereLight args={['#f4f7fb', '#3f8f3a', 0.85]} />
       <directionalLight position={[20, 40, 10]} intensity={0.9} />
       <mesh geometry={grass} frustumCulled={false}>
