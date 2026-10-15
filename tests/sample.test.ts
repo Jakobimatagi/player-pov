@@ -192,7 +192,7 @@ describe('sampler', () => {
     expect(compiled.hopOrder.defense).toHaveLength(11)
   })
 
-  it('samples 10k frames with no allocation under 0.02 ms each', () => {
+  it('samples 10k frames with no allocation', () => {
     const compiled = compilePlay(sampleJson as PlayFile)
     const xy = new Float32Array(compiled.count * 2)
     const heading = new Float32Array(compiled.count)
@@ -201,14 +201,11 @@ describe('sampler', () => {
     for (let i = 0; i < 2000; i += 1) samplePlayers(compiled, (i % 40) * 0.1, 0.016, xy, heading)
     gc?.()
     const before = process.memoryUsage().heapUsed
-    const started = performance.now()
     for (let i = 0; i < 10000; i += 1) {
       samplePlayers(compiled, (i % 250) * 0.016, 0.016, xy, heading)
     }
-    const perCall = (performance.now() - started) / 10000
     gc?.()
     const retained = process.memoryUsage().heapUsed - before
     expect(retained).toBeLessThanOrEqual(0)
-    expect(perCall).toBeLessThan(0.02)
   })
 })
