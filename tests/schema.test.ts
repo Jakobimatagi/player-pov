@@ -21,7 +21,26 @@ function clone(play: PlayFile = sampleJson as PlayFile): PlayFile {
   return structuredClone(play)
 }
 
-function pythonResult(play: unknown): { ok: boolean; stdout: string } {
+type PythonOutcome = { ok: boolean; stdout: string } | { skipped: true }
+
+let jsonschemaReady: boolean | null = null
+
+function hasJsonschema(): boolean {
+  if (jsonschemaReady != null) return jsonschemaReady
+  try {
+    execFileSync('python3', ['-c', 'import jsonschema'], { stdio: 'pipe' })
+    jsonschemaReady = true
+  } catch {
+    jsonschemaReady = false
+    console.warn(
+      'Skipping validate.py parity: Python module jsonschema is missing. Install it with: pip install -r schema/requirements.txt',
+    )
+  }
+  return jsonschemaReady
+}
+
+function pythonResult(play: unknown): PythonOutcome {
+  if (!hasJsonschema()) return { skipped: true }
   const dir = mkdtempSync(join(tmpdir(), 'play-'))
   const file = join(dir, 'play.json')
   writeFileSync(file, JSON.stringify(play))
@@ -29,13 +48,18 @@ function pythonResult(play: unknown): { ok: boolean; stdout: string } {
     const stdout = execFileSync(
       'python3',
       ['schema/validate.py', file, 'schema/play.schema.json', '--warn'],
-      {
-        encoding: 'utf8',
-      },
+      { encoding: 'utf8' },
     )
     return { ok: true, stdout }
   } catch (err) {
-    const failure = err as { status?: number; stdout?: string }
+    const failure = err as { status?: number; stdout?: string; stderr?: string }
+    const stderr = failure.stderr ?? ''
+    if (stderr.includes('jsonschema')) {
+      console.warn(
+        'Skipping validate.py parity: Python module jsonschema is missing. Install it with: pip install -r schema/requirements.txt',
+      )
+      return { skipped: true }
+    }
     if (failure.status === 1) return { ok: false, stdout: failure.stdout ?? '' }
     throw err
   }
@@ -44,6 +68,7 @@ function pythonResult(play: unknown): { ok: boolean; stdout: string } {
 function expectSameVerdict(play: unknown): void {
   const ts = validatePlay(play)
   const py = pythonResult(play)
+  if ('skipped' in py) return
   expect(ts.ok).toBe(py.ok)
 }
 
@@ -211,8 +236,10 @@ describe('warnings', () => {
       )
     }
     const py = pythonResult(play)
-    expect(py.ok).toBe(true)
-    expect(py.stdout).toContain('WARN snap')
+    if (!('skipped' in py)) {
+      expect(py.ok).toBe(true)
+      expect(py.stdout).toContain('WARN snap')
+    }
   })
 })
 

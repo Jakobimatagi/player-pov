@@ -8,3 +8,11 @@ npm run dev
 ```
 
 `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build` are the checks CI runs.
+
+Python parity with `schema/validate.py` needs the `jsonschema` module:
+
+```bash
+pip install -r schema/requirements.txt
+```
+
+If that module is missing, those tests skip and print that install command.
