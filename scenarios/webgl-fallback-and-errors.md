@@ -31,21 +31,22 @@ Covers §8a.1 and §8a.4. Run `npm run dev` and open http://127.0.0.1:5173 unles
 - The steps mention `chrome://settings/system` and updating ChromeOS.
 - An SVG diagram shows offense as circles, defense as X marks, and route polylines.
 - The diagram is labeled with the play name `Trips Right Flood vs Cover 2`.
-- A **Share link** button is visible.
 - A **Reload** button is visible.
+- There is no share control. Sharing waits on a later plan.
 
-## Scenario 3 — Share still works without WebGL
+## Scenario 3 — Fallback does not offer share
 
-**Preconditions:** Scenario 2 is on screen. Clipboard permission is granted, or a prompt is acceptable.
+**Preconditions:** Scenario 2 is on screen.
 
 **Steps:**
 
-1. Click **Share link**.
+1. Read the buttons on the page.
 
 **Expected:**
 
-- The clipboard, or the copy prompt, contains the current page URL.
+- No button is labeled Share or Share link.
 - The diagram stays on screen.
+- **Reload** is still available.
 
 ## Scenario 4 — Context loss shows the overlay and restore keeps t
 

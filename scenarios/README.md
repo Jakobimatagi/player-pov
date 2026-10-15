@@ -42,15 +42,13 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `webgl-fallback-and-errors.md` | No WebGL, context loss, DPR cap, resize   |
 | `play-loading.md`              | Fetch, schema, semantic checks, LoadError |
 | `scene-3d.md`                  | Field, players, ball                      |
+| `playback.md`                  | Play, pause, scrub, speeds                |
+| `end-of-play.md`               | Replay                                    |
 | `camera-pov.md`                | POV camera                                |
 | `camera-broadcast.md`          | Broadcast camera                          |
 | `camera-top-down.md`           | Top-down camera                           |
 | `player-hop.md`                | Attach and hop                            |
-| `playback.md`                  | Play, pause, scrub, speeds                |
-| `end-of-play.md`               | Replay                                    |
-| `share-deep-links.md`          | Share and URL state                       |
-| `touch-mobile.md`              | Touch and portrait                        |
-| `keyboard-help.md`             | Shortcuts and help                        |
-| `performance.md`               | Frame budget and quality ladder           |
+
+Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 
 A file appears in the pull request that builds that feature. The pull request description cites `scenarios/<file>.md` and the scenario numbers it covers.
