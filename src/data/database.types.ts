@@ -186,6 +186,10 @@ export type Database = {
         Args: { p: PositionCode }
         Returns: PositionGroup | null
       }
+      health: {
+        Args: Record<string, never>
+        Returns: number
+      }
     }
     Enums: {
       team_role: TeamRole
