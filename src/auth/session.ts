@@ -14,7 +14,10 @@ export const SIGNED_OUT = "You're signed out."
 export const INVITE_INVALID =
   'This invite is no longer valid. Ask your coach for a new one, or log in.'
 
-export type HomeKind = 'viewer' | 'loading' | 'login' | 'player' | 'staff' | 'create-team' | 'error'
+export type HomeKind =
+  'viewer' | 'loading' | 'login' | 'player' | 'staff' | 'create-team' | 'removed' | 'error'
+
+export const HAD_TEAM_KEY = 'had_team'
 
 export function inactivityExpired(lastActive: string | null, now: number): boolean {
   if (lastActive == null || lastActive === '') return false
@@ -57,11 +60,13 @@ export function destination(input: {
   role: TeamRole | null
   membershipLoaded: boolean
   membershipError: boolean
+  lostAccess?: boolean
 }): HomeKind {
   if (!input.backend) return 'viewer'
   if (!input.ready || (input.hasSession && !input.membershipLoaded)) return 'loading'
   if (!input.hasSession) return 'login'
   if (input.membershipError) return 'error'
+  if (input.role == null && input.lostAccess) return 'removed'
   if (input.role == null) return 'create-team'
   if (input.role === 'player') return 'player'
   return 'staff'
@@ -71,6 +76,7 @@ export type AuthSnap = {
   ready: boolean
   session: Session | null
   role: TeamRole | null
+  teamId: string | null
   membershipLoaded: boolean
   membershipError: boolean
   expired: boolean
@@ -81,6 +87,7 @@ let snap: AuthSnap = {
   ready: supabase == null,
   session: null,
   role: null,
+  teamId: null,
   membershipLoaded: supabase == null,
   membershipError: false,
   expired: false,
@@ -103,17 +110,20 @@ export function getAuthSnap(): AuthSnap {
 
 async function loadRole(userId: string): Promise<{
   role: TeamRole | null
+  teamId: string | null
   error: boolean
 }> {
-  if (supabase == null) return { role: null, error: false }
+  if (supabase == null) return { role: null, teamId: null, error: false }
   const { data, error } = await supabase
     .from('memberships')
-    .select('role')
+    .select('role, team_id')
     .eq('user_id', userId)
     .limit(1)
-  if (error) return { role: null, error: true }
+  if (error) return { role: null, teamId: null, error: true }
   const role = data?.[0]?.role ?? null
-  return { role, error: false }
+  const teamId = data?.[0]?.team_id ?? null
+  if (role != null) localStorage.setItem(HAD_TEAM_KEY, userId)
+  return { role, teamId, error: false }
 }
 
 async function applySession(session: Session | null, expired: boolean): Promise<void> {
@@ -122,6 +132,7 @@ async function applySession(session: Session | null, expired: boolean): Promise<
       ready: true,
       session: null,
       role: null,
+      teamId: null,
       membershipLoaded: true,
       membershipError: false,
       expired,
@@ -133,10 +144,16 @@ async function applySession(session: Session | null, expired: boolean): Promise<
     ready: true,
     session,
     role: membership.role,
+    teamId: membership.teamId,
     membershipLoaded: true,
     membershipError: membership.error,
     expired,
   })
+}
+
+export async function reloadMembership(): Promise<void> {
+  if (supabase == null || snap.session == null) return
+  await applySession(snap.session, false)
 }
 
 export function startAuth(): void {

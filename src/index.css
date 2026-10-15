@@ -561,3 +561,268 @@ body {
     width: min(100%, 560px);
   }
 }
+
+.coach-frame,
+.player-frame {
+  min-height: 100%;
+  display: flex;
+}
+
+.coach-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--page-pad);
+  padding-bottom: 80px;
+}
+
+.side-nav,
+.roster-table,
+.nav-toggle {
+  display: none;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3d9a4a;
+  flex: none;
+}
+
+.status-dot[data-status='Pending'],
+.status-dot[data-status='Removed'] {
+  background: #c8102e;
+}
+
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  height: 64px;
+  background: #1c1c1c;
+}
+
+.tab-bar a,
+.side-nav a,
+.nav-drawer a,
+.roster-filters button,
+.more,
+.invite-button,
+.nav-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  color: #f4f1ea;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  font-size: 0.875rem;
+}
+
+.tab-bar a,
+.side-nav a,
+.nav-drawer a,
+.roster-filters button,
+.more,
+.invite-button {
+  display: inline-flex;
+}
+
+.tab-bar a {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 2px;
+  text-align: center;
+  line-height: 1.1;
+  white-space: normal;
+}
+
+.roster-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.roster-head h1 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.invite-button {
+  background: #c8102e;
+  border-radius: 8px;
+  padding: 0 12px;
+}
+
+.roster-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.roster-filters button {
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #3a3a3a;
+}
+
+.roster-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roster-cards li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+.pos-badge {
+  border: 1px solid #3a3a3a;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.more {
+  margin-left: auto;
+}
+
+.invite-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  padding: 16px;
+  background: #1c1c1c;
+  border-radius: 16px 16px 0 0;
+}
+
+.auth-submit.secondary {
+  background: transparent;
+  color: #f4f1ea;
+  border: 1px solid #3a3a3a;
+}
+
+.nav-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 6;
+  width: min(280px, 80vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #1c1c1c;
+}
+
+.row-menu {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #1c1c1c;
+  border-radius: 16px 16px 0 0;
+}
+
+.row-menu button,
+.row-menu select {
+  min-height: 48px;
+  font-size: 1rem;
+  color: #f4f1ea;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  text-align: left;
+  padding: 0 12px;
+}
+
+@media (min-width: 768px) {
+  .coach-main {
+    padding-bottom: var(--page-pad);
+  }
+
+  .tab-bar,
+  .roster-cards {
+    display: none;
+  }
+
+  .nav-toggle,
+  .status-dot {
+    display: inline-flex;
+  }
+
+  .roster-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .roster-table th,
+  .roster-table td {
+    text-align: left;
+    padding: 8px 4px;
+  }
+
+  .col-status {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .nav-toggle {
+    display: none;
+  }
+
+  .side-nav {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    flex: none;
+    gap: 4px;
+    padding: 16px 8px;
+    background: #1a1a1a;
+  }
+
+  .status-dot {
+    display: none;
+  }
+
+  .col-status {
+    display: table-cell;
+  }
+
+  .invite-sheet,
+  .row-menu {
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    top: 10vh;
+    width: min(480px, calc(100% - 32px));
+    transform: translateX(-50%);
+    border-radius: 12px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .side-nav {
+    width: 220px;
+  }
+}

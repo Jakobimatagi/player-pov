@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useSyncExternalStore } from 'react'
-import { Navigate, Outlet, useLocation } from 'react-router'
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { App } from '../App'
 import {
   destination,
   getAuthSnap,
+  HAD_TEAM_KEY,
   noteActivity,
+  reloadMembership,
   safeNext,
   startAuth,
   subscribeAuth,
@@ -30,6 +32,9 @@ export function SessionLayout() {
       window.removeEventListener('keydown', mark)
     }
   }, [])
+  useEffect(() => {
+    void reloadMembership()
+  }, [location.pathname])
   if (snap.expired && location.pathname !== '/login') {
     return <Navigate to="/login?expired=1" replace />
   }
@@ -55,6 +60,8 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
 
 export function HomePage() {
   const snap = useAuth()
+  const lostAccess =
+    snap.session != null && localStorage.getItem(HAD_TEAM_KEY) === snap.session.user.id
   const kind = destination({
     backend: supabase != null,
     ready: snap.ready,
@@ -62,6 +69,7 @@ export function HomePage() {
     role: snap.role,
     membershipLoaded: snap.membershipLoaded,
     membershipError: snap.membershipError,
+    lostAccess,
   })
   if (kind === 'viewer') return <App />
   if (kind === 'loading') return <p className="loading-line">Loading…</p>
@@ -70,6 +78,13 @@ export function HomePage() {
     return (
       <Shell title="Team">
         <p>Couldn&apos;t load your team.</p>
+      </Shell>
+    )
+  }
+  if (kind === 'removed') {
+    return (
+      <Shell title="Team">
+        <p>You no longer have access to this team</p>
       </Shell>
     )
   }
@@ -92,10 +107,25 @@ export function HomePage() {
 
 export function CreateTeamPage() {
   const [note, setNote] = useState<string | null>(null)
+  const navigate = useNavigate()
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setNote('Saving the team is the next step.')
+    if (supabase == null) return
+    const form = new FormData(event.currentTarget)
+    const { error } = await supabase.rpc('create_team', {
+      p_name: String(form.get('name') ?? ''),
+      p_school: String(form.get('school') ?? ''),
+      p_season: String(form.get('season') ?? ''),
+      p_hash_rule: String(form.get('hash') ?? 'NFHS'),
+      p_season_ends_on: String(form.get('ends') ?? '2026-11-30'),
+    })
+    if (error) {
+      setNote(error.message)
+      return
+    }
+    await reloadMembership()
+    navigate('/team')
   }
 
   return (
@@ -121,6 +151,10 @@ export function CreateTeamPage() {
             <option>NCAA</option>
           </select>
         </label>
+        <label className="auth-field">
+          <span>Season ends</span>
+          <input name="ends" type="date" defaultValue="2026-11-30" required />
+        </label>
         <button className="auth-submit" type="submit">
           Create team
         </button>
@@ -133,6 +167,8 @@ export function CreateTeamPage() {
 export function WatchPage() {
   const snap = useAuth()
   const location = useLocation()
+  const lostAccess =
+    snap.session != null && localStorage.getItem(HAD_TEAM_KEY) === snap.session.user.id
   const kind = destination({
     backend: supabase != null,
     ready: snap.ready,
@@ -140,8 +176,16 @@ export function WatchPage() {
     role: snap.role,
     membershipLoaded: true,
     membershipError: false,
+    lostAccess,
   })
   if (kind === 'loading') return <p className="loading-line">Loading…</p>
+  if (kind === 'removed') {
+    return (
+      <Shell title="Team">
+        <p>You no longer have access to this team</p>
+      </Shell>
+    )
+  }
   if (kind === 'login') {
     const next = safeNext(`${location.pathname}${location.search}`)
     return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />

@@ -102,5 +102,16 @@ describe('auth session', () => {
         membershipError: false,
       }),
     ).toBe('staff')
+    expect(
+      destination({
+        backend: true,
+        ready: true,
+        hasSession: true,
+        role: null,
+        membershipLoaded: true,
+        membershipError: false,
+        lostAccess: true,
+      }),
+    ).toBe('removed')
   })
 })

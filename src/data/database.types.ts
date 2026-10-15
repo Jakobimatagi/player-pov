@@ -177,6 +177,61 @@ export type Database = {
         Args: Record<string, never>
         Returns: number
       }
+      create_team: {
+        Args: {
+          p_name: string
+          p_school: string
+          p_season: string
+          p_hash_rule: string
+          p_season_ends_on: string
+        }
+        Returns: string
+      }
+      create_player_invite: {
+        Args: {
+          p_team: string
+          p_email: string
+          p_name: string
+          p_role: TeamRole
+          p_position: PositionCode | null
+          p_consent: boolean
+          p_statement: string | null
+        }
+        Returns: string
+      }
+      accept_invite: {
+        Args: { p_invite_id: string }
+        Returns: undefined
+      }
+      delete_member_data: {
+        Args: { p_team: string; p_user: string }
+        Returns: undefined
+      }
+      update_member: {
+        Args: {
+          p_team: string
+          p_user: string
+          p_role: TeamRole
+          p_position: PositionCode | null
+        }
+        Returns: undefined
+      }
+      remove_member: {
+        Args: { p_team: string; p_user: string }
+        Returns: undefined
+      }
+      revoke_invite: {
+        Args: { p_invite: string }
+        Returns: undefined
+      }
+      resend_invite: {
+        Args: { p_invite: string }
+        Returns: string
+      }
+      invite_status: {
+        Args: { p_invite: string }
+        Returns: string
+      }
     }
     Enums: {
       team_role: TeamRole

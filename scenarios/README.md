@@ -59,6 +59,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `backend-setup.md`             | Local Supabase, RLS, anon key             |
 | `deploy.md`                    | Vercel, keep-alive, encrypted backup      |
 | `auth.md`                      | Sign in, reset, invite, sign out          |
+| `team-management.md`           | Create team, roster, invites              |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 

@@ -7,6 +7,7 @@ import {
   SignupPage,
 } from '../auth/pages'
 import { HomePage, SessionLayout, WatchPage } from './HomeGate'
+import { TeamPage } from '../team/TeamPage'
 
 const router = createBrowserRouter([
   {
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: '/reset-password', element: <ResetPasswordPage /> },
       { path: '/accept-invite', element: <AcceptInvitePage /> },
       { path: '/watch/:playId', element: <WatchPage /> },
+      { path: '/team', element: <TeamPage /> },
     ],
   },
 ])

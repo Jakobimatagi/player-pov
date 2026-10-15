@@ -28,6 +28,8 @@ npx supabase db reset
 
 Studio is at http://127.0.0.1:54323 . The seeded team is **Demo Knights**. Local passwords are `password1234` for head coach `coach@demo.local` and player `player@demo.local`. Copy the API URL and anon key from `npx supabase status` into `.env.local` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Leave them unset to run the 3D viewer with no backend. Do not put the service-role key in `.env.local` or in any `VITE_` variable.
 
+With no backend, http://127.0.0.1:5173/team shows the roster layout. `?roster=player` is the player view. A confirmed coach creates a team with `create_team`. Invites go through the `invite-member` edge function, which needs `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `APP_URL` as function secrets. The service-role key stays out of Vercel and git.
+
 ## Hosting
 
 Vercel Hobby and Supabase free tier are for an unpaid personal pilot. Hobby is non-commercial: move to Vercel Pro before charging a team. Move Supabase to Pro on the first paid team, the first missed keep-alive, or a database over 300 MB.

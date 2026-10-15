@@ -9,6 +9,7 @@ import {
   linkExpired,
   mapLoginError,
   passwordIssue,
+  reloadMembership,
   RESET_EXPIRED,
   safeNext,
   SESSION_EXPIRED,
@@ -333,6 +334,8 @@ export function AcceptInvitePage() {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
   const invalid = linkExpired(window.location.search, window.location.hash)
   const email = 'invited player'
 
@@ -347,12 +350,29 @@ export function AcceptInvitePage() {
       setError('This preview has no account server yet.')
       return
     }
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    const { data, error: updateError } = await supabase.auth.updateUser({ password })
     if (updateError) {
       setError(INVITE_INVALID)
       return
     }
+    const inviteId = params.get('invite') ?? data.user?.user_metadata?.['invite_id']
+    if (typeof inviteId === 'string' && inviteId !== '') {
+      const { data: status } = await supabase.rpc('invite_status', { p_invite: inviteId })
+      if (status === 'invalid') {
+        setError(INVITE_INVALID)
+        return
+      }
+      const { error: acceptError } = await supabase.rpc('accept_invite', { p_invite_id: inviteId })
+      if (acceptError) {
+        setError(
+          acceptError.message.includes('no longer valid') ? INVITE_INVALID : acceptError.message,
+        )
+        return
+      }
+    }
+    await reloadMembership()
     setDone(true)
+    navigate('/')
   }
 
   if (invalid) {
