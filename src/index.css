@@ -127,6 +127,28 @@ body {
   display: none;
 }
 
+.scrub-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.scrub-row .scrubber {
+  flex: 1 1 16rem;
+}
+
+.hop-chips {
+  display: none;
+  gap: 0.45rem;
+}
+
+@media (pointer: coarse) {
+  .hop-chips {
+    display: flex;
+  }
+}
+
 .scrubber {
   position: relative;
   display: flex;

@@ -107,3 +107,45 @@ export function CameraBar({
     </div>
   )
 }
+
+/** ←/→ chips beside the scrubber. Rendered only for a coarse pointer, and only while attached. */
+export function HopChips({
+  play,
+  onFrameloop,
+}: {
+  play: CompiledPlay
+  onFrameloop: (mode: 'always' | 'demand' | 'never') => void
+}) {
+  const [attached, setAttached] = useState(cameraState.attached)
+  const [coarse, setCoarse] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches,
+  )
+
+  useEffect(() => subscribeCamera(() => setAttached(cameraState.attached)), [])
+
+  useEffect(() => {
+    const query = window.matchMedia('(pointer: coarse)')
+    const onChange = () => setCoarse(query.matches)
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [])
+
+  if (!coarse || attached < 0) return null
+
+  const hop = (dir: 1 | -1) => {
+    if (cameraState.attached < 0) return
+    attachPlayer(hopInTeam(play, cameraState.attached, dir))
+    if (cameraState.movingRef.current) onFrameloop('always')
+  }
+
+  return (
+    <div className="hop-chips" data-testid="hop-chips">
+      <button type="button" className="btn" aria-label="Hop left" onClick={() => hop(-1)}>
+        ←
+      </button>
+      <button type="button" className="btn" aria-label="Hop right" onClick={() => hop(1)}>
+        →
+      </button>
+    </div>
+  )
+}

@@ -17,9 +17,10 @@ import { usePlay } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
 import { CameraRig } from './scene/CameraRig'
 import { Field } from './scene/Field'
+import { GestureInput } from './scene/GestureInput'
 import { Players } from './scene/Players'
 import { RouteLines } from './scene/RouteLines'
-import { CameraBar } from './ui/CameraBar'
+import { CameraBar, HopChips } from './ui/CameraBar'
 import { Scrubber } from './ui/Scrubber'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
@@ -164,6 +165,7 @@ export function App() {
           showSpot={new URLSearchParams(window.location.search).get('spot') === '1'}
         />
         <Players play={loaded.play} />
+        <GestureInput play={loaded.play} onFrameloop={onFrameloop} />
         <CameraRig play={loaded.play} />
         <RouteLines play={loaded.play} visible={showRoutes} />
         <ClockMount />
@@ -171,12 +173,15 @@ export function App() {
       </Canvas>
       <div className="hud">
         <CameraBar play={loaded.play} onFrameloop={onFrameloop} />
-        <Scrubber
-          duration={loaded.play.meta.duration}
-          startT={earliestWaypoint(loaded.play.wpT)}
-          showQuarter={showQuarter}
-          onFrameloop={onFrameloop}
-        />
+        <div className="scrub-row">
+          <HopChips play={loaded.play} onFrameloop={onFrameloop} />
+          <Scrubber
+            duration={loaded.play.meta.duration}
+            startT={earliestWaypoint(loaded.play.wpT)}
+            showQuarter={showQuarter}
+            onFrameloop={onFrameloop}
+          />
+        </div>
       </div>
       <button type="button" className="btn route-toggle" onClick={() => setShowRoutes((v) => !v)}>
         {showRoutes ? 'Hide routes' : 'Show routes'}

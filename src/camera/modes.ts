@@ -1,4 +1,5 @@
 import { yardsToWorld } from '../play/coords'
+import { easeOrbit, orbitState } from './orbit'
 
 export type CamMode = 'pov' | 'broadcast' | 'topdown'
 
@@ -240,7 +241,8 @@ function fillGoal(state: RigState, input: RigInput, attached: number): void {
     goal.upX = 1
     goal.upY = 0
     goal.upZ = 0
-    goal.zoom = orthoZoom(input.viewWidth, input.viewHeight, maxX - minX, maxZ - minZ)
+    goal.zoom =
+      orthoZoom(input.viewWidth, input.viewHeight, maxX - minX, maxZ - minZ) * orbitState.zoomMul
     return
   }
 
@@ -260,6 +262,21 @@ function fillGoal(state: RigState, input: RigInput, attached: number): void {
   goal.upY = 1
   goal.upZ = 0
   goal.zoom = state.zoom
+  if (orbitState.active) {
+    const yaw = (orbitState.yaw * Math.PI) / 180
+    const pitch = (orbitState.pitch * Math.PI) / 180
+    const horiz = orbitState.distance * Math.cos(pitch)
+    const height = orbitState.distance * Math.sin(pitch)
+    yardsToWorld(
+      state.focusX + Math.sin(yaw) * horiz,
+      state.focusY - Math.cos(yaw) * horiz,
+      height,
+      camPoint,
+    )
+    goal.x = camPoint.x
+    goal.y = camPoint.y
+    goal.z = camPoint.z
+  }
 }
 
 function rawFocus(input: RigInput, attached: number): void {
@@ -279,6 +296,7 @@ function rawFocus(input: RigInput, attached: number): void {
 
 /** Advance the rig. No object allocation. A large seek snaps POV and glides the other modes. */
 export function stepRig(state: RigState, input: RigInput): void {
+  easeOrbit(input.now, input.dt)
   const attached = resolveAttached(input)
   const playerHeading = read(input.headingArr, attached >= 0 ? attached : 0)
   const largeSeek =
@@ -308,6 +326,7 @@ export function stepRig(state: RigState, input: RigInput): void {
   const wasOrtho = state.usingOrtho
   const useOrtho = input.mode === 'topdown' && !inTransition
   let holdFov = false
+  let holdZoom = false
   if (wasOrtho && !useOrtho) {
     state.fov = matchedFov(input.viewHeight, state.zoom, TOP_HEIGHT)
     holdFov = true
@@ -316,6 +335,7 @@ export function stepRig(state: RigState, input: RigInput): void {
     const half = TOP_HEIGHT * Math.tan((state.fov * Math.PI) / 360)
     const visible = half * 2
     if (visible > 0) state.zoom = input.viewHeight / visible
+    holdZoom = true
   }
   state.usingOrtho = useOrtho
 
@@ -327,7 +347,7 @@ export function stepRig(state: RigState, input: RigInput): void {
   state.lookY = damp(state.lookY, goal.lookY, tau, input.dt)
   state.lookZ = damp(state.lookZ, goal.lookZ, tau, input.dt)
   if (!holdFov) state.fov = damp(state.fov, goal.fov, tau, input.dt)
-  state.zoom = damp(state.zoom, goal.zoom, tau <= 0 ? 0 : tau, input.dt)
+  if (!holdZoom) state.zoom = damp(state.zoom, goal.zoom, tau <= 0 ? 0 : tau, input.dt)
   state.upX = damp(state.upX, goal.upX, tau, input.dt)
   state.upY = damp(state.upY, goal.upY, tau, input.dt)
   state.upZ = damp(state.upZ, goal.upZ, tau, input.dt)
@@ -349,7 +369,8 @@ export function stepRig(state: RigState, input: RigInput): void {
 
   state.fovDirty = Math.abs(state.fov - prevFov) > 0.01
   const err = Math.hypot(state.x - goal.x, state.y - goal.y, state.z - goal.z)
-  state.moving = inTransition || err > 0.05 || Math.abs(state.fov - goal.fov) > 0.05
+  state.moving =
+    inTransition || orbitState.active || err > 0.05 || Math.abs(state.fov - goal.fov) > 0.05
   state.mode = input.mode
   state.initialized = true
 }

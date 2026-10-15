@@ -1,4 +1,4 @@
-import { useFrame, type ThreeEvent } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import {
   Color,
@@ -10,7 +10,7 @@ import {
   Vector3,
   type Mesh,
 } from 'three'
-import { attachPlayer, cameraState, povAttached } from '../camera/cameraState'
+import { cameraState } from '../camera/cameraState'
 import { povFade } from '../camera/modes'
 import type { CompiledPlay } from '../play/types'
 import { yardsToWorld } from '../play/coords'
@@ -22,7 +22,12 @@ import { Ball } from './Ball'
 import { poseHeading, poseVel, poseXY, publishedBall } from './framePose'
 import { withInstanceFade } from './instanceFade'
 import { buildJerseyAtlas, createNumberMaterial, jerseyCells } from './jerseyAtlas'
-import { boxVisual, createNumberGeometry, type PlayerVisual } from './playerVisual'
+import {
+  boxVisual,
+  createNumberGeometry,
+  createPickMaterial,
+  type PlayerVisual,
+} from './playerVisual'
 
 const matrix = new Matrix4()
 const quaternion = new Quaternion()
@@ -94,8 +99,16 @@ export function Players({
   const offenseRef = useRef<InstancedMesh>(null)
   const defenseRef = useRef<InstancedMesh>(null)
   const numbersRef = useRef<InstancedMesh>(null)
+  const offensePickRef = useRef<InstancedMesh>(null)
+  const defensePickRef = useRef<InstancedMesh>(null)
   const offenseGeo = useMemo(() => visual.geometry.clone(), [visual])
   const defenseGeo = useMemo(() => visual.geometry.clone(), [visual])
+  const pickGeo = useMemo(() => {
+    const geo = visual.geometry.clone()
+    geo.scale(visual.pickScale, visual.pickScale, visual.pickScale)
+    return geo
+  }, [visual])
+  const pickMat = useMemo(() => createPickMaterial(), [])
   const offenseMat = useMemo(() => withInstanceFade(visual.createMaterial('offense')), [visual])
   const defenseMat = useMemo(() => withInstanceFade(visual.createMaterial('defense')), [visual])
   const numberGeo = useMemo(() => createNumberGeometry(visual.numberAnchor), [visual])
@@ -110,22 +123,7 @@ export function Players({
   )
   const order = useMemo(() => [...offense, ...defense], [offense, defense])
 
-  const qb = play.positions.indexOf('QB')
-  const qbIndex = qb >= 0 ? qb : 0
   const seenT = useRef(t)
-  const onPick = (indexes: readonly number[]) => (event: ThreeEvent<PointerEvent>) => {
-    const index = indexes[event.instanceId ?? -1]
-    if (index == null) return
-    event.stopPropagation()
-    attachPlayer(index)
-  }
-  const onPov = (indexes: readonly number[]) => (event: ThreeEvent<MouseEvent>) => {
-    const index = indexes[event.instanceId ?? -1]
-    if (index == null) return
-    event.stopPropagation()
-    attachPlayer(index)
-    povAttached(qbIndex)
-  }
   const place = (time: number, dt: number) => {
     for (let i = 0; i < play.count; i += 1) {
       samplePlayer(play, i, time, dt, pose)
@@ -138,6 +136,8 @@ export function Players({
     const hide = hiddenIndex()
     writeFromSample(offenseRef.current, offense, hide, visual.povHideRadius)
     writeFromSample(defenseRef.current, defense, hide, visual.povHideRadius)
+    writeFromSample(offensePickRef.current, offense, hide, visual.povHideRadius)
+    writeFromSample(defensePickRef.current, defense, hide, visual.povHideRadius)
     const numbers = numbersRef.current
     if (numbers != null) {
       order.forEach((playerIndex, slot) => {
@@ -179,6 +179,8 @@ export function Players({
     }
     arm(offenseRef.current)
     arm(defenseRef.current)
+    if (offensePickRef.current != null) offensePickRef.current.userData['indexes'] = offense
+    if (defensePickRef.current != null) defensePickRef.current.userData['indexes'] = defense
     const cells = order.map((index) => play.jerseys[index] ?? 0)
     numberGeo.setAttribute('aCell', jerseyCells(cells))
     place(t, 1)
@@ -200,15 +202,21 @@ export function Players({
         ref={offenseRef}
         args={[offenseGeo, offenseMat, offense.length]}
         frustumCulled={false}
-        onPointerDown={onPick(offense)}
-        onDoubleClick={onPov(offense)}
       />
       <instancedMesh
         ref={defenseRef}
         args={[defenseGeo, defenseMat, defense.length]}
         frustumCulled={false}
-        onPointerDown={onPick(defense)}
-        onDoubleClick={onPov(defense)}
+      />
+      <instancedMesh
+        ref={offensePickRef}
+        args={[pickGeo, pickMat, offense.length]}
+        frustumCulled={false}
+      />
+      <instancedMesh
+        ref={defensePickRef}
+        args={[pickGeo, pickMat, defense.length]}
+        frustumCulled={false}
       />
       <instancedMesh
         ref={numbersRef}

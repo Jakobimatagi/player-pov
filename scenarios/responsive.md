@@ -43,6 +43,7 @@ Coach navigation, once those screens exist: bottom tab bar on the phone (Team, P
 - The camera buttons and the scrubber wrap inside the viewport on the phone.
 - At 360 the camera words are `POV`, `Broad`, and `Top`. From 768 up they are `POV`, `Broadcast`, and `Top-down`. The accessible names stay `POV`, `Broadcast`, and `Top-down` at every width.
 - Body text is 16px at 360, 17px at 768 and 1024, 18px at 1366, and 22px at 1920.
+- On a fine pointer the hop chips are absent, so these five widths stay clear of them. On a coarse pointer, once a player is attached, **Hop left** and **Hop right** sit beside the scrubber and each is at least 44×44.
 
 ## Scenario 2 — Loading
 
