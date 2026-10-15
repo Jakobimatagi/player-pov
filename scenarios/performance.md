@@ -51,3 +51,19 @@ The Chromebook gate in the design (p95 ≤ 16.6 ms at L0 or L1 on a Celeron with
 
 - The picture holds still.
 - Moving the time range or pressing Play updates the frame again.
+
+## Scenario 4 — Phase 2 re-gate
+
+**Preconditions:** Blocky players are the default art.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/?perf=1 .
+2. Run `npx vitest run tests/budget.test.ts`.
+
+**Expected:**
+
+- The overlay shows 6 calls and 3854 tris in Broadcast.
+- The budget test passes: at most 6,000 triangles, and the jersey atlas is the 1024² texture (4 MiB).
+- The facemask does not add a call.
+- `docs/perf.md` records that the Celeron p95 gate and the 10 minute soak were not run on this machine.
