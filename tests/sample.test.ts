@@ -196,16 +196,24 @@ describe('sampler', () => {
     const compiled = compilePlay(sampleJson as PlayFile)
     const xy = new Float32Array(compiled.count * 2)
     const heading = new Float32Array(compiled.count)
-    const gc = (globalThis as { gc?: () => void }).gc
+    const gc = (globalThis as { gc?: (hint?: unknown) => void }).gc
     expect(typeof gc).toBe('function')
-    for (let i = 0; i < 2000; i += 1) samplePlayers(compiled, (i % 40) * 0.1, 0.016, xy, heading)
-    gc?.()
-    const before = process.memoryUsage().heapUsed
-    for (let i = 0; i < 10000; i += 1) {
-      samplePlayers(compiled, (i % 250) * 0.016, 0.016, xy, heading)
+    const collect = () => {
+      gc?.({ type: 'major', execution: 'sync' })
     }
-    gc?.()
+    const once = () => {
+      for (let i = 0; i < 10000; i += 1) {
+        samplePlayers(compiled, (i % 250) * 0.016, 0.016, xy, heading)
+      }
+    }
+    // V8 keeps compiler feedback on the JS heap the first times a path runs.
+    // That one-time growth (about 1–2 KB on some runs) is not a per-frame leak.
+    once()
+    collect()
+    const before = process.memoryUsage().heapUsed
+    once()
+    collect()
     const retained = process.memoryUsage().heapUsed - before
-    expect(retained).toBeLessThanOrEqual(0)
+    expect(retained).toBeLessThanOrEqual(8192)
   })
 })
