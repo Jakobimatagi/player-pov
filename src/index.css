@@ -139,6 +139,12 @@ body {
   z-index: 2;
 }
 
+.banner-summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
 .banner {
   position: absolute;
   top: 4rem;

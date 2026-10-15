@@ -179,7 +179,7 @@ export function App() {
       </button>
       {loaded.warnings.length > 0 && (
         <details className="banner" data-testid="warnings">
-          <summary>{loaded.warnings.length} warnings</summary>
+          <summary className="banner-summary">{loaded.warnings.length} warnings</summary>
           <ul>
             {loaded.warnings.map((warning) => (
               <li key={`${warning.path}:${warning.message}`}>{warning.message}</li>
