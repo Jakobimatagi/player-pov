@@ -74,3 +74,36 @@ export interface PlayWarning {
   message: string
   playerId?: string
 }
+
+/** Runtime form. Built once. Only facingState and segmentCursor change during playback. */
+export interface CompiledPlay {
+  meta: PlayMeta
+  count: number
+  ids: readonly string[]
+  teams: readonly Team[]
+  jerseys: Uint8Array
+  positions: readonly Position[]
+  wpStart: Uint16Array
+  wpT: Float32Array
+  wpX: Float32Array
+  wpY: Float32Array
+  /** Radians. NaN means the waypoint has no face override. */
+  wpFace: Float32Array
+  /** 1 = the segment into the next waypoint is linear. */
+  wpLinear: Uint8Array
+  tanX: Float32Array
+  tanY: Float32Array
+  hopOrder: { offense: Uint8Array; defense: Uint8Array }
+  facingState: Float32Array
+  segmentCursor: Uint16Array
+}
+
+/** Field-frame pose. heading is radians, 0 = +x. */
+export interface PlayerPose {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  heading: number
+  speed: number
+}

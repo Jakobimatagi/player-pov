@@ -44,6 +44,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | ------------------------------ | ----------------------------------------- |
 | `webgl-fallback-and-errors.md` | No WebGL, context loss, DPR cap, resize   |
 | `play-loading.md`              | Fetch, schema, semantic checks, LoadError |
+| `sampling.md`                  | Compile, Hermite motion, facing, clamp    |
 | `scene-3d.md`                  | Field, players, ball                      |
 | `playback.md`                  | Play, pause, scrub, speeds                |
 | `end-of-play.md`               | Replay                                    |

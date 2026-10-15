@@ -1,5 +1,6 @@
+import { compilePlay } from './compile'
 import { PlaySchema, collectWarnings, zodIssuesToErrors } from './schema'
-import type { PlayFile, PlayLoadError, PlayWarning } from './types'
+import type { CompiledPlay, PlayFile, PlayLoadError, PlayWarning } from './types'
 
 export const SAMPLE_PLAY_URL = '/plays/trips-right-vs-cover2.json'
 
@@ -60,7 +61,12 @@ export function validatePlay(data: unknown): PlayValidation {
   return { ok: true, play: parsed.data, warnings: collectWarnings(parsed.data) }
 }
 
-export async function fetchPlay(url: string): Promise<PlayValidation & { url: string }> {
+export async function fetchPlay(
+  url: string,
+): Promise<
+  | { ok: true; url: string; play: CompiledPlay; warnings: PlayWarning[] }
+  | { ok: false; url: string; errors: PlayLoadError[] }
+> {
   let response: Response
   try {
     response = await fetch(url)
@@ -98,5 +104,6 @@ export async function fetchPlay(url: string): Promise<PlayValidation & { url: st
     }
   }
   const result = validatePlay(json.value)
-  return { ...result, url }
+  if (!result.ok) return { ok: false, url, errors: result.errors }
+  return { ok: true, url, play: compilePlay(result.play), warnings: result.warnings }
 }
