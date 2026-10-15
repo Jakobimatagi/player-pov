@@ -26,6 +26,13 @@ describe('field geometry', () => {
     expect(ncaa).toBe(nfhs)
   })
 
+  it('keeps the whole field scene at or under 2000 triangles', () => {
+    const total =
+      triangleCount(buildGrass()) + triangleCount(buildFieldMarkings(fieldConfig('NFHS')))
+    expect(total).toBeLessThanOrEqual(2000)
+    expect(total).toBeGreaterThan(48)
+  })
+
   it('moves hash ticks when the rule changes', () => {
     const zOf = (rule: 'NFHS' | 'NCAA') => {
       const geo = buildFieldMarkings(fieldConfig(rule))
