@@ -1,0 +1,55 @@
+{
+  "sourceVersion": 1,
+  "id": "trips-flood",
+  "name": "Trips Right Flood",
+  "side": "offense",
+  "formation": "Gun Trips Right",
+  "ballSpot": { "yardLine": 25, "hash": "M" },
+  "duration": 4,
+  "defaultLookId": "cover-2",
+  "ball": {
+    "snap": "shotgun",
+    "segments": [
+      { "kind": "flight", "t0": 0, "t1": 0.35, "from": "c", "to": "qb", "apex": 0.3 },
+      { "kind": "carried", "t0": 0.35, "t1": 4, "carrier": "qb" }
+    ]
+  },
+  "adjustments": [
+    {
+      "when": { "coverage": "Cover 3" },
+      "overrides": [
+        {
+          "slot": "h",
+          "legs": [
+            { "to": { "dx": 6, "dy": 0 }, "dur": 1.5, "label": "stem" },
+            { "to": { "dx": 4, "dy": 2 }, "dur": 1.5, "label": "seam" },
+            { "to": { "dx": 8, "dy": 0 }, "dur": 1, "label": "go" }
+          ]
+        }
+      ]
+    }
+  ],
+  "players": [
+    { "slot": "lt", "position": "LT", "jersey": 76, "align": { "dx": -0.5, "dy": 4 }, "legs": [] },
+    { "slot": "lg", "position": "LG", "jersey": 66, "align": { "dx": -0.5, "dy": 2 }, "legs": [] },
+    { "slot": "c", "position": "C", "jersey": 64, "align": { "dx": -0.5, "dy": 0 }, "legs": [] },
+    { "slot": "rg", "position": "RG", "jersey": 68, "align": { "dx": -0.5, "dy": -2 }, "legs": [] },
+    { "slot": "rt", "position": "RT", "jersey": 72, "align": { "dx": -0.5, "dy": -4 }, "legs": [] },
+    { "slot": "qb", "position": "QB", "jersey": 12, "align": { "dx": -5, "dy": 0 }, "legs": [] },
+    { "slot": "rb", "position": "RB", "jersey": 28, "align": { "dx": -6, "dy": -1 }, "legs": [] },
+    { "slot": "x", "position": "WR", "jersey": 1, "align": { "dx": -1, "dy": 14 }, "legs": [] },
+    { "slot": "z", "position": "WR", "jersey": 4, "align": { "dx": -1, "dy": -16 }, "legs": [] },
+    {
+      "slot": "h",
+      "position": "WR",
+      "jersey": 11,
+      "align": { "dx": -1, "dy": -8 },
+      "legs": [
+        { "to": { "dx": 8, "dy": -2 }, "dur": 1.5, "label": "stem" },
+        { "to": { "dx": 4, "dy": 6 }, "dur": 1.5, "label": "corner" },
+        { "to": { "dx": 2, "dy": 2 }, "dur": 1, "label": "flatten" }
+      ]
+    },
+    { "slot": "y", "position": "TE", "jersey": 88, "align": { "dx": -0.5, "dy": -6 }, "legs": [] }
+  ]
+}

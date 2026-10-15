@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "compile": "tsx src/play/compileCli.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -36,6 +37,7 @@
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.13.0",
     "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.71.2",
     "vite": "^8.3.4",
