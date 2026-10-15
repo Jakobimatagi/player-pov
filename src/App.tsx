@@ -8,7 +8,7 @@ import {
   type ContextLossState,
 } from './gfx/contextLoss'
 import { useCappedDpr } from './gfx/useCappedDpr'
-import { runContextRestore } from './gfx/useContextRestore'
+import { registerContextRestore, runContextRestore } from './gfx/useContextRestore'
 import { detectWebGL } from './gfx/webglSupport'
 import { clockState, pauseKeepingPlace } from './playback/clockState'
 import { AspectSync } from './scene/AspectSync'
@@ -27,12 +27,18 @@ function exposeDevClock(): void {
 function RendererProbe({ onLost, onRestored }: { onLost: () => void; onRestored: () => void }) {
   const gl = useThree((s) => s.gl)
   const dpr = useThree((s) => s.viewport.dpr)
+  const size = useThree((s) => s.size)
 
   useEffect(() => {
     const canvas = gl.domElement
-    canvas.dataset['dpr'] = String(dpr)
-    canvas.dataset['drawingBufferWidth'] = String(canvas.width)
+    const publish = () => {
+      canvas.dataset['dpr'] = String(dpr)
+      canvas.dataset['drawingBufferWidth'] = String(canvas.width)
+      canvas.dataset['drawingBufferHeight'] = String(canvas.height)
+    }
+    publish()
     gl.shadowMap.enabled = false
+    const unregister = registerContextRestore(publish)
 
     const handleLost = (event: Event) => {
       event.preventDefault()
@@ -41,10 +47,11 @@ function RendererProbe({ onLost, onRestored }: { onLost: () => void; onRestored:
     canvas.addEventListener('webglcontextlost', handleLost)
     canvas.addEventListener('webglcontextrestored', onRestored)
     return () => {
+      unregister()
       canvas.removeEventListener('webglcontextlost', handleLost)
       canvas.removeEventListener('webglcontextrestored', onRestored)
     }
-  }, [gl, dpr, onLost, onRestored])
+  }, [gl, dpr, size, onLost, onRestored])
 
   return null
 }
