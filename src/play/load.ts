@@ -80,6 +80,15 @@ export async function fetchPlay(url: string): Promise<PlayValidation & { url: st
     }
   }
   const text = await response.text()
+  // Vite's SPA fallback answers a missing fixture with index.html and status 200.
+  const contentType = response.headers.get('content-type') ?? ''
+  if (contentType.includes('text/html') || text.trimStart().startsWith('<')) {
+    return {
+      ok: false,
+      url,
+      errors: [{ kind: 'network', path: url, message: 'not found' }],
+    }
+  }
   const json = parseJson(text)
   if (!json.ok) {
     return {

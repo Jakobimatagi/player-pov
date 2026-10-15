@@ -38,7 +38,8 @@ The engine loads one fixture, `/plays/trips-right-vs-cover2.json`. There is no p
 **Expected:**
 
 - The load-error panel shows that URL.
-- The message is `HTTP 404`.
+- The message is `HTTP 404` when the server returns 404.
+- A 200 whose content-type is `text/html`, or whose body starts with `<`, is `not found`. That is Vite's `index.html` fallback for a missing file, not a JSON parse error.
 - **Retry** is present. There is no Browse or Share control.
 
 ## Scenario 4 — Non-JSON includes line and column

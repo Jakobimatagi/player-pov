@@ -278,6 +278,26 @@ describe('load failures', () => {
     vi.unstubAllGlobals()
   })
 
+  it('reports an HTML 200 as not found', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response('<!doctype html><html></html>', {
+            status: 200,
+            headers: { 'content-type': 'text/html' },
+          }),
+      ),
+    )
+    const result = await fetchPlay('/plays/missing.json')
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.errors[0]?.kind).toBe('network')
+      expect(result.errors[0]?.message).toBe('not found')
+    }
+    vi.unstubAllGlobals()
+  })
+
   it('reports a non-JSON body', async () => {
     vi.stubGlobal(
       'fetch',
