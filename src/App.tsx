@@ -11,8 +11,10 @@ import { useCappedDpr } from './gfx/useCappedDpr'
 import { registerContextRestore, runContextRestore } from './gfx/useContextRestore'
 import { detectWebGL } from './gfx/webglSupport'
 import { clockState, pauseKeepingPlace } from './playback/clockState'
+import { usePlay } from './play/usePlay'
 import { AspectSync } from './scene/AspectSync'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
+import { LoadError } from './ui/LoadError'
 import { NoWebGL } from './ui/NoWebGL'
 
 function exposeDevClock(): void {
@@ -57,6 +59,7 @@ function RendererProbe({ onLost, onRestored }: { onLost: () => void; onRestored:
 }
 
 export function App() {
+  const loaded = usePlay()
   const [webglOk] = useState(detectWebGL)
   const [loss, setLoss] = useState<ContextLossState>(createContextLossState)
   const [heldT, setHeldT] = useState(0)
@@ -101,6 +104,18 @@ export function App() {
 
   const gfx = !webglOk || loss.failed ? 'failed' : loss.lost ? 'lost' : 'ok'
 
+  if (loaded.status === 'loading') {
+    return (
+      <p className="fallback" data-testid="loading">
+        Loading play…
+      </p>
+    )
+  }
+
+  if (loaded.status === 'error') {
+    return <LoadError errors={loaded.errors} url={loaded.url} onRetry={loaded.retry} />
+  }
+
   if (!webglOk || loss.failed) {
     return (
       <div data-gfx={gfx}>
@@ -124,6 +139,16 @@ export function App() {
         <AspectSync />
         <RendererProbe onLost={handleLost} onRestored={handleRestored} />
       </Canvas>
+      {loaded.warnings.length > 0 && (
+        <details className="banner" data-testid="warnings">
+          <summary>{loaded.warnings.length} warnings</summary>
+          <ul>
+            {loaded.warnings.map((warning) => (
+              <li key={`${warning.path}:${warning.message}`}>{warning.message}</li>
+            ))}
+          </ul>
+        </details>
+      )}
       {loss.lost && <ContextLossOverlay heldT={heldT} />}
       <span data-testid="play-t" hidden>
         {heldT.toFixed(2)}

@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://player-pov/play.schema.json",
+  "title": "POV Playbook Play v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "meta", "players", "ball"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "lineOfScrimmageX", "ballY", "duration", "offenseDirection"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offenseFormation": {
+          "type": "string"
+        },
+        "defenseFront": {
+          "type": "string"
+        },
+        "coverage": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "lineOfScrimmageX": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 110
+        },
+        "ballY": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 53.333
+        },
+        "duration": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 15
+        },
+        "offenseDirection": {
+          "const": "+x"
+        }
+      }
+    },
+    "players": {
+      "type": "array",
+      "minItems": 22,
+      "maxItems": 22,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "team", "position", "jersey", "waypoints"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "team": {
+            "enum": ["offense", "defense"]
+          },
+          "position": {
+            "enum": [
+              "QB",
+              "RB",
+              "FB",
+              "WR",
+              "TE",
+              "LT",
+              "LG",
+              "C",
+              "RG",
+              "RT",
+              "DE",
+              "DT",
+              "NT",
+              "LB",
+              "CB",
+              "S"
+            ]
+          },
+          "jersey": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99
+          },
+          "role": {
+            "type": "string"
+          },
+          "waypoints": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["t", "x", "y"],
+              "properties": {
+                "t": {
+                  "type": "number",
+                  "minimum": -10
+                },
+                "x": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 120
+                },
+                "y": {
+                  "type": "number",
+                  "minimum": -2,
+                  "maximum": 55.333
+                },
+                "face": {
+                  "type": "number",
+                  "minimum": -360,
+                  "maximum": 360
+                },
+                "interp": {
+                  "enum": ["smooth", "linear"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ball": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["segments"],
+      "properties": {
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "t0", "t1", "carrier"],
+                "properties": {
+                  "kind": {
+                    "const": "carried"
+                  },
+                  "t0": {
+                    "type": "number",
+                    "minimum": -10
+                  },
+                  "t1": {
+                    "type": "number"
+                  },
+                  "carrier": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "t0", "t1", "from", "to"],
+                "properties": {
+                  "kind": {
+                    "const": "flight"
+                  },
+                  "t0": {
+                    "type": "number",
+                    "minimum": -10
+                  },
+                  "t1": {
+                    "type": "number"
+                  },
+                  "from": {
+                    "type": "string"
+                  },
+                  "to": {
+                    "type": "string"
+                  },
+                  "apex": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 30,
+                    "description": "peak height above the straight line, yards; default 2"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
