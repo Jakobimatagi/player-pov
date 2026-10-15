@@ -1,6 +1,7 @@
-import { useFrame } from '@react-three/fiber'
+import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import {
+  Color,
   Euler,
   InstancedBufferAttribute,
   InstancedMesh,
@@ -9,7 +10,7 @@ import {
   Vector3,
   type Mesh,
 } from 'three'
-import { cameraState } from '../camera/cameraState'
+import { attachPlayer, cameraState, povAttached } from '../camera/cameraState'
 import { povFade } from '../camera/modes'
 import type { CompiledPlay } from '../play/types'
 import { yardsToWorld } from '../play/coords'
@@ -30,6 +31,8 @@ const scale = new Vector3(1, 1, 1)
 const euler = new Euler()
 const pose: PlayerPose = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, speed: 0 }
 const world = { x: 0, y: 0, z: 0 }
+const white = new Color(1, 1, 1)
+const highlight = new Color(1, 0.78, 0.2)
 
 function hiddenIndex(): number {
   if (cameraState.mode !== 'pov') return -1
@@ -70,9 +73,11 @@ function writeFromSample(
     quaternion.setFromEuler(euler)
     matrix.compose(position, quaternion, scale)
     mesh.setMatrixAt(slot, matrix)
+    mesh.setColorAt(slot, playerIndex === cameraState.attached ? highlight : white)
     if (fadeAttr != null) fadeAttr.setX(slot, gone ? 1 : fadeOf(playerIndex, hide, radius))
   })
   mesh.instanceMatrix.needsUpdate = true
+  if (mesh.instanceColor != null) mesh.instanceColor.needsUpdate = true
   if (fadeAttr != null) fadeAttr.needsUpdate = true
 }
 
@@ -106,7 +111,22 @@ export function Players({
   )
   const order = useMemo(() => [...offense, ...defense], [offense, defense])
 
+  const qb = play.positions.indexOf('QB')
+  const qbIndex = qb >= 0 ? qb : 0
   const seenT = useRef(t)
+  const onPick = (indexes: readonly number[]) => (event: ThreeEvent<PointerEvent>) => {
+    const index = indexes[event.instanceId ?? -1]
+    if (index == null) return
+    event.stopPropagation()
+    attachPlayer(index)
+  }
+  const onPov = (indexes: readonly number[]) => (event: ThreeEvent<MouseEvent>) => {
+    const index = indexes[event.instanceId ?? -1]
+    if (index == null) return
+    event.stopPropagation()
+    attachPlayer(index)
+    povAttached(qbIndex)
+  }
   const place = (time: number, dt: number) => {
     for (let i = 0; i < play.count; i += 1) {
       samplePlayer(play, i, time, dt, pose)
@@ -179,11 +199,15 @@ export function Players({
         ref={offenseRef}
         args={[offenseGeo, offenseMat, offense.length]}
         frustumCulled={false}
+        onPointerDown={onPick(offense)}
+        onDoubleClick={onPov(offense)}
       />
       <instancedMesh
         ref={defenseRef}
         args={[defenseGeo, defenseMat, defense.length]}
         frustumCulled={false}
+        onPointerDown={onPick(defense)}
+        onDoubleClick={onPov(defense)}
       />
       <instancedMesh
         ref={numbersRef}

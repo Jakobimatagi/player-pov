@@ -11,6 +11,17 @@ export const cameraState = {
   movingRef: { current: false },
 }
 
+const listeners = new Set<() => void>()
+
+export function subscribeCamera(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+function emit(): void {
+  listeners.forEach((listener) => listener())
+}
+
 export function selectMode(
   mode: CamMode,
   qbIndex: number,
@@ -23,4 +34,31 @@ export function selectMode(
   }
   cameraState.transitionUntil = nowSeconds + 0.6
   cameraState.movingRef.current = true
+  emit()
+}
+
+/** Attach, keep the current mode, and glide the frame toward that player. */
+export function attachPlayer(index: number, nowSeconds = performance.now() / 1000): void {
+  if (cameraState.attached === index) return
+  cameraState.attached = index
+  cameraState.transitionUntil = nowSeconds + 0.6
+  cameraState.movingRef.current = true
+  emit()
+}
+
+export function detachPlayer(): void {
+  if (cameraState.attached < 0) return
+  cameraState.attached = -1
+  emit()
+}
+
+/** P, or a double-click: POV on the attached player. */
+export function povAttached(qbIndex: number, nowSeconds = performance.now() / 1000): void {
+  if (cameraState.attached < 0) return
+  if (cameraState.mode !== 'pov') selectMode('pov', qbIndex, nowSeconds)
+  else {
+    cameraState.transitionUntil = nowSeconds + 0.6
+    cameraState.movingRef.current = true
+    emit()
+  }
 }
