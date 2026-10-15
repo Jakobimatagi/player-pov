@@ -32,8 +32,9 @@ const pose: PlayerPose = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, speed: 0 }
 const world = { x: 0, y: 0, z: 0 }
 
 function hiddenIndex(): number {
-  if (cameraState.mode !== 'pov' || cameraState.attached < 0) return -1
-  return cameraState.attached
+  if (cameraState.mode !== 'pov') return -1
+  if (cameraState.attached >= 0) return cameraState.attached
+  return cameraState.povSubject
 }
 
 function fadeOf(playerIndex: number, self: number, radius: number): number {

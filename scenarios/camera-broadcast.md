@@ -19,7 +19,9 @@ Broadcast is the default. It sits on the offense's right sideline and follows th
 
 ## Scenario 2 — An attached player takes the centroid's share
 
-**Preconditions:** A later pull request attaches a player. Until then, the unit test is the check.
+**Status: Pending.** A later pull request attaches a player. Until then, the unit test is the check.
+
+**Preconditions:** Nobody is attached. The unit test is the check until attach exists.
 
 **Steps:**
 

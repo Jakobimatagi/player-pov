@@ -14,6 +14,8 @@ export function CameraRig({ play }: { play: CompiledPlay }) {
   const rig = useMemo(() => createRigState(), [])
   const set = useThree((s) => s.set)
   const size = useThree((s) => s.size)
+  const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
   const shown = useRef<PerspectiveCamera | OrthographicCamera | null>(null)
   const prevT = useRef(0)
   const input = useMemo<RigInput>(
@@ -87,7 +89,6 @@ export function CameraRig({ play }: { play: CompiledPlay }) {
     input.viewHeight = size.height
     input.transitionUntil = cameraState.transitionUntil
     stepRig(rig, input)
-    if (cameraState.mode === 'pov' && cameraState.attached < 0) cameraState.attached = qbIndex
     cameraState.movingRef.current = rig.moving
     apply(size.width, size.height)
     prevT.current = playT
@@ -102,6 +103,8 @@ export function CameraRig({ play }: { play: CompiledPlay }) {
 
   useFrame((_, delta) => {
     frame(performance.now() / 1000, Math.min(delta, 0.1), clockState.tRef.current)
+    // Priority above 0 turns off R3F's render. Without this the canvas stays clear.
+    gl.render(scene, shown.current ?? persp)
   }, 1)
 
   return null

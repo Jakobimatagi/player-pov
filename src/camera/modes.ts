@@ -125,8 +125,10 @@ export function orthoZoom(
   return Math.min(width / needZ, height / needX)
 }
 
-export function matchedFov(viewWidth: number, zoom: number, height: number): number {
-  const visible = zoom <= 0 ? viewWidth : viewWidth / zoom
+/** Vertical FOV, in degrees, that shows the same vertical span as an ortho zoom. */
+export function matchedFov(viewHeight: number, zoom: number, height: number): number {
+  const span = Math.max(viewHeight, 1)
+  const visible = zoom <= 0 ? span : span / zoom
   const h = height <= 0.01 ? 0.01 : height
   return (2 * Math.atan(visible / 2 / h) * 180) / Math.PI
 }
@@ -234,7 +236,7 @@ function fillGoal(state: RigState, input: RigInput, attached: number): void {
     goal.lookX = cx
     goal.lookY = 0
     goal.lookZ = cz
-    goal.fov = matchedFov(input.viewWidth, Math.max(state.zoom, 0.001), TOP_HEIGHT)
+    goal.fov = matchedFov(input.viewHeight, Math.max(state.zoom, 0.001), TOP_HEIGHT)
     goal.upX = 1
     goal.upY = 0
     goal.upZ = 0
@@ -307,13 +309,13 @@ export function stepRig(state: RigState, input: RigInput): void {
   const useOrtho = input.mode === 'topdown' && !inTransition
   let holdFov = false
   if (wasOrtho && !useOrtho) {
-    state.fov = matchedFov(input.viewWidth, state.zoom, TOP_HEIGHT)
+    state.fov = matchedFov(input.viewHeight, state.zoom, TOP_HEIGHT)
     holdFov = true
   }
   if (!wasOrtho && useOrtho) {
     const half = TOP_HEIGHT * Math.tan((state.fov * Math.PI) / 360)
     const visible = half * 2
-    if (visible > 0) state.zoom = input.viewWidth / visible
+    if (visible > 0) state.zoom = input.viewHeight / visible
   }
   state.usingOrtho = useOrtho
 
@@ -325,8 +327,7 @@ export function stepRig(state: RigState, input: RigInput): void {
   state.lookY = damp(state.lookY, goal.lookY, tau, input.dt)
   state.lookZ = damp(state.lookZ, goal.lookZ, tau, input.dt)
   if (!holdFov) state.fov = damp(state.fov, goal.fov, tau, input.dt)
-  if (!useOrtho || inTransition)
-    state.zoom = damp(state.zoom, goal.zoom, tau <= 0 ? 0 : tau, input.dt)
+  state.zoom = damp(state.zoom, goal.zoom, tau <= 0 ? 0 : tau, input.dt)
   state.upX = damp(state.upX, goal.upX, tau, input.dt)
   state.upY = damp(state.upY, goal.upY, tau, input.dt)
   state.upZ = damp(state.upZ, goal.upZ, tau, input.dt)

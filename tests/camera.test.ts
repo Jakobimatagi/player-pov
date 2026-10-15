@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { cameraState, selectMode } from '../src/camera/cameraState'
 import {
   createRigState,
   matchedFov,
@@ -146,6 +147,60 @@ describe('camera modes', () => {
     expect(wider).toBeCloseTo(limited, 4)
     expect(taller).toBeGreaterThan(limited)
     expect(matchedFov(800, limited, 80)).toBeGreaterThan(1)
+  })
+
+  it('aims Broadcast at the centroid when nobody is attached', () => {
+    const xy = new Float32Array([30, 20, 30, 40])
+    const state = createRigState()
+    stepRig(
+      state,
+      input({
+        count: 2,
+        xy,
+        attached: -1,
+        headingArr: new Float32Array([0, 0]),
+        ballX: 35,
+        ballY: 26.67,
+      }),
+    )
+    expect(state.focusX).toBeCloseTo(35 * 0.7 + 30 * 0.3, 4)
+    expect(state.focusY).toBeCloseTo(26.67 * 0.7 + 30 * 0.3, 4)
+  })
+
+  it('does not store the QB on attached when entering POV', () => {
+    cameraState.mode = 'broadcast'
+    cameraState.attached = -1
+    cameraState.povSubject = -1
+    selectMode('pov', 3, 10)
+    expect(cameraState.mode).toBe('pov')
+    expect(cameraState.attached).toBe(-1)
+    expect(cameraState.povSubject).toBe(3)
+    selectMode('broadcast', 3, 11)
+    expect(cameraState.attached).toBe(-1)
+    cameraState.mode = 'broadcast'
+    cameraState.povSubject = -1
+  })
+
+  it('damps top-down zoom toward the resized view', () => {
+    const state = createRigState()
+    stepRig(state, input({ mode: 'topdown', viewWidth: 800, viewHeight: 600, dt: 0 }))
+    const fitted = state.zoom
+    const goal = orthoZoom(800, 1200, 0, 0)
+    for (let i = 0; i < 40; i += 1) {
+      stepRig(
+        state,
+        input({
+          mode: 'topdown',
+          viewWidth: 800,
+          viewHeight: 1200,
+          now: 20 + i * 0.05,
+          dt: 0.05,
+        }),
+      )
+    }
+    expect(state.usingOrtho).toBe(true)
+    expect(state.zoom).toBeGreaterThan(fitted)
+    expect(Math.abs(state.zoom - goal)).toBeLessThan(Math.abs(fitted - goal))
   })
 
   it('fades a box inside 0.4 yd of the POV eye', () => {

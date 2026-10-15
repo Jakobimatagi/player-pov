@@ -15,7 +15,6 @@ import { useClock } from './playback/useClock'
 import { playUrlFromSearch } from './play/load'
 import { usePlay } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
-import { AspectSync } from './scene/AspectSync'
 import { CameraRig } from './scene/CameraRig'
 import { Field } from './scene/Field'
 import { Players } from './scene/Players'
@@ -158,7 +157,6 @@ export function App() {
         }}
       >
         <color attach="background" args={['#cfe3f5']} />
-        <AspectSync />
         <Field
           config={fieldConfigFromSearch(window.location.search)}
           losX={loaded.play.meta.lineOfScrimmageX}
