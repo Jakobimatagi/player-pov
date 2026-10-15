@@ -11,6 +11,7 @@ import {
   type Mesh,
 } from 'three'
 import { cameraState } from '../camera/cameraState'
+import { qualityState, showNumber } from '../gfx/quality'
 import { povFade } from '../camera/modes'
 import type { CompiledPlay } from '../play/types'
 import { yardsToWorld } from '../play/coords'
@@ -145,7 +146,16 @@ export function Players({
         const y = poseXY[playerIndex * 2 + 1] ?? 0
         const heading = poseHeading[playerIndex] ?? 0
         const gone = playerIndex === hide
-        scale.set(gone ? 0 : 1, gone ? 0 : 1, gone ? 0 : 1)
+        const attachedNow = cameraState.attached
+        const dist =
+          attachedNow < 0
+            ? 0
+            : Math.hypot(
+                (poseXY[playerIndex * 2] ?? 0) - (poseXY[attachedNow * 2] ?? 0),
+                (poseXY[playerIndex * 2 + 1] ?? 0) - (poseXY[attachedNow * 2 + 1] ?? 0),
+              )
+        const show = showNumber(qualityState.level, attachedNow, playerIndex, dist)
+        scale.set(gone || !show ? 0 : 1, gone || !show ? 0 : 1, gone || !show ? 0 : 1)
         yardsToWorld(x, y, 0, world)
         position.set(world.x, world.y, world.z)
         euler.set(0, heading, 0)

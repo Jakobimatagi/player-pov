@@ -1,8 +1,9 @@
-import { useFrame, useThree } from '@react-three/fiber'
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { addAfterEffect, useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { OrthographicCamera, PerspectiveCamera } from 'three'
 import { cameraState } from '../camera/cameraState'
 import { createRigState, stepRig, type RigInput } from '../camera/modes'
+import { hasFeature, perfStats, qualityState } from '../gfx/quality'
 import { clockState } from '../playback/clockState'
 import type { CompiledPlay } from '../play/types'
 import { poseHeading, poseXY, publishedBall } from './framePose'
@@ -16,6 +17,7 @@ export function CameraRig({ play }: { play: CompiledPlay }) {
   const size = useThree((s) => s.size)
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
+  const slow = useRef(0)
   const shown = useRef<PerspectiveCamera | OrthographicCamera | null>(null)
   const prevT = useRef(0)
   const input = useMemo<RigInput>(
@@ -70,9 +72,26 @@ export function CameraRig({ play }: { play: CompiledPlay }) {
     }
   }
 
+  const paint = () => {
+    gl.render(scene, shown.current ?? persp)
+  }
+
   const frame = (now: number, dt: number, playT: number) => {
+    let stepDt = dt
+    if (!hasFeature(qualityState.level, 'smoothCamera')) {
+      slow.current += dt
+      if (slow.current < 1 / 30) {
+        cameraState.movingRef.current = rig.moving
+        apply(size.width, size.height)
+        paint()
+        prevT.current = playT
+        return
+      }
+      stepDt = Math.min(slow.current, 0.1)
+      slow.current = 0
+    }
     input.now = now
-    input.dt = dt
+    input.dt = stepDt
     input.playT = playT
     input.prevPlayT = prevT.current
     input.mode = cameraState.mode
@@ -91,8 +110,16 @@ export function CameraRig({ play }: { play: CompiledPlay }) {
     stepRig(rig, input)
     cameraState.movingRef.current = rig.moving
     apply(size.width, size.height)
+    paint()
     prevT.current = playT
   }
+
+  useEffect(() => {
+    return addAfterEffect(() => {
+      perfStats.calls = gl.info.render.calls
+      perfStats.triangles = gl.info.render.triangles
+    })
+  }, [gl])
 
   useLayoutEffect(() => {
     rig.initialized = false
@@ -102,9 +129,8 @@ export function CameraRig({ play }: { play: CompiledPlay }) {
   }, [play])
 
   useFrame((_, delta) => {
+    // Priority above 0 turns off R3F's render. frame() paints.
     frame(performance.now() / 1000, Math.min(delta, 0.1), clockState.tRef.current)
-    // Priority above 0 turns off R3F's render. Without this the canvas stays clear.
-    gl.render(scene, shown.current ?? persp)
   }, 1)
 
   return null
