@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchPlay, SAMPLE_PLAY_URL } from './load'
-import type { PlayFile, PlayLoadError, PlayWarning } from './types'
+import type { CompiledPlay, PlayLoadError, PlayWarning } from './types'
 
 export type PlayState =
   | { status: 'loading'; url: string }
   | { status: 'error'; url: string; errors: PlayLoadError[] }
-  | { status: 'ready'; url: string; play: PlayFile; warnings: PlayWarning[] }
+  | { status: 'ready'; url: string; play: CompiledPlay; warnings: PlayWarning[] }
 
 export function usePlay(url: string = SAMPLE_PLAY_URL): PlayState & { retry: () => void } {
   const [attempt, setAttempt] = useState(0)
