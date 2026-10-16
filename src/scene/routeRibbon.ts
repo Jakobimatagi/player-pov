@@ -62,13 +62,44 @@ export interface RouteWaypoints {
   wpY: ArrayLike<number>
 }
 
-/** One screen-space ribbon for every waypoint chord. Two triangles per segment. */
-export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
+/**
+ * Chords the ribbon will draw. The field, players, and ball use 1,742 triangles,
+ * so 129 chords (258 triangles) keep any play at or under 2,000.
+ */
+export const ROUTE_SEGMENT_CAP = 129
+
+function rawSegments(play: RouteWaypoints): number {
   let segments = 0
   for (let i = 0; i < play.count; i += 1) {
     const start = play.wpStart[i] ?? 0
     const end = play.wpStart[i + 1] ?? start
     if (end - start > 1) segments += end - start - 1
+  }
+  return segments
+}
+
+function chordCount(waypointCount: number, stride: number): number {
+  if (waypointCount < 2) return 0
+  if (stride <= 1) return waypointCount - 1
+  let chords = 0
+  let prev = 0
+  for (let k = stride; k < waypointCount - 1; k += stride) {
+    chords += 1
+    prev = k
+  }
+  if (prev < waypointCount - 1) chords += 1
+  return chords
+}
+
+/** One screen-space ribbon. Two triangles per chord, thinned to the segment cap. */
+export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
+  const total = rawSegments(play)
+  const stride = total > ROUTE_SEGMENT_CAP ? Math.ceil(total / ROUTE_SEGMENT_CAP) : 1
+  let segments = 0
+  for (let i = 0; i < play.count; i += 1) {
+    const start = play.wpStart[i] ?? 0
+    const end = play.wpStart[i + 1] ?? start
+    segments += chordCount(end - start, stride)
   }
   const starts = new Float32Array(segments * 4 * 3)
   const ends = new Float32Array(segments * 4 * 3)
@@ -87,12 +118,16 @@ export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
   for (let i = 0; i < play.count; i += 1) {
     const start = play.wpStart[i] ?? 0
     const end = play.wpStart[i + 1] ?? start
-    for (let k = start; k < end - 1; k += 1) {
+    const step = stride <= 1 ? 1 : stride
+    for (let k = start; k < end - 1;) {
+      let next = k + step
+      if (next > end - 1) next = end - 1
+      if (next === k) break
       yardsToWorld(play.wpX[k] ?? 0, play.wpY[k] ?? 0, ROUTE_Y, world)
       const ax = world.x
       const ay = world.y
       const az = world.z
-      yardsToWorld(play.wpX[k + 1] ?? 0, play.wpY[k + 1] ?? 0, ROUTE_Y, world)
+      yardsToWorld(play.wpX[next] ?? 0, play.wpY[next] ?? 0, ROUTE_Y, world)
       const bx = world.x
       const by = world.y
       const bz = world.z
@@ -120,6 +155,7 @@ export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
       indices[index + 4] = base + 3
       indices[index + 5] = base + 2
       index += 6
+      k = next
     }
   }
   const geometry = new BufferGeometry()

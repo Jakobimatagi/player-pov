@@ -290,7 +290,14 @@ function onDeviceOrientation(event: Event): void {
   }
   consumeRebaseline()
   const screenAngle = readAngle()
-  if (gyroState.needsBaseline || screenAngle !== gyroState.baseScreen) {
+  const rotated = !gyroState.needsBaseline && screenAngle !== gyroState.baseScreen
+  if (rotated) {
+    lookState.dragYaw = 0
+    lookState.dragPitch = 0
+    lookState.yaw = 0
+    lookState.pitch = 0
+  }
+  if (gyroState.needsBaseline || rotated) {
     captureBase(sample.alpha, sample.beta, sample.gamma, screenAngle)
     wake()
     return
@@ -378,6 +385,17 @@ export function startGyro(target: EventTarget): void {
   writeGyroPref(storage, true)
   emit()
   wake()
+}
+
+/**
+ * Drop the orientation listener without changing the saved choice.
+ * Leaving POV and unmounting both use this, so a later event cannot call wake().
+ */
+export function suspendGyro(): void {
+  detach()
+  lookState.gyroOn = false
+  lookState.gyroSettling = false
+  gyroState.enabled = false
 }
 
 /** Remove the listener immediately and ease the view back to forward. */

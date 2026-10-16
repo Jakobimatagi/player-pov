@@ -28,13 +28,19 @@ const waypointSchema = z.strictObject({
   interp: z.enum(['smooth', 'linear']).optional(),
 })
 
+/**
+ * Six is the longest route that still fits the triangle budget for every player.
+ * Twenty-two players at this cap are 110 chords, 220 ribbon triangles.
+ */
+export const MAX_WAYPOINTS = 6
+
 const playerSchema = z.strictObject({
   id: z.string().regex(/^[a-z0-9_]+$/),
   team: z.enum(['offense', 'defense']),
   position: z.enum(positions),
   jersey: z.number().int().min(0).max(99),
   role: z.string().optional(),
-  waypoints: z.array(waypointSchema).min(1),
+  waypoints: z.array(waypointSchema).min(1).max(MAX_WAYPOINTS),
 })
 
 const carriedSchema = z.strictObject({

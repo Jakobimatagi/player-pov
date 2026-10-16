@@ -13,6 +13,7 @@ import {
   restoreGyroPref,
   setGyroWake,
   subscribeGyro,
+  suspendGyro,
   type GyroStorage,
 } from '../camera/gyro'
 
@@ -26,13 +27,19 @@ function browserStorage(): GyroStorage | null {
   }
 }
 
+function coarsePointer(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(pointer: coarse)').matches
+}
+
 /** POV-only phone look. Off until the user turns it on, unless this device already saved On. */
 export function GyroLook({
   onFrameloop,
 }: {
   onFrameloop: (mode: 'always' | 'demand' | 'never') => void
 }) {
-  const supported = useState(gyroApiPresent)[0]
+  const [coarse, setCoarse] = useState(coarsePointer)
+  const supported = gyroApiPresent() && coarse
   const [mode, setMode] = useState(cameraState.mode)
   const [on, setOn] = useState(() =>
     gyroStartsWithoutGesture(readGyroPref(browserStorage()), gyroNeedsGesture()),
@@ -40,6 +47,13 @@ export function GyroLook({
   const [blocked, setBlocked] = useState(gyroState.blocked)
 
   useEffect(() => subscribeCamera(() => setMode(cameraState.mode)), [])
+
+  useEffect(() => {
+    const query = window.matchMedia('(pointer: coarse)')
+    const onChange = () => setCoarse(query.matches)
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [])
 
   useEffect(() => {
     const store = browserStorage()
@@ -53,13 +67,15 @@ export function GyroLook({
       setBlocked(gyroState.blocked)
     }
     const unsubscribe = subscribeGyro(sync)
-    if (gyroApiPresent()) restoreGyroPref(store, gyroNeedsGesture(), window)
+    if (mode === 'pov' && supported) restoreGyroPref(store, gyroNeedsGesture(), window)
+    else suspendGyro()
     sync()
     return () => {
       unsubscribe()
       setGyroWake(() => undefined)
+      suspendGyro()
     }
-  }, [onFrameloop])
+  }, [onFrameloop, mode, supported])
 
   if (!supported || mode !== 'pov') return null
 
@@ -68,13 +84,10 @@ export function GyroLook({
       type="button"
       className={on && !blocked ? 'btn primary gyro-look' : 'btn gyro-look'}
       aria-pressed={on && !blocked}
-      aria-disabled={blocked}
-      disabled={blocked}
       data-testid="gyro-look"
       data-gyro={blocked ? 'blocked' : on ? 'on' : 'off'}
       onClick={() => {
-        if (blocked) return
-        if (on) {
+        if (on && !blocked) {
           disableGyro(performance.now() / 1000)
           setOn(false)
           cameraState.movingRef.current = true

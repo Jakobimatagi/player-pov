@@ -53,8 +53,12 @@ export function nudgeLook(dx: number, dy: number, now: number): void {
   lookState.armed = true
   lookState.releasedAt = now
   if (lookState.gyroOn) {
-    lookState.dragYaw -= dx * YAW_PER_PX
-    lookState.dragPitch -= dy * PITCH_PER_PX
+    lookState.dragYaw = clamp(lookState.dragYaw - dx * YAW_PER_PX, -LOOK_YAW_LIMIT, LOOK_YAW_LIMIT)
+    lookState.dragPitch = clamp(
+      lookState.dragPitch - dy * PITCH_PER_PX,
+      -LOOK_PITCH_LIMIT,
+      LOOK_PITCH_LIMIT,
+    )
     composeLook(lookState.gyroYaw, lookState.gyroPitch)
     return
   }

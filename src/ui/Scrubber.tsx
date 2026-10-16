@@ -98,6 +98,7 @@ export function Scrubber({
             key={value}
             type="button"
             className={value === rate ? 'btn primary' : 'btn'}
+            aria-pressed={value === rate}
             data-testid={`rate-${value}`}
             onClick={() => {
               clockState.rateRef.current = value

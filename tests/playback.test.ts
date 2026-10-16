@@ -52,6 +52,7 @@ describe('playback clock', () => {
     expect(source).toContain('0.25, 0.5, 1, 1.5, 2')
     expect(source).toContain('clockState.rateRef.current = value')
     expect(source).toContain('{value}×')
+    expect(source).toContain('aria-pressed={value === rate}')
   })
 
   it('replay returns to the snap and plays', () => {

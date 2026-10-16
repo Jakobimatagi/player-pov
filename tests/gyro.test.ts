@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   LOOK_PITCH_LIMIT,
@@ -9,6 +10,7 @@ import {
 } from '../src/camera/look'
 import {
   GYRO_PREF_KEY,
+  bindGyroStorage,
   disableGyro,
   enableGyroFromGesture,
   gyroStartsWithoutGesture,
@@ -18,8 +20,10 @@ import {
   readGyroPref,
   resetGyroForTests,
   restoreGyroPref,
+  setGyroScreenReader,
   startGyro,
   stepGyro,
+  suspendGyro,
   writeGyroPref,
   type GyroStorage,
 } from '../src/camera/gyro'
@@ -102,6 +106,10 @@ describe('orientation to look offset', () => {
     expect(Math.abs(lookState.yaw)).toBeLessThanOrEqual(LOOK_YAW_LIMIT + 1e-6)
     nudgeLook(-100000, 0, 1)
     expect(lookState.yaw).toBeCloseTo(LOOK_YAW_LIMIT, 5)
+    expect(lookState.dragYaw).toBeCloseTo(LOOK_YAW_LIMIT, 5)
+    nudgeLook(0, 100000, 1)
+    expect(lookState.dragPitch).toBeCloseTo(-LOOK_PITCH_LIMIT, 5)
+    expect(Math.abs(lookState.pitch)).toBeLessThanOrEqual(LOOK_PITCH_LIMIT + 1e-6)
   })
 
   it('recenters by re-baselining the phone pose', () => {
@@ -110,7 +118,11 @@ describe('orientation to look offset', () => {
     target.dispatchEvent(new OrientationEvent(0, 50, 0))
     stepGyro(2)
     expect(lookState.pitch).toBeGreaterThan(0.2)
+    expect(gyroState.enabled).toBe(true)
+    expect(gyroState.listening).toBe(true)
     resetLook()
+    expect(gyroState.enabled).toBe(true)
+    expect(gyroState.listening).toBe(true)
     target.dispatchEvent(new OrientationEvent(0, 50, 0))
     stepGyro(2)
     expect(lookState.yaw).toBeCloseTo(0, 5)
@@ -199,5 +211,44 @@ describe('look with phone preference and listener', () => {
     expect(thrown).toBe('failed')
     expect(gyroState.blocked).toBe(true)
     expect(gyroState.listening).toBe(false)
+
+    const retried = await enableGyroFromGesture(() => Promise.resolve('granted'), target)
+    expect(retried).toBe('on')
+    expect(gyroState.blocked).toBe(false)
+    expect(gyroState.listening).toBe(true)
+  })
+
+  it('drops the listener when suspended and resets to forward on screen rotation', () => {
+    const store = memoryStorage()
+    writeGyroPref(store, true)
+    const target = arm()
+    bindGyroStorage(store)
+    target.dispatchEvent(new OrientationEvent(0, 70, 0))
+    target.dispatchEvent(new OrientationEvent(0, 50, 0))
+    stepGyro(2)
+    expect(lookState.pitch).toBeGreaterThan(0.2)
+
+    setGyroScreenReader(() => 90)
+    target.dispatchEvent(new OrientationEvent(0, 50, 0))
+    target.dispatchEvent(new OrientationEvent(0, 50, 0))
+    stepGyro(2)
+    expect(lookState.yaw).toBeCloseTo(0, 5)
+    expect(lookState.pitch).toBeCloseTo(0, 5)
+    expect(gyroState.listening).toBe(true)
+
+    suspendGyro()
+    expect(gyroState.listening).toBe(false)
+    expect(gyroState.enabled).toBe(false)
+    expect(readGyroPref(store)).toBe(true)
+    target.dispatchEvent(new OrientationEvent(0, 10, 40))
+    stepGyro(2)
+    expect(lookState.pitch).toBeCloseTo(0, 5)
+  })
+
+  it('offers phone look only on a coarse pointer and detaches outside POV', () => {
+    const source = readFileSync('src/ui/GyroLook.tsx', 'utf8')
+    expect(source).toContain("matchMedia('(pointer: coarse)')")
+    expect(source).toContain('suspendGyro()')
+    expect(source).not.toContain('disabled={blocked}')
   })
 })

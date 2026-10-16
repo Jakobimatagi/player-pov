@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { fieldConfig } from '../src/field/fieldConfig'
 import { compilePlay } from '../src/play/compile'
 import { validatePlay } from '../src/play/load'
+import { MAX_WAYPOINTS } from '../src/play/schema'
+import type { PlayFile, Waypoint } from '../src/play/types'
 import { buildFieldMarkings, buildGrass, triangleCount } from '../src/scene/fieldMarkings'
 import { boxVisual, createNumberGeometry } from '../src/scene/playerVisual'
 import {
   ROUTE_CSS_PX,
+  ROUTE_SEGMENT_CAP,
   buildRouteRibbon,
   createRouteMaterial,
   sizeRouteMaterial,
@@ -57,5 +60,62 @@ describe('route ribbons', () => {
     expect(routes).toBe(180)
     expect(scene).toBeLessThanOrEqual(2000)
     expect(scene + routes).toBeLessThanOrEqual(2000)
+    expect(scene + ROUTE_SEGMENT_CAP * 2).toBeLessThanOrEqual(2000)
+  })
+
+  it('keeps a schema-valid play at the waypoint cap under 2000 triangles', () => {
+    const sample = JSON.parse(
+      readFileSync('public/plays/trips-right-vs-cover2.json', 'utf8'),
+    ) as PlayFile
+    for (const player of sample.players) {
+      const wps = player.waypoints
+      while (wps.length < MAX_WAYPOINTS) {
+        const prev = wps[wps.length - 2]
+        const last = wps[wps.length - 1]
+        if (prev == null || last == null) break
+        const mid: Waypoint = {
+          t: (prev.t + last.t) / 2,
+          x: (prev.x + last.x) / 2,
+          y: (prev.y + last.y) / 2,
+        }
+        wps.splice(wps.length - 1, 0, mid)
+      }
+    }
+    const atCap = validatePlay(sample)
+    expect(atCap.ok).toBe(true)
+    if (!atCap.ok) return
+    const routes = triangleCount(buildRouteRibbon(compilePlay(atCap.play)))
+    const scene =
+      triangleCount(buildGrass()) +
+      triangleCount(buildFieldMarkings(fieldConfig())) +
+      triangleCount(boxVisual.geometry) * 22 +
+      triangleCount(createNumberGeometry(boxVisual.numberAnchor)) * 22 +
+      80
+    expect(routes).toBe(22 * (MAX_WAYPOINTS - 1) * 2)
+    expect(scene + routes).toBeLessThanOrEqual(2000)
+
+    const over = structuredClone(sample)
+    const first = over.players[0]
+    if (first == null) throw new Error('missing player')
+    const prev = first.waypoints[first.waypoints.length - 2]
+    const tail = first.waypoints[first.waypoints.length - 1]
+    if (prev == null || tail == null) throw new Error('missing waypoint')
+    first.waypoints.splice(first.waypoints.length - 1, 0, {
+      t: (prev.t + tail.t) / 2,
+      x: (prev.x + tail.x) / 2,
+      y: (prev.y + tail.y) / 2,
+    })
+    expect(validatePlay(over).ok).toBe(false)
+
+    const dense = buildRouteRibbon({
+      count: 1,
+      wpStart: new Uint16Array([0, 400]),
+      wpX: new Float32Array(400),
+      wpY: new Float32Array(400),
+    })
+    expect(triangleCount(dense)).toBeLessThanOrEqual(ROUTE_SEGMENT_CAP * 2)
+
+    const json = readFileSync('schema/play.schema.json', 'utf8')
+    expect(json).toContain(`"maxItems": ${MAX_WAYPOINTS}`)
   })
 })

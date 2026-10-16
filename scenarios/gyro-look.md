@@ -1,16 +1,16 @@
 # Gyro look
 
-In POV, **Look with phone** turns device tilt into the same free-look yaw and pitch as a finger drag. It is shown only in POV, and only when `DeviceOrientationEvent` exists. It is off until you turn it on. The choice is saved on this device under `localStorage` key `pov.lookWithPhone` (`1` on, `0` off). A missing key is off.
+In POV, **Look with phone** turns device tilt into the same free-look yaw and pitch as a finger drag. It is shown only in POV, only on a coarse pointer (`matchMedia('(pointer: coarse)')`), and only when `DeviceOrientationEvent` exists. It is off until you turn it on. The choice is saved on this device under `localStorage` key `pov.lookWithPhone` (`1` on, `0` off). A missing key is off.
 
-On iOS the first enable calls `DeviceOrientationEvent.requestPermission()` from the tap. If the saved value is on but this load needs that prompt, the control stays off and nothing asks until you tap it. A denied prompt or a second and a half with no orientation event disables the control quietly. It does not throw.
+On iOS the first enable calls `DeviceOrientationEvent.requestPermission()` from the tap. If the saved value is on but this load needs that prompt, the control stays off and nothing asks until you tap it. A denied prompt or a second and a half with no orientation event marks the control blocked. It does not throw. The next tap clears that block and tries again. Leaving POV, and unmounting the control, removes the `deviceorientation` listener so Broadcast and Top-down do not keep rendering for phone samples.
 
-The pose when you turn it on is forward. Later tilt is relative to that pose. Yaw stops at about ±100° and pitch at about ±35°. The offset is smoothed. Portrait and landscape use `screen.orientation.angle`, or `window.orientation` when that is missing. A finger drag still looks, and adds to the phone offset. Escape or a hop recenters and takes a new baseline. Turning the control off removes the `deviceorientation` listener immediately and eases the view back to forward.
+The pose when you turn it on is forward. Later tilt is relative to that pose. Yaw stops at about ±100° and pitch at about ±35°. The offset is smoothed. Portrait and landscape use `screen.orientation.angle`, or `window.orientation` when that is missing. Rotating the screen resets the view to forward and takes that pose as the new baseline. A finger drag still looks, and adds to the phone offset, and that drag stays inside the same yaw and pitch limits. Escape or a hop recenters and takes a new baseline while the control stays on. Turning the control off removes the `deviceorientation` listener immediately and eases the view back to forward.
 
 `npm run dev` exposes `window.__pov.look` and `window.__pov.gyroListening()` so a scenario can read the offset. Production builds do not.
 
 ## Scenario 1 — The toggle is off until you press it
 
-**Preconditions:** POV at http://127.0.0.1:5173 . Clear `pov.lookWithPhone` if a previous run set it. `DeviceOrientationEvent` exists.
+**Preconditions:** POV at http://127.0.0.1:5173 . Clear `pov.lookWithPhone` if a previous run set it. `DeviceOrientationEvent` exists. The primary pointer is coarse.
 
 **Steps:**
 
@@ -79,8 +79,9 @@ The pose when you turn it on is forward. Later tilt is relative to that pose. Ya
 
 - The page does not throw.
 - The listener is not left attached. `window.__pov.gyroListening()` is false.
-- The button is disabled (`data-gyro="blocked"`), not red, and `aria-pressed` is false.
+- The button stays pressable, shows `data-gyro="blocked"`, is not red, and `aria-pressed` is false.
 - `pov.lookWithPhone` is `0`.
+- The next tap clears the block and asks again. A granted result turns the control on.
 
 ## Scenario 6 — Turning look off
 
@@ -113,3 +114,32 @@ The pose when you turn it on is forward. Later tilt is relative to that pose. Ya
 - The button is shown off. `aria-pressed` is false.
 - Nothing calls `requestPermission` until a tap.
 - A browser without `requestPermission` and a saved `1` turns the control on while loading POV, without a prompt.
+
+## Scenario 8 — 360px phone width
+
+**Preconditions:** http://127.0.0.1:5173 at 360×800. Coarse pointer. POV.
+
+**Steps:**
+
+1. Press `1`.
+2. Look at the camera row.
+
+**Expected:**
+
+- The page does not scroll sideways.
+- Below 768px the watch row sits on its own line under the camera buttons.
+- **Watch as**, **Hold look**, and **Look with phone** are each at least 44×44 and stay inside the row. Long labels ellipsize instead of widening the page.
+
+## Scenario 9 — Rotating the screen looks forward
+
+**Preconditions:** POV, **Look with phone** on, view tilted. Or `npx vitest run tests/gyro.test.ts`.
+
+**Steps:**
+
+1. Change the screen angle, for example portrait to landscape, while the same tilt is held.
+
+**Expected:**
+
+- The view returns to forward. Yaw and pitch are about 0.
+- That rotated pose is the new baseline, so holding the same tilt does not turn the view again.
+- The control stays on. `window.__pov.gyroListening()` is still true.

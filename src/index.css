@@ -154,6 +154,9 @@ body {
   min-width: 44px;
   min-height: 44px;
   max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gyro-look[aria-pressed='true'] {
@@ -162,9 +165,8 @@ body {
   color: #fff;
 }
 
-.gyro-look:disabled {
+.gyro-look[data-gyro='blocked'] {
   opacity: 0.45;
-  cursor: default;
 }
 
 .watch-toggle {
@@ -409,6 +411,8 @@ body {
 
   .watch-row {
     flex: 1 1 100%;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .watch-menu {
