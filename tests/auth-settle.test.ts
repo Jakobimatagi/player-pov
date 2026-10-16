@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const box = vi.hoisted(() => ({
   membership: [] as { role: string }[],
@@ -49,6 +49,10 @@ describe('login waits for the membership query', () => {
     box.delayMs = 0
     box.onChange = null
     box.session = null
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('does not settle until the player membership is published', async () => {
@@ -124,5 +128,24 @@ describe('login waits for the membership query', () => {
         membershipError: false,
       }),
     ).toBe('player')
+  })
+
+  it('rejects with a visible error when membership does not arrive', async () => {
+    box.membership = [{ role: 'player' }]
+    box.delayMs = 60_000
+    const session = await loadSession()
+    session.startAuth()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    vi.useFakeTimers()
+    signIn({ id: 'player-id', email: 'player@demo.local' })
+    const pending = session.waitForMembership()
+    const failed = expect(pending).rejects.toThrow(session.MEMBERSHIP_TIMEOUT)
+    await vi.advanceTimersByTimeAsync(session.MEMBERSHIP_WAIT_MS)
+    await failed
+    expect(session.getAuthSnap().session).toBeNull()
+    const pages = await import('node:fs').then((fs) =>
+      fs.readFileSync(new URL('../src/auth/pages.tsx', import.meta.url), 'utf8'),
+    )
+    expect(pages).toContain('setError(MEMBERSHIP_TIMEOUT)')
   })
 })

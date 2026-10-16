@@ -4,12 +4,14 @@ import {
   clearAcceptInflight,
   inviteRedirect,
   acceptFailure,
+  forgetInviteToken,
   INVITE_TOKEN_KEY,
   inviteTokenFromState,
   loginLocation,
   mapAcceptError,
   rememberedInviteToken,
   rememberInviteToken,
+  settleInviteToken,
   signedInAs,
   stripInviteToken,
   SWITCH_ACCOUNT,
@@ -120,15 +122,24 @@ describe('accept invite', () => {
   })
 })
 
+function memoryStorage() {
+  const storage = new Map<string, string>()
+  return {
+    storage,
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      storage.set(key, value)
+    },
+    removeItem: (key: string) => {
+      storage.delete(key)
+    },
+  }
+}
+
 describe('invite token handling', () => {
   it('strips the token from the query and keeps it in storage and login state', () => {
-    const storage = new Map<string, string>()
-    const memory = {
-      getItem: (key: string) => storage.get(key) ?? null,
-      setItem: (key: string, value: string) => {
-        storage.set(key, value)
-      },
-    }
+    const memory = memoryStorage()
+    const storage = memory.storage
     const stripped = stripInviteToken(`?token=${TOKEN}&expired=1`)
     expect(stripped.token).toBe(TOKEN)
     expect(stripped.search).toBe('?expired=1')
@@ -146,13 +157,7 @@ describe('invite token handling', () => {
 
   it('keeps the stashed token when the signed-in email does not match', async () => {
     clearAcceptInflight()
-    const storage = new Map<string, string>()
-    const memory = {
-      getItem: (key: string) => storage.get(key) ?? null,
-      setItem: (key: string, value: string) => {
-        storage.set(key, value)
-      },
-    }
+    const memory = memoryStorage()
     rememberInviteToken(memory, TOKEN)
     const rpc = vi.fn(async () => ({
       data: null,
@@ -160,11 +165,42 @@ describe('invite token handling', () => {
     }))
     const flow = client({ rpc })
     const result = await submitAcceptInvite(flow, TOKEN)
+    settleInviteToken(memory, result)
     expect(result).toEqual({ ok: false, message: WRONG_ACCOUNT, reason: 'wrong-account' })
     expect(rememberedInviteToken(memory)).toBe(TOKEN)
     expect(signedInAs('player@demo.local')).toBe("You're signed in as player@demo.local.")
     expect(SWITCH_ACCOUNT).toBe('Sign out and switch')
     expect(flow.from).not.toHaveBeenCalled()
+  })
+
+  it('clears the stashed token after a successful accept', async () => {
+    clearAcceptInflight()
+    const memory = memoryStorage()
+    rememberInviteToken(memory, TOKEN)
+    const rpc = vi.fn(async () => ({ data: 'user-id', error: null }))
+    const result = await submitAcceptInvite(client({ rpc }), TOKEN)
+    settleInviteToken(memory, result)
+    expect(result).toEqual({ ok: true })
+    expect(rememberedInviteToken(memory)).toBeNull()
+    expect(memory.storage.has(INVITE_TOKEN_KEY)).toBe(false)
+  })
+
+  it('clears the stashed token when the invite is invalid or expired', async () => {
+    clearAcceptInflight()
+    const memory = memoryStorage()
+    rememberInviteToken(memory, TOKEN)
+    const rpc = vi.fn(async () => ({ data: null, error: { message: 'invite expired' } }))
+    const result = await submitAcceptInvite(client({ rpc }), TOKEN)
+    settleInviteToken(memory, result)
+    expect(result).toEqual({ ok: false, message: INVITE_INVALID, reason: 'invalid' })
+    expect(rememberedInviteToken(memory)).toBeNull()
+    rememberInviteToken(memory, TOKEN)
+    forgetInviteToken(memory)
+    expect(memory.storage.has(INVITE_TOKEN_KEY)).toBe(false)
+    const pages = readFileSync(new URL('../src/auth/pages.tsx', import.meta.url), 'utf8')
+    expect(pages).toContain('settleInviteToken')
+    expect(pages).toContain('forgetInviteToken')
+    expect(pages).not.toContain("I'm a coach")
   })
 })
 

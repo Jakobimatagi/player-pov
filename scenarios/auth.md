@@ -96,7 +96,7 @@ Migrations still waiting, in order: `supabase/migrations/20261015120000_identity
 
 **Steps:**
 
-1. Open `/signup`. Enter a name, email, and a password of at least 10 characters. Leave **I'm a coach creating a team** checked.
+1. Open `/signup`. Enter a name, email, and a password of at least 10 characters. The form has no coach checkbox.
 2. Open the confirmation email and confirm.
 3. Sign in.
 
@@ -134,6 +134,6 @@ Migrations still waiting, in order: `supabase/migrations/20261015120000_identity
 
 - Steps 1 and 2 show `This invite is no longer valid. Ask your coach for a new one, or log in.` The page does not ask for a password.
 - Step 3 shows **Email**, **Password**, and **Confirm password**. The address bar drops `?token=` after the page loads. **Log in** goes to `/login` and carries the token in navigation state, not in `next=`. The confirmation mail still returns to `/accept-invite?token=<those 64 hex characters>`, and that page stashes the token and strips it from the address.
-- A confirmed session calls `accept_invite` once, reloads the membership, and a matching invite lands on Player Home. An unconfirmed email shows `Confirm your email first`.
-- A signed-in email that does not match shows `You're signed in as <that email>.` and `This invite is for a different email.` **Sign out and switch** keeps the token. An expired or used token shows the invalid-invite sentence.
-- The screen does not list invite rows or teammates. A coach checkbox is not sent as a role.
+- A confirmed session calls `accept_invite` once, reloads the membership, and a matching invite lands on Player Home. That success removes `invite_token` from session storage. An unconfirmed email shows `Confirm your email first`.
+- A signed-in email that does not match shows `You're signed in as <that email>.` and `This invite is for a different email.` **Sign out and switch** keeps the token. An invalid or expired invite removes `invite_token` and shows the invalid-invite sentence.
+- The screen does not list invite rows or teammates. Signup has no coach checkbox and does not send a role.

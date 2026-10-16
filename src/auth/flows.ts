@@ -98,6 +98,19 @@ export function rememberInviteToken(storage: Pick<Storage, 'setItem'>, token: st
   storage.setItem(INVITE_TOKEN_KEY, parsed)
 }
 
+export function forgetInviteToken(storage: Pick<Storage, 'removeItem'>): void {
+  storage.removeItem(INVITE_TOKEN_KEY)
+}
+
+/** Drop the stashed token after success, or when the invite is invalid or expired. */
+export function settleInviteToken(
+  storage: Pick<Storage, 'removeItem'>,
+  result: AcceptResult,
+): void {
+  if (!result.ok && result.reason === 'wrong-account') return
+  storage.removeItem(INVITE_TOKEN_KEY)
+}
+
 export function rememberedInviteToken(storage: Pick<Storage, 'getItem'>): string | null {
   return parseInviteToken(storage.getItem(INVITE_TOKEN_KEY))
 }

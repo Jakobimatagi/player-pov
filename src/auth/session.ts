@@ -13,6 +13,8 @@ export const SESSION_EXPIRED = 'Session expired, sign in again.'
 export const SIGNED_OUT = "You're signed out."
 export const INVITE_INVALID =
   'This invite is no longer valid. Ask your coach for a new one, or log in.'
+export const MEMBERSHIP_WAIT_MS = 10_000
+export const MEMBERSHIP_TIMEOUT = "Couldn't load your team. Try again."
 
 export type HomeKind = 'viewer' | 'loading' | 'login' | 'player' | 'staff' | 'create-team' | 'error'
 
@@ -106,16 +108,21 @@ export function membershipSettled(snap: AuthSnap): boolean {
   return snap.ready && snap.session != null && snap.membershipLoaded
 }
 
-export function waitForMembership(): Promise<AuthSnap> {
+export function waitForMembership(timeoutMs = MEMBERSHIP_WAIT_MS): Promise<AuthSnap> {
   const current = getAuthSnap()
   if (membershipSettled(current)) return Promise.resolve(current)
-  return new Promise((resolve) => {
-    const stop = subscribeAuth(() => {
+  return new Promise((resolve, reject) => {
+    let stop = (): void => {}
+    const timer = setTimeout(() => {
+      stop()
+      reject(new Error(MEMBERSHIP_TIMEOUT))
+    }, timeoutMs)
+    stop = subscribeAuth(() => {
       const next = getAuthSnap()
-      if (membershipSettled(next)) {
-        stop()
-        resolve(next)
-      }
+      if (!membershipSettled(next)) return
+      clearTimeout(timer)
+      stop()
+      resolve(next)
     })
   })
 }

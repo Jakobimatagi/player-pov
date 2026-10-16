@@ -6,10 +6,12 @@ import { AuthField, AuthScreen } from './AuthScreen'
 import {
   asAuthFlowClient,
   inviteRedirect,
+  forgetInviteToken,
   inviteTokenFromState,
   loginLocation,
   rememberedInviteToken,
   rememberInviteToken,
+  settleInviteToken,
   resendSignup,
   signedInAs,
   stripInviteToken,
@@ -28,6 +30,7 @@ import {
   getAuthSnap,
   INVITE_INVALID,
   linkExpired,
+  MEMBERSHIP_TIMEOUT,
   passwordIssue,
   reloadMembership,
   RESET_EXPIRED,
@@ -77,6 +80,8 @@ export function LoginPage() {
         return
       }
       navigate(next, { replace: true })
+    } catch {
+      setError(MEMBERSHIP_TIMEOUT)
     } finally {
       setPending(false)
     }
@@ -138,7 +143,6 @@ export function SignupPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [coach, setCoach] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
   const [pending, setPending] = useState(false)
@@ -212,14 +216,6 @@ export function SignupPage() {
               onChange={(event) => setPassword(event.target.value)}
             />
           </AuthField>
-          <label className="auth-check">
-            <input
-              type="checkbox"
-              checked={coach}
-              onChange={(event) => setCoach(event.target.checked)}
-            />
-            <span>I&apos;m a coach creating a team</span>
-          </label>
           {error ? (
             <p className="auth-error" role="alert">
               {error}
@@ -371,6 +367,10 @@ export function AcceptInvitePage() {
   const snap = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
   const [token] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null
+    if (linkExpired(window.location.search, window.location.hash)) {
+      forgetInviteToken(window.sessionStorage)
+      return null
+    }
     const fromUrl = stripInviteToken(window.location.search).token
     if (fromUrl != null) {
       rememberInviteToken(window.sessionStorage, fromUrl)
@@ -390,18 +390,29 @@ export function AcceptInvitePage() {
   const signedIn = snap.session != null
 
   useEffect(() => {
+    const expired = linkExpired(window.location.search, window.location.hash)
     const stripped = stripInviteToken(window.location.search)
+    if (expired || stripped.token == null) {
+      if (expired) forgetInviteToken(window.sessionStorage)
+    } else {
+      rememberInviteToken(window.sessionStorage, stripped.token)
+    }
     if (stripped.token == null) return
-    rememberInviteToken(window.sessionStorage, stripped.token)
     const next = `${window.location.pathname}${stripped.search}${window.location.hash}`
     window.history.replaceState(window.history.state, '', next)
   }, [])
+
+  useEffect(() => {
+    if (!invalid) return
+    forgetInviteToken(window.sessionStorage)
+  }, [invalid])
 
   useEffect(() => {
     if (invalid || token == null || supabase == null || !snap.ready || !signedIn) return
     let cancelled = false
     void submitAcceptInvite(asAuthFlowClient(supabase), token).then(async (result) => {
       if (cancelled) return
+      settleInviteToken(window.sessionStorage, result)
       if (result.ok) {
         await reloadMembership()
         if (cancelled) return
