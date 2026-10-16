@@ -19,15 +19,16 @@ Broadcast is the default. It sits on the offense's right sideline and follows th
 
 ## Scenario 2 — An attached player takes the centroid's share
 
-**Status: Pending.** A later pull request attaches a player. Until then, the unit test is the check.
-
-**Preconditions:** Nobody is attached. The unit test is the check until attach exists.
+**Preconditions:** http://127.0.0.1:5173 is open in Broadcast. Nobody is attached (`data-attached` is empty).
 
 **Steps:**
 
-1. Run `npx vitest run tests/camera.test.ts`.
+1. Watch the sideline framing for a moment.
+2. Click the quarterback's box.
 
 **Expected:**
 
-- With nobody attached, the aim is 70% ball and 30% the players' centroid.
-- The sideline position matches that aim, clamped onto the field.
+- Before the click, the aim is 70% ball and 30% the players' centroid.
+- After the click, `data-attached` is `qb` and the mode stays Broadcast.
+- The aim eases, over about 0.6 s, so the quarterback takes that 30% instead of the centroid.
+- The sideline camera stays clamped onto the field.

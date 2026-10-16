@@ -14,7 +14,7 @@ The shell still follows `scenarios/responsive.md` scenario 1. This step adds no 
 
 **Expected:**
 
-- That box tints gold.
+- That player's jersey number tints gold. The box keeps its team color.
 - The camera bar's `data-attached` is `qb`.
 - The mode stays Broadcast.
 - The framing eases toward him over about 0.6 s.

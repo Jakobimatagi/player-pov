@@ -73,11 +73,10 @@ function writeFromSample(
     quaternion.setFromEuler(euler)
     matrix.compose(position, quaternion, scale)
     mesh.setMatrixAt(slot, matrix)
-    mesh.setColorAt(slot, playerIndex === cameraState.attached ? highlight : white)
     if (fadeAttr != null) fadeAttr.setX(slot, gone ? 1 : fadeOf(playerIndex, hide, radius))
   })
   mesh.instanceMatrix.needsUpdate = true
-  if (mesh.instanceColor != null) mesh.instanceColor.needsUpdate = true
+  mesh.computeBoundingSphere()
   if (fadeAttr != null) fadeAttr.needsUpdate = true
 }
 
@@ -153,8 +152,10 @@ export function Players({
         quaternion.setFromEuler(euler)
         matrix.compose(position, quaternion, scale)
         numbers.setMatrixAt(slot, matrix)
+        numbers.setColorAt(slot, playerIndex === cameraState.attached ? highlight : white)
       })
       numbers.instanceMatrix.needsUpdate = true
+      if (numbers.instanceColor != null) numbers.instanceColor.needsUpdate = true
     }
     sampleBall(play, time, poseXY, poseHeading, poseVel, publishedBall)
     yardsToWorld(publishedBall.x, publishedBall.y, publishedBall.z, world)

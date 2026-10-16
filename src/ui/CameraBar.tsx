@@ -64,8 +64,8 @@ export function CameraBar({
         return
       }
       if (event.key.startsWith('Arrow')) {
-        event.preventDefault()
         if (cameraState.attached < 0) return
+        event.preventDefault()
         const nextIndex =
           event.key === 'ArrowLeft' || event.key === 'ArrowRight'
             ? hopInTeam(play, cameraState.attached, event.key === 'ArrowRight' ? 1 : -1)
