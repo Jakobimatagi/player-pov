@@ -46,7 +46,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `play-loading.md`              | Fetch, schema, semantic checks, LoadError |
 | `sampling.md`                  | Compile, Hermite motion, facing, clamp    |
 | `scene-3d.md`                  | Field, players, ball                      |
-| `responsive.md`                | Viewer widths and touch targets (1–4)     |
+| `responsive.md`                | Viewer and auth widths (1–7, 15)          |
 | `playback.md`                  | Play, pause, scrub, speeds                |
 | `playback-rates.md`            | 0.25× through 2× on a phone               |
 | `end-of-play.md`               | Replay                                    |
@@ -60,6 +60,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `touch.md`                     | Tap, swipe, orbit, pinch, POV hop         |
 | `backend-setup.md`             | Identity schema, RLS, anon client         |
 | `deploy.md`                    | Vercel, keep-alive, encrypted backup      |
+| `auth.md`                      | Sign in, reset, invite, sign out          |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 
