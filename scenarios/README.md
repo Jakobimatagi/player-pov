@@ -59,6 +59,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `pov-picker.md`                | Watch as list                             |
 | `touch.md`                     | Tap, swipe, orbit, pinch, POV hop         |
 | `backend-setup.md`             | Identity schema, RLS, anon client         |
+| `deploy.md`                    | Vercel, keep-alive, encrypted backup      |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 

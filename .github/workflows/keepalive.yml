@@ -1,0 +1,21 @@
+name: Keepalive
+
+on:
+  schedule:
+    # Every 2 days at 15:00 UTC. The free-tier project pauses after about a week idle.
+    - cron: '0 15 */2 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: GET /rest/v1/rpc/health
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: scripts/keepalive.sh

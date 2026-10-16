@@ -1,0 +1,35 @@
+name: Backup
+
+on:
+  schedule:
+    # Nightly 10:00 UTC. The artifact is age-encrypted; the private key stays offline.
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - name: Install age
+        run: |
+          curl -sSfL -o /tmp/age.tar.gz "https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz"
+          echo "7df45a6cc87d4da11cc03a539a7470c15b1041ab2b396af088fe9990f7c79d50  /tmp/age.tar.gz" | sha256sum -c
+          tar -xzf /tmp/age.tar.gz -C /tmp
+          sudo mv /tmp/age/age /usr/local/bin/age
+      - name: Dump, gzip, and encrypt
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+        run: scripts/backup.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup
+          path: out/*.age
+          retention-days: 30

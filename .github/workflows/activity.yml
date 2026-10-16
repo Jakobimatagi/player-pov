@@ -1,0 +1,22 @@
+name: Keep schedules enabled
+
+on:
+  schedule:
+    # 12:00 UTC on the 1st. A commit inside 60 days keeps GitHub from disabling cron.
+    - cron: '0 12 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Empty commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "Keep scheduled workflows enabled"
+          git push

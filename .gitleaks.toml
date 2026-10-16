@@ -1,0 +1,14 @@
+title = "POV Playbook"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local fixture passwords and the empty env example. Not production secrets."
+paths = [
+  '''supabase/seed\.sql''',
+  '''supabase/tests/.*''',
+  '''\.env\.example''',
+  '''README\.md''',
+  '''scenarios/.*''',
+]
