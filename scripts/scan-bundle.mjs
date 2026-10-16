@@ -15,7 +15,7 @@ export function payloadRole(token) {
 
 export function scanText(text) {
   const hits = []
-  if (/service_role|SUPABASE_SERVICE_ROLE/.test(text)) hits.push('service role marker')
+  if (/service_role|SUPABASE_SERVICE_ROLE|sb_secret_/.test(text)) hits.push('service role marker')
   for (const token of text.match(jwtPattern) ?? []) {
     try {
       if (payloadRole(token) === 'service_role') hits.push('JWT role is service_role')

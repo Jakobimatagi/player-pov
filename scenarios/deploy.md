@@ -25,7 +25,7 @@ This pull request does not apply any of the following.
    - `VITE_SUPABASE_ANON_KEY` (same anon key as Vercel)
    - `SUPABASE_DB_URL` (database connection string for player-pov; it contains the database password)
    - `BACKUP_AGE_PUBLIC_KEY` (age public key only). Generate a key pair with `age-keygen` on a machine you control and keep the private key offline.
-7. Cron, in GitHub Actions: Keepalive `0 15 */2 * *`, Backup `0 10 * * *`, and a monthly empty commit `0 12 1 * *` so GitHub does not disable schedules after 60 days without a push. The default branch must allow that Actions token to push. Turn on Actions failure email.
+7. Cron, in GitHub Actions: Keepalive `0 15 */2 * *`, Backup `0 10 * * *`, and a monthly empty commit `0 12 1 * *` so GitHub does not disable schedules after 60 days without a push. `activity.yml` sets `permissions: contents: write`. That push fails on a protected default branch until the branch allows the Actions token. Turn on Actions failure email.
 
 ## Scenario 1 — Preview shows the viewer
 
