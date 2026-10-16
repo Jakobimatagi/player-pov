@@ -98,9 +98,9 @@ describe('box players', () => {
     const tris =
       triangleCount(buildGrass()) +
       triangleCount(buildFieldMarkings(fieldConfig())) +
-      boxTris * 2 +
-      boxTris * pickMeshes +
-      triangleCount(createNumberGeometry(boxVisual.numberAnchor))
+      boxTris * 22 +
+      triangleCount(createNumberGeometry(boxVisual.numberAnchor)) * 22 +
+      80
     expect(pickMeshes).toBe(2)
     expect(tris).toBeLessThanOrEqual(2000)
     const tags = (source: string) => source.match(/<(mesh|instancedMesh)\b/g)?.length ?? 0
