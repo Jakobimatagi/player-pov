@@ -25,7 +25,7 @@ This pull request does not apply any of the following.
    - `VITE_SUPABASE_ANON_KEY` (same anon key as Vercel)
    - `SUPABASE_DB_URL` (database connection string for player-pov; it contains the database password)
    - `BACKUP_AGE_PUBLIC_KEY` (age public key only). Generate a key pair with `age-keygen` on a machine you control and keep the private key offline.
-7. Cron, in GitHub Actions: Keepalive `0 15 */2 * *`, Backup `0 10 * * *`. Turn on Actions failure email.
+7. Cron, in GitHub Actions: Keepalive `0 15 */2 * *`, Backup `0 10 * * *`, and a monthly empty commit `0 12 1 * *` so GitHub does not disable schedules after 60 days without a push. The default branch must allow that Actions token to push. Turn on Actions failure email.
 
 ## Scenario 1 — Preview shows the viewer
 
@@ -93,9 +93,13 @@ This pull request does not apply any of the following.
 2. Download the `db-backup` artifact.
 3. `age -d -i backup.key -o backup.tar.gz backup.tar.gz.age`
 4. `tar -xzf backup.tar.gz`
-5. Restore with `psql` into a local database: schema file, then data file.
+5. On the hosted database, note `select count(*) from auth.users` and `select count(*) from public.teams`.
+6. Restore with `psql` into a local database: schema file, then data file.
+7. Run the same two counts on the restored database.
 
 **Expected:**
 
 - The artifact is an `.age` file. The zip from GitHub does not contain `schema.sql` or `data.sql` in the clear.
-- After restore, the identity tables from `20261015120000_identity.sql` exist. Demo Knights is local seed data and is not in a hosted dump.
+- `schema.sql` creates the `auth` schema, not only `public`.
+- The restored `auth.users` count and `public.teams` count match the hosted counts.
+- Demo Knights is local seed data and is not in a hosted dump.

@@ -1,4 +1,7 @@
-import { readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 function read(path: string) {
@@ -29,6 +32,11 @@ describe('hosting', () => {
     expect(backup).toContain('scripts/backup.sh')
     expect(backup).not.toContain('STAGING_')
     expect(backupScript).toContain('age -R')
+    expect(backupScript).toContain('--schema public,auth')
+    expect(backup).toContain('sha256sum -c')
+    expect(read('../.github/workflows/ci.yml')).toContain('sha256sum -c')
+    expect(read('../.github/workflows/activity.yml')).toContain("cron: '0 12 1 * *'")
+    expect(read('../.github/workflows/activity.yml')).toContain('git commit --allow-empty')
     expect(deploy).toContain('environment: production')
     expect(deploy).not.toContain('environment: staging')
     expect(deploy).not.toContain('STAGING_')
@@ -38,12 +46,29 @@ describe('hosting', () => {
     expect(scenario).toContain('20261015130100_health.sql')
   })
 
-  it('exposes a security-definer health function and scans for secrets', () => {
+  it('keeps health invoker and scans bundle JWTs for a service role', () => {
     const health = read('../supabase/migrations/20261015130100_health.sql')
     const ci = read('../.github/workflows/ci.yml')
-    expect(health).toContain('security definer')
+    expect(health).toContain('security invoker')
+    expect(health).not.toContain('security definer')
     expect(health).toContain('select 1')
     expect(ci).toContain('gitleaks detect')
-    expect(ci).toContain('service_role')
+    expect(ci).toContain('scripts/scan-bundle.mjs')
+    expect(read('../scenarios/deploy.md')).toContain('auth.users')
+  })
+
+  it('rejects a service-role JWT and ignores an anon JWT', () => {
+    const token = (role: string) => {
+      const part = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url')
+      return `${part({ alg: 'none' })}.${part({ role })}.signature`
+    }
+    const scan = (body: string) => {
+      const dir = mkdtempSync(join(tmpdir(), 'bundle-'))
+      writeFileSync(join(dir, 'app.js'), body)
+      return spawnSync(process.execPath, ['scripts/scan-bundle.mjs', dir], { encoding: 'utf8' })
+    }
+    expect(scan(token('anon')).status).toBe(0)
+    expect(scan(token('service_role')).status).toBe(1)
+    expect(scan('SUPABASE_SERVICE_ROLE').status).toBe(1)
   })
 })

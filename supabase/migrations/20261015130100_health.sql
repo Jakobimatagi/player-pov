@@ -3,7 +3,7 @@ create function public.health()
 returns integer
 language sql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
   select 1
