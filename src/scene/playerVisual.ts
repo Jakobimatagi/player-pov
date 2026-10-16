@@ -3,7 +3,6 @@ import {
   BufferGeometry,
   Float32BufferAttribute,
   MeshBasicMaterial,
-  MeshLambertMaterial,
   type Material,
 } from 'three'
 import type { Team } from '../play/types'
@@ -31,12 +30,15 @@ function buildBoxGeometry(): BufferGeometry {
   const geometry = new BoxGeometry(0.6, 2, 0.9)
   geometry.translate(0, 1, 0)
   const position = geometry.getAttribute('position')
+  const normal = geometry.getAttribute('normal')
   const colors = new Float32Array(position.count * 3)
   for (let i = 0; i < position.count; i += 1) {
-    const front = (position.getX(i) ?? 0) > 0.2 ? 0.55 : 1
-    colors[i * 3] = front
-    colors[i * 3 + 1] = front
-    colors[i * 3 + 2] = front
+    const nx = normal.getX(i) ?? 0
+    const ny = normal.getY(i) ?? 0
+    const shade = ny > 0.5 ? 1 : ny < -0.5 ? 0.6 : Math.abs(nx) > 0.5 ? 0.85 : 0.75
+    colors[i * 3] = shade
+    colors[i * 3 + 1] = shade
+    colors[i * 3 + 2] = shade
   }
   geometry.setAttribute('color', new Float32BufferAttribute(colors, 3))
   return geometry
@@ -116,7 +118,7 @@ export function createPickMaterial(): Material {
 export const boxVisual: PlayerVisual = {
   geometry: buildBoxGeometry(),
   createMaterial(team) {
-    return new MeshLambertMaterial({ color: TEAM_COLOR[team], vertexColors: true })
+    return new MeshBasicMaterial({ color: TEAM_COLOR[team], vertexColors: true })
   },
   numberAnchor: { chestHeight: 1.35, backOffset: 0.32, frontOffset: 0.32 },
   pickScale: 1.5,
