@@ -53,6 +53,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `camera-broadcast.md`          | Broadcast camera                          |
 | `camera-top-down.md`           | Top-down camera                           |
 | `player-hop.md`                | Attach and hop                            |
+| `pov-picker.md`                | Watch as list                             |
 | `touch.md`                     | Tap, swipe, orbit, pinch, hop chips       |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.

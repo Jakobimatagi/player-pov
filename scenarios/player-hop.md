@@ -48,7 +48,8 @@ The shell still follows `scenarios/responsive.md` scenario 1. This step adds no 
 - `←` goes the other way and wraps from X to Z.
 - `↑` or `↓` attaches the closest defender at the current time.
 - The page does not scroll.
-- `Escape` clears `data-attached`. The mode stays where it was. In POV the view falls back to the QB, and his box hides again because POV always has a subject.
+- While the Watch as list is open, arrows move in that list instead. See `scenarios/pov-picker.md` scenario 4.
+- `Escape` clears `data-attached`. The mode stays where it was. In POV the view falls back to the QB, and his box hides again because POV always has a subject. The Watch as control clears too.
 - The same keys do nothing while a text field is focused.
 
 ## Scenario 4 — Hop at the end of the play

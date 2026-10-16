@@ -7,6 +7,10 @@ export const cameraState = {
   attached: -1,
   /** Who POV looks through when `attached` is -1. Broadcast does not read it. */
   povSubject: -1,
+  /** Player shown in Watch as. -1 is the empty control. */
+  watchAs: -1,
+  /** Play id Watch as last bound to. A change drops the old attach. */
+  playId: '',
   transitionUntil: 0,
   movingRef: { current: false },
 }
@@ -28,9 +32,13 @@ export function selectMode(
   nowSeconds = performance.now() / 1000,
 ): void {
   if (cameraState.mode === mode) return
+  const previous = cameraState.mode
   cameraState.mode = mode
   if (mode === 'pov') {
     cameraState.povSubject = cameraState.attached >= 0 ? cameraState.attached : qbIndex
+    if (cameraState.attached >= 0) cameraState.watchAs = cameraState.attached
+  } else if (previous === 'pov') {
+    cameraState.watchAs = -1
   }
   cameraState.transitionUntil = nowSeconds + 0.6
   cameraState.movingRef.current = true
@@ -39,17 +47,40 @@ export function selectMode(
 
 /** Attach, keep the current mode, and glide the frame toward that player. */
 export function attachPlayer(index: number, nowSeconds = performance.now() / 1000): void {
-  if (cameraState.attached === index) return
+  const same = cameraState.attached === index
+  if (same && cameraState.watchAs === index) return
   cameraState.attached = index
-  cameraState.transitionUntil = nowSeconds + 0.6
-  cameraState.movingRef.current = true
+  cameraState.watchAs = index
+  if (!same) {
+    cameraState.transitionUntil = nowSeconds + 0.6
+    cameraState.movingRef.current = true
+  }
   emit()
 }
 
 export function detachPlayer(): void {
-  if (cameraState.attached < 0) return
+  if (cameraState.attached < 0 && cameraState.watchAs < 0) return
   cameraState.attached = -1
+  cameraState.watchAs = -1
   emit()
+}
+
+/** Pick from Watch as: attach that player and look through them. */
+export function watchPlayer(
+  index: number,
+  qbIndex: number,
+  nowSeconds = performance.now() / 1000,
+): void {
+  attachPlayer(index, nowSeconds)
+  if (cameraState.mode !== 'pov') selectMode('pov', qbIndex, nowSeconds)
+}
+
+/** A different play cannot keep the previous roster index. */
+export function notePlay(id: string, qbIndex: number): void {
+  if (cameraState.playId === id) return
+  cameraState.playId = id
+  cameraState.povSubject = qbIndex
+  detachPlayer()
 }
 
 /** P, or a double-click: POV on the attached player. */

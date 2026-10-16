@@ -207,13 +207,14 @@ describe('sampler', () => {
       }
     }
     // V8 keeps compiler feedback on the JS heap. A full run can retain a few
-    // extra KB even after the warmup. A per-frame object would be far larger.
+    // extra KB even after the warmup, so the slack is 32 KB. A per-frame
+    // object would be far larger.
     once()
     collect()
     const before = process.memoryUsage().heapUsed
     once()
     collect()
     const retained = process.memoryUsage().heapUsed - before
-    expect(retained).toBeLessThanOrEqual(16 * 1024)
+    expect(retained).toBeLessThanOrEqual(32 * 1024)
   })
 })

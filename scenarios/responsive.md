@@ -42,6 +42,7 @@ Coach navigation, once those screens exist: bottom tab bar on the phone (Team, P
 - **Play**, each speed, **Show routes** / **Hide routes**, the time range, and the camera buttons are at least 44px in both axes.
 - The camera buttons and the scrubber wrap inside the viewport on the phone.
 - At 360 the camera words are `POV`, `Broad`, and `Top`. From 768 up they are `POV`, `Broadcast`, and `Top-down`. The accessible names stay `POV`, `Broadcast`, and `Top-down` at every width.
+- **Watch as** sits in the camera bar and is at least 44×44. At 360 it wraps onto its own row. Opening it does not make the page scroll sideways. Option rows are at least 44px tall. See `scenarios/pov-picker.md`.
 - Body text is 16px at 360, 17px at 768 and 1024, 18px at 1366, and 22px at 1920.
 - On a fine pointer the hop chips are absent, so these five widths stay clear of them. On a coarse pointer, once a player is attached, **Hop left** and **Hop right** sit beside the scrubber and each is at least 44×44.
 

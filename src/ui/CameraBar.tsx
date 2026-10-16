@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   attachPlayer,
   cameraState,
@@ -11,6 +11,7 @@ import { hopInTeam, nearestOpponent } from '../camera/hop'
 import type { CamMode } from '../camera/modes'
 import type { CompiledPlay } from '../play/types'
 import { poseXY } from '../scene/framePose'
+import { WatchAs } from './WatchAs'
 
 const MODES: { mode: CamMode; label: string; short: string }[] = [
   { mode: 'pov', label: 'POV', short: 'POV' },
@@ -30,12 +31,16 @@ export function CameraBar({
   const qbIndex = qb >= 0 ? qb : 0
   const [mode, setMode] = useState<CamMode>(cameraState.mode)
   const [attached, setAttached] = useState(cameraState.attached)
+  const [watch, setWatch] = useState(cameraState.watchAs)
+  const watchOpen = useRef(false)
+  const closeWatch = useRef<() => void>(() => {})
 
   useEffect(
     () =>
       subscribeCamera(() => {
         setMode(cameraState.mode)
         setAttached(cameraState.attached)
+        setWatch(cameraState.watchAs)
       }),
     [],
   )
@@ -49,7 +54,26 @@ export function CameraBar({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement
+      ) {
+        return
+      }
+      if (watchOpen.current) {
+        const inList =
+          target instanceof Element && target.closest('[data-testid="watch-list"]') != null
+        if (!inList && event.key === 'Escape') {
+          event.preventDefault()
+          closeWatch.current()
+        } else if (!inList && event.key.startsWith('Arrow')) {
+          event.preventDefault()
+        } else if (!inList && event.key === 'Tab') {
+          closeWatch.current()
+        }
+        return
+      }
       const next =
         event.key === '1'
           ? 'pov'
@@ -90,6 +114,7 @@ export function CameraBar({
       data-testid="camera-bar"
       data-mode={mode}
       data-attached={attached < 0 ? '' : (play.ids[attached] ?? '')}
+      data-watch={watch < 0 ? '' : (play.ids[watch] ?? '')}
     >
       {MODES.map((item) => (
         <button
@@ -104,6 +129,13 @@ export function CameraBar({
           <span className="short-label">{item.short}</span>
         </button>
       ))}
+      <WatchAs
+        play={play}
+        qbIndex={qbIndex}
+        onFrameloop={onFrameloop}
+        openRef={watchOpen}
+        closeRef={closeWatch}
+      />
     </div>
   )
 }
