@@ -17,6 +17,8 @@ export const lookState = {
   /** Set while a drag or the return-to-forward ease still needs frames. */
   armed: false,
   releasedAt: 0,
+  /** Next POV step copies the look point when the eye is already there. Not an ease. */
+  snap: false,
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -49,12 +51,14 @@ export function setHoldLook(hold: boolean, now: number): void {
   lookState.armed = Math.abs(lookState.yaw) > 1e-4 || Math.abs(lookState.pitch) > 1e-4
 }
 
+/** Zero the offset. Hold look is a preference and stays as it is. Does not arm an ease. */
 export function resetLook(): void {
   lookState.yaw = 0
   lookState.pitch = 0
   lookState.dragging = false
   lookState.armed = false
   lookState.releasedAt = 0
+  lookState.snap = true
 }
 
 /** True while a drag, the 1 s pause, or the ease still needs frames. A held offset does not. */

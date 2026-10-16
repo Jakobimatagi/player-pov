@@ -356,6 +356,62 @@ describe('camera modes', () => {
     cameraState.povSubject = -1
     cameraState.playId = ''
     resetLook()
+    lookState.snap = false
+  })
+
+  it('zeros a held look on Escape and does not ease or restore it', () => {
+    resetLook()
+    setHoldLook(true, 1)
+    lookState.snap = false
+    const state = createRigState()
+    stepRig(state, input({ mode: 'pov', attached: 0, dt: 0, now: 1 }))
+    nudgeLook(200, -40, 1.2)
+    releaseLook(1.2)
+    for (let i = 0; i < 30; i += 1) {
+      stepRig(state, input({ mode: 'pov', attached: 0, now: 1.4 + i * 0.05, dt: 0.05 }))
+    }
+    const turnedX = state.lookX
+    const turnedZ = state.lookZ
+    expect(lookState.hold).toBe(true)
+    expect(Math.abs(lookState.yaw)).toBeGreaterThan(0.4)
+
+    cameraState.mode = 'pov'
+    cameraState.attached = 0
+    cameraState.watchAs = 0
+    detachPlayer()
+    resetLook()
+    expect(lookState.yaw).toBe(0)
+    expect(lookState.pitch).toBe(0)
+    expect(lookState.hold).toBe(true)
+    expect(lookState.armed).toBe(false)
+    expect(lookState.dragging).toBe(false)
+
+    stepRig(state, input({ mode: 'pov', attached: -1, qbIndex: 0, now: 4, dt: 0.016 }))
+    const ahead = yardsToWorld(40.15, 26.67, 1.75, { x: 0, y: 0, z: 0 })
+    expect(state.lookX).toBeCloseTo(ahead.x, 3)
+    expect(state.lookY).toBeCloseTo(ahead.y, 3)
+    expect(state.lookZ).toBeCloseTo(ahead.z, 3)
+    expect(Math.hypot(state.lookX - turnedX, state.lookZ - turnedZ)).toBeGreaterThan(1)
+    expect(lookState.snap).toBe(false)
+
+    easeLook(10, 1)
+    easeLook(12, 1)
+    stepRig(state, input({ mode: 'pov', attached: -1, qbIndex: 0, now: 12, dt: 0.5 }))
+    expect(lookState.yaw).toBe(0)
+    expect(lookState.pitch).toBe(0)
+    expect(lookState.hold).toBe(true)
+    expect(lookState.armed).toBe(false)
+    expect(state.lookX).toBeCloseTo(ahead.x, 3)
+    expect(state.lookZ).toBeCloseTo(ahead.z, 3)
+
+    cameraState.mode = 'broadcast'
+    cameraState.attached = -1
+    cameraState.watchAs = -1
+    cameraState.povSubject = -1
+    cameraState.playId = ''
+    setHoldLook(false, 0)
+    resetLook()
+    lookState.snap = false
   })
 
   it('draws the facemask as a screen overlay', () => {

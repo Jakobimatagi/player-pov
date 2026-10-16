@@ -351,12 +351,16 @@ export function stepRig(state: RigState, input: RigInput): void {
   state.usingOrtho = useOrtho
 
   const prevFov = state.fov
+  const eyeErr = Math.hypot(state.x - goal.x, state.y - goal.y, state.z - goal.z)
+  // A cleared offset must face forward on this frame. A hop still damps with the eye.
+  const lookTau = lookState.snap && input.mode === 'pov' && eyeErr < 0.5 ? 0 : tau
+  lookState.snap = false
   state.x = damp(state.x, goal.x, tau, input.dt)
   state.y = damp(state.y, goal.y, tau, input.dt)
   state.z = damp(state.z, goal.z, tau, input.dt)
-  state.lookX = damp(state.lookX, goal.lookX, tau, input.dt)
-  state.lookY = damp(state.lookY, goal.lookY, tau, input.dt)
-  state.lookZ = damp(state.lookZ, goal.lookZ, tau, input.dt)
+  state.lookX = damp(state.lookX, goal.lookX, lookTau, input.dt)
+  state.lookY = damp(state.lookY, goal.lookY, lookTau, input.dt)
+  state.lookZ = damp(state.lookZ, goal.lookZ, lookTau, input.dt)
   if (!holdFov) state.fov = damp(state.fov, goal.fov, tau, input.dt)
   if (!holdZoom) state.zoom = damp(state.zoom, goal.zoom, tau <= 0 ? 0 : tau, input.dt)
   state.upX = damp(state.upX, goal.upX, tau, input.dt)

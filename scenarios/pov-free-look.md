@@ -2,7 +2,7 @@
 
 In POV, a mouse drag or a one-finger drag looks around the attached player. The eye stays at helmet height and keeps following that player. Yaw is relative to the player's facing and stops at about ±100°. Pitch stops at about ±35°. About 1 s after the pointer goes up, the view eases back to forward. **Hold look** keeps the offset.
 
-Playback does not pause, and the scrubber does not follow the pointer. A tap with no movement still attaches. In POV a one-finger drag is look, so hopping is the hop chips or a two-finger swipe. The facemask is a screen overlay and stays put. The offset resets when the attached player changes, on every **Watch as** pick, and on Escape. Leaving POV with the same player keeps it. Opening the Watch as list does not clear Hold look, and keys still go to that list while it is open.
+Playback does not pause, and the scrubber does not follow the pointer. A tap with no movement still attaches. In POV a one-finger drag is look, so hopping is the hop chips or a two-finger swipe. The facemask is a screen overlay and stays put. The offset resets when the attached player changes, on every **Watch as** pick, and on Escape. Escape does that even when Hold look is on, and it leaves the toggle as it was. Leaving POV with the same player keeps it. Opening the Watch as list does not clear Hold look, and keys still go to that list while it is open.
 
 Broadcast and Top-down still hop on a one-finger swipe. That check is `scenarios/touch.md` scenario 3. The shell still follows `scenarios/responsive.md` scenario 1.
 
@@ -134,5 +134,5 @@ Broadcast and Top-down still hop on a one-finger swipe. That check is `scenarios
 - Step 1 looks out of the new player's face, straight ahead. The old offset is gone.
 - Step 2 leaves POV and comes back on the same player with the offset still there.
 - Step 3 clears the offset even though that player was already attached. The view looks straight out of their face.
-- Escape clears the offset. `data-attached` is empty, and POV falls back to the QB looking straight ahead.
+- Escape sets the look offset to zero immediately, including while Hold look is on. `data-attached` is empty, and POV falls back to the QB looking straight ahead. Hold look stays pressed. Nothing eases back, and the dragged angle does not return.
 - Escape while the Watch as list is open closes the list and leaves the offset alone. That list still takes the keys (`scenarios/pov-picker.md` scenario 4).
