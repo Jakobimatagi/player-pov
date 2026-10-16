@@ -2,7 +2,22 @@
 
 Sign-in is required once `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set. With those unset, `/` stays the engine viewer so the earlier viewer scenarios still open. `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `/accept-invite` always render.
 
+A player joins only by opening `/accept-invite?token=<64 hex characters>` and then calling `public.accept_invite`. The page does not read `invites` or `memberships` before that call. `anon` has no table grants. The raw token is not a row id; the database stores its sha256.
+
 The seeded player is `player@demo.local` / `password1234` (local seed only). Email confirmation is on in `supabase/config.toml`.
+
+## Supabase Auth dashboard
+
+Nothing in this file is applied to the hosted project. On Supabase **player-pov** (`bfaopibbbldsxvjprfdx`), before hosted login works:
+
+1. Site URL: the Vercel production URL for player-pov.
+2. Redirect URLs: `http://127.0.0.1:5173/**`, `https://<production-host>/**`, and `https://*.vercel.app/**` if preview deployments should accept mail links. The wildcard is what lets `?token=` survive. Local `supabase/config.toml` already lists `http://127.0.0.1:5173/**`.
+3. Email provider on. Confirm email on. No new OAuth providers.
+4. Confirmation and recovery templates keep `{{ .ConfirmationURL }}`.
+5. Do not send Supabase's invite-user mail as the join path. The link is `/accept-invite?token=<64 hex characters>`.
+6. Exposed API schemas stay `public` and `graphql_public`. The app calls `public.accept_invite`. No new migration.
+
+Migrations still waiting, in order: `supabase/migrations/20261015120000_identity.sql`, then `supabase/migrations/20261015130100_health.sql`. Do not run `supabase/seed.sql` on the host.
 
 ## Scenario 1 — Player login
 
@@ -103,3 +118,21 @@ The seeded player is `player@demo.local` / `password1234` (local seed only). Ema
 
 - The app signs out and opens `/login?expired=1`.
 - The banner reads `Session expired, sign in again.`
+
+## Scenario 8 — Invite token
+
+**Preconditions:** A 64-character hex invite token exists for an email. The dev server is running. This check does not require the hosted project.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/accept-invite .
+2. Open http://127.0.0.1:5173/accept-invite?token=abcd .
+3. Open http://127.0.0.1:5173/accept-invite?token= followed by 64 hex characters, while logged out. Submit the invited email and a password of at least 10 characters.
+4. Open `/login?next=` that same accept-invite path and sign in with an account whose email does not match the invite.
+
+**Expected:**
+
+- Steps 1 and 2 show `This invite is no longer valid. Ask your coach for a new one, or log in.` The page does not ask for a password.
+- Step 3 shows **Email**, **Password**, and **Confirm password**. **Log in** points at `/login` with that accept-invite path as `next`. The confirmation link returns to `/accept-invite?token=<those 64 hex characters>`.
+- A confirmed session calls `accept_invite` once. A matching invite lands on home. A mismatched email, an expired token, or a used token shows the same invalid-invite sentence. An unconfirmed email shows `Confirm your email first`.
+- The screen does not list invite rows or teammates.

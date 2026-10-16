@@ -1,18 +1,32 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useSyncExternalStore } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { supabase } from '../data/supabase'
 import { AuthField, AuthScreen } from './AuthScreen'
 import {
+  asAuthFlowClient,
+  inviteRedirect,
+  parseInviteToken,
+  resendSignup,
+  submitAcceptInvite,
+  submitForgot,
+  submitInviteSignup,
+  submitLogin,
+  submitReset,
+  submitSignup,
+} from './flows'
+import {
   CONFIRM_EMAIL,
   FORGOT_SENT,
+  getAuthSnap,
   INVITE_INVALID,
   linkExpired,
-  mapLoginError,
   passwordIssue,
   RESET_EXPIRED,
   safeNext,
   SESSION_EXPIRED,
   SIGNED_OUT,
+  subscribeAuth,
 } from './session'
 
 function originRedirect(path: string): string {
@@ -38,18 +52,21 @@ export function LoginPage() {
       return
     }
     setPending(true)
-    const { error: signError } = await supabase.auth.signInWithPassword({ email, password })
-    setPending(false)
-    if (signError) {
-      setError(mapLoginError(signError))
-      return
+    try {
+      const result = await submitLogin(asAuthFlowClient(supabase), email, password)
+      if (!result.ok) {
+        setError(result.message)
+        return
+      }
+      navigate(next, { replace: true })
+    } finally {
+      setPending(false)
     }
-    navigate(next, { replace: true })
   }
 
   async function resend() {
     if (supabase == null || email === '') return
-    await supabase.auth.resend({ type: 'signup', email })
+    await resendSignup(asAuthFlowClient(supabase), email)
   }
 
   return (
@@ -120,25 +137,27 @@ export function SignupPage() {
       return
     }
     setPending(true)
-    const { data, error: signError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: originRedirect('/'),
+    try {
+      const result = await submitSignup(asAuthFlowClient(supabase), {
+        email,
+        password,
+        confirm: password,
+        redirectTo: originRedirect('/'),
         data: { display_name: name, coach },
-      },
-    })
-    setPending(false)
-    if (signError) {
-      setError(signError.message)
-      return
+      })
+      if (!result.ok) {
+        setError(result.message)
+        return
+      }
+      if (result.needsConfirm) setSent(true)
+    } finally {
+      setPending(false)
     }
-    if (data.session == null) setSent(true)
   }
 
   async function resend() {
     if (supabase == null) return
-    await supabase.auth.resend({ type: 'signup', email })
+    await resendSignup(asAuthFlowClient(supabase), email)
   }
 
   return (
@@ -208,13 +227,14 @@ export function ForgotPasswordPage() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setPending(true)
-    if (supabase != null) {
-      await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: originRedirect('/reset-password'),
-      })
+    try {
+      if (supabase != null) {
+        await submitForgot(asAuthFlowClient(supabase), email, originRedirect('/reset-password'))
+      }
+    } finally {
+      setPending(false)
+      setSent(true)
     }
-    setPending(false)
-    setSent(true)
   }
 
   return (
@@ -265,9 +285,9 @@ export function ResetPasswordPage() {
       setError('This preview has no account server yet.')
       return
     }
-    const { error: updateError } = await supabase.auth.updateUser({ password })
-    if (updateError) {
-      setError(RESET_EXPIRED)
+    const result = await submitReset(asAuthFlowClient(supabase), password, confirm)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
     setDone(true)
@@ -329,30 +349,71 @@ export function ResetPasswordPage() {
 }
 
 export function AcceptInvitePage() {
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
+  const snap = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
+  const token = parseInviteToken(params.get('token'))
+  const invalid = token == null || linkExpired(window.location.search, window.location.hash)
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [done, setDone] = useState(false)
-  const invalid = linkExpired(window.location.search, window.location.hash)
-  const email = 'invited player'
+  const [sent, setSent] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  const signedIn = snap.session != null
+
+  useEffect(() => {
+    if (invalid || token == null || supabase == null || !snap.ready || !signedIn) return
+    let cancelled = false
+    void submitAcceptInvite(asAuthFlowClient(supabase), token).then((result) => {
+      if (cancelled) return
+      if (result.ok) navigate('/', { replace: true })
+      else setError(result.message)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [attempt, invalid, navigate, signedIn, snap.ready, token])
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
+    setError(null)
     const issue = passwordIssue(password, confirm)
     if (issue) {
       setError(issue)
       return
     }
-    if (supabase == null) {
+    if (supabase == null || token == null) {
       setError('This preview has no account server yet.')
       return
     }
-    const { error: updateError } = await supabase.auth.updateUser({ password })
-    if (updateError) {
-      setError(INVITE_INVALID)
-      return
+    setPending(true)
+    try {
+      const result = await submitInviteSignup(asAuthFlowClient(supabase), {
+        email,
+        password,
+        confirm,
+        token,
+        origin: window.location.origin,
+      })
+      if (!result.ok) {
+        setError(result.message)
+        return
+      }
+      if (result.needsConfirm) setSent(true)
+    } finally {
+      setPending(false)
     }
-    setDone(true)
+  }
+
+  async function resend() {
+    if (supabase == null || token == null || email === '') return
+    await resendSignup(
+      asAuthFlowClient(supabase),
+      email,
+      inviteRedirect(window.location.origin, token),
+    )
   }
 
   if (invalid) {
@@ -369,14 +430,75 @@ export function AcceptInvitePage() {
     )
   }
 
+  const loginTo = `/login?next=${encodeURIComponent(`/accept-invite?token=${token}`)}`
+
+  if (supabase != null && !snap.ready) {
+    return (
+      <AuthScreen banner="You're invited">
+        <h1>Accept invite</h1>
+        <p className="auth-note" role="status">
+          Loading…
+        </p>
+      </AuthScreen>
+    )
+  }
+
+  if (snap.session != null) {
+    return (
+      <AuthScreen banner="You're invited">
+        <h1>Accept invite</h1>
+        {error ? (
+          <p className="auth-error" role="alert">
+            {error}
+          </p>
+        ) : (
+          <p className="auth-note" role="status">
+            Joining the team…
+          </p>
+        )}
+        {error ? (
+          <button
+            type="button"
+            className="auth-submit"
+            onClick={() => {
+              setError(null)
+              setAttempt((value) => value + 1)
+            }}
+          >
+            Try again
+          </button>
+        ) : null}
+        <Link className="auth-textlink" to={loginTo}>
+          Log in
+        </Link>
+      </AuthScreen>
+    )
+  }
+
   return (
     <AuthScreen banner="You're invited">
-      {done ? (
-        <p className="auth-note">Account ready.</p>
+      {sent ? (
+        <div>
+          <h1>Confirm your email</h1>
+          <p className="auth-note" role="status">
+            {CONFIRM_EMAIL}
+          </p>
+          <button type="button" className="auth-submit" onClick={() => void resend()}>
+            Resend confirmation
+          </button>
+        </div>
       ) : (
         <form onSubmit={onSubmit}>
           <h1>Create account</h1>
-          <p className="auth-readonly">{email}</p>
+          <AuthField label="Email">
+            <input
+              type="email"
+              autoComplete="username"
+              value={email}
+              required
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </AuthField>
           <div className="auth-pair">
             <AuthField label="Password">
               <input
@@ -402,9 +524,12 @@ export function AcceptInvitePage() {
               {error}
             </p>
           ) : null}
-          <button className="auth-submit" type="submit">
+          <button className="auth-submit" type="submit" disabled={pending}>
             Create account
           </button>
+          <Link className="auth-textlink" to={loginTo}>
+            Log in
+          </Link>
         </form>
       )}
     </AuthScreen>

@@ -1,47 +1,6 @@
-# Responsive screens that are not in the engine yet
+# Responsive screens that are not in this build yet
 
-These are scenarios 5–15. They used to sit in `scenarios/responsive.md` and keep those numbers so later pull requests can cite them without renumbering. The engine viewer checks scenarios 1–4 in `scenarios/responsive.md`. Widths, the 44px target, and the type scale are defined there.
-
-## Scenario 5 — Login
-
-**Preconditions:** The login route is in the build. Mockups: `login-phone.jpg`, `login-tablet.jpg`. Desktop card is the charcoal login mock.
-
-**Steps:**
-
-1. Open the login route at each width.
-
-**Expected:**
-
-- 1920 and 1366: a centered card about 560px wide on charcoal. Email, password, full-width **Log in**, and **Forgot password?** underneath.
-- 1024 and 768: the same card, about 520px wide, still centered.
-- 360, matching `login-phone.jpg`: no card frame. Wordmark at the top (`POV` white, `Playbook` red). Fields full width. **Log in** is full width and 52px tall. **Forgot password?** is a 44px text link. The invite hint sits at the bottom.
-- Inputs are at least 48px tall with 16px type. No horizontal scroll.
-
-## Scenario 6 — Accept invite
-
-**Preconditions:** An invite link is open.
-
-**Steps:**
-
-1. Open an accept-invite page at each width, then an expired invite.
-
-**Expected:**
-
-- 1920 and 1024: red invite banner and a centered card. Password and confirm sit side by side.
-- 768: the same card, with password and confirm stacked.
-- 360: the banner is two lines. Every field is stacked. The invited email is read-only text. **Create account** sits at the bottom when the keyboard is closed.
-- An expired or used invite uses the login card pattern from scenario 5 at that width.
-
-## Scenario 7 — Password reset
-
-**Steps:**
-
-1. Open the forgot-password route at each width and submit an address.
-
-**Expected:**
-
-- The layout matches Login (scenario 5) at that width.
-- The form is replaced in place by `If that email has an account, a link is on its way`.
+Scenarios 5, 6, 7, and 15 now live in `scenarios/responsive.md`. Scenarios 8–14 stay here and keep those numbers. Widths, the 44px target, and the type scale are defined in `scenarios/responsive.md`.
 
 ## Scenario 8 — Team roster
 
@@ -154,15 +113,4 @@ These are scenarios 5–15. They used to sit in `scenarios/responsive.md` and ke
 - WebGL fallback and play-error screens follow the login card pattern from scenario 5.
 - No horizontal scroll.
 
-## Scenario 15 — Account menu
-
-**Steps:**
-
-1. Open the account control on a signed-in screen at 360 and at 1024.
-
-**Expected:**
-
-- The avatar is at least 44×44 and lives in the top bar.
-- 1024 and up: a dropdown shows name, role, team, **Change password**, and **Sign out**.
-- 360: a bottom sheet shows the same items. **Sign out** is a full-width row in red text.
-- Sign out is reachable in two taps or fewer.
+Scenario 15 (account menu) is in `scenarios/responsive.md`.

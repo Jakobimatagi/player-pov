@@ -84,4 +84,61 @@ Coach navigation, once those screens exist: bottom tab bar on the phone (Team, P
 - **Reload** is at least 44×44.
 - The diagram SVG stays inside the viewport. There is no horizontal scroll.
 
-Screens that are not in this build (login through the account menu) are scenarios 5–15 in `docs/responsive-screens.md`. Their numbers stay the same. They are the contract for the pull request that adds each screen, not a failure of this one.
+## Scenario 5 — Login
+
+**Preconditions:** The login route is in the build.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/login at each width.
+
+**Expected:**
+
+- 1920 and 1366: a centered card about 560px wide. Email, password, full-width **Log in**, and **Forgot password?** underneath.
+- 1024 and 768: the same card, about 520px wide, still centered.
+- 360: no card frame. Wordmark at the top (`POV` white, `Playbook` red). Fields full width. **Log in** is full width and 52px tall. **Forgot password?** is a 44px text link. The invite hint sits at the bottom.
+- Inputs are at least 48px tall with 16px type. Every button and link is at least 44×44. No horizontal scroll.
+
+## Scenario 6 — Accept invite
+
+**Preconditions:** An accept-invite route is open. The token is 64 hex characters. Logged out.
+
+**Steps:**
+
+1. Open `/accept-invite?token=` plus 64 hex characters at each width.
+2. Open `/accept-invite` with no token.
+
+**Expected:**
+
+- 1920 and 1024: a red `You're invited` banner and a centered card. Password and confirm sit side by side.
+- 768: the same card, with password and confirm stacked.
+- 360: the banner and every field stack. **Email** is an input, not read-only text, because the token does not carry the address. **Create account** is full width.
+- A missing or short token uses the login card pattern from scenario 5 at that width and shows the invalid-invite sentence.
+- Inputs, **Create account**, and **Log in** are at least 44px in both axes. No horizontal scroll.
+
+## Scenario 7 — Password reset
+
+**Steps:**
+
+1. Open `/forgot-password` at each width and submit an address.
+
+**Expected:**
+
+- The layout matches Login (scenario 5) at that width.
+- The form is replaced in place by `If that email has an account, a link is on its way`.
+- No horizontal scroll.
+
+## Scenario 15 — Account menu
+
+**Steps:**
+
+1. Open a signed-in screen that shows the account control, at 360 and at 1024.
+
+**Expected:**
+
+- The avatar is at least 44×44 and lives in the top bar. Its accessible name is `Account`.
+- 1024 and up: a menu shows the account name, **Sign out**, and **Sign out everywhere**.
+- 360: a bottom sheet shows the same items. **Sign out everywhere** is a full-width row in red text.
+- Sign out is reachable in two taps.
+
+Screens that are still not in this build (roster through scout look) stay scenarios 8–14 in `docs/responsive-screens.md`. Their numbers stay the same.
