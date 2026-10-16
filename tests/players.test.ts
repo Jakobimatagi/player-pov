@@ -92,17 +92,20 @@ describe('box players', () => {
   })
 
   it('keeps the full scene within 2000 triangles and 10 meshes', () => {
+    const players = readFileSync('src/scene/Players.tsx', 'utf8')
+    const pickMeshes = players.match(/layers\.set\(1\)/g)?.length ?? 0
+    const boxTris = triangleCount(boxVisual.geometry)
     const tris =
       triangleCount(buildGrass()) +
       triangleCount(buildFieldMarkings(fieldConfig())) +
-      triangleCount(boxVisual.geometry) * 2 +
-      triangleCount(createNumberGeometry(boxVisual.numberAnchor))
+      boxTris * 22 +
+      triangleCount(createNumberGeometry(boxVisual.numberAnchor)) * 22 +
+      80
+    expect(pickMeshes).toBe(2)
     expect(tris).toBeLessThanOrEqual(2000)
     const tags = (source: string) => source.match(/<(mesh|instancedMesh)\b/g)?.length ?? 0
-    const meshes =
-      tags(readFileSync('src/scene/Field.tsx', 'utf8')) +
-      tags(readFileSync('src/scene/Players.tsx', 'utf8'))
+    const meshes = tags(readFileSync('src/scene/Field.tsx', 'utf8')) + tags(players)
     expect(meshes).toBeLessThanOrEqual(10)
-    expect(meshes).toBeGreaterThan(0)
+    expect(meshes).toBeGreaterThan(pickMeshes)
   })
 })

@@ -2,6 +2,7 @@ import {
   BoxGeometry,
   BufferGeometry,
   Float32BufferAttribute,
+  MeshBasicMaterial,
   MeshLambertMaterial,
   type Material,
 } from 'three'
@@ -99,6 +100,17 @@ export function createNumberGeometry(anchor: NumberAnchor): BufferGeometry {
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
   geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
   return geometry
+}
+
+/** Invisible 1.5× pick proxy. Raycasts hit it; it does not write color or depth. */
+export function createPickMaterial(): Material {
+  return new MeshBasicMaterial({
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    depthTest: false,
+    colorWrite: false,
+  })
 }
 
 export const boxVisual: PlayerVisual = {
