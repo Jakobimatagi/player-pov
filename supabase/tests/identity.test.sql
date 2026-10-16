@@ -91,21 +91,21 @@ select has_table('public', 'consent_records', 'consent_records exists');
 select has_view('public', 'roster_public', 'roster_public exists');
 
 select results_eq(
-  $$select e.enumlabel::text
+  $$select e.enumlabel::text collate "C"
     from pg_enum e
     join pg_type t on t.oid = e.enumtypid
     join pg_namespace n on n.oid = t.typnamespace
     where n.nspname = 'public' and t.typname = 'team_role'
     order by e.enumsortorder$$,
-  $$values ('head_coach'::text), ('coach'), ('player')$$,
+  $$values ('head_coach'::text collate "C"), ('coach'::text collate "C"), ('player'::text collate "C")$$,
   'team_role is head_coach, coach, player'
 );
 
 select results_eq(
-  $$select column_name::text from information_schema.columns
+  $$select column_name::text collate "C" from information_schema.columns
     where table_schema = 'public' and table_name = 'roster_public'
-    order by column_name$$,
-  $$values ('display_name'::text), ('position'), ('role'), ('team_id'), ('user_id')$$,
+    order by 1$$,
+  $$values ('display_name'::text collate "C"), ('position'::text collate "C"), ('role'::text collate "C"), ('team_id'::text collate "C"), ('user_id'::text collate "C")$$,
   'roster_public columns are the DDL set and include no email'
 );
 
