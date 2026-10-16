@@ -15,6 +15,7 @@ beforeEach(() => {
   clockState.durationRef.current = 4
   clockState.startRef.current = 0
   clockState.invalidateRef.current = () => undefined
+  clockState.loopRef.current = false
 })
 
 describe('playback clock', () => {

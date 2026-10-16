@@ -27,6 +27,13 @@ export default tseslint.config(
       // the frame loop is supposed to mutate.
       'react-hooks/immutability': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='useFrame'] NewExpression",
+          message: 'useFrame must not allocate. Move `new` outside the callback.',
+        },
+      ],
     },
   },
   prettier,

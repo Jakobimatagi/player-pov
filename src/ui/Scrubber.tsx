@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { cameraState } from '../camera/cameraState'
+import { beginWarmup, qualityState, setQualityFrozen } from '../gfx/quality'
 import {
   clockState,
   pauseKeepingPlace,
@@ -46,7 +47,13 @@ export function Scrubber({
 
   useEffect(() => {
     const onHide = () => {
-      if (document.hidden) pauseKeepingPlace()
+      if (document.hidden) {
+        pauseKeepingPlace()
+        setQualityFrozen(qualityState, true)
+      } else {
+        setQualityFrozen(qualityState, false)
+        beginWarmup(qualityState, performance.now())
+      }
     }
     document.addEventListener('visibilitychange', onHide)
     return () => document.removeEventListener('visibilitychange', onHide)
