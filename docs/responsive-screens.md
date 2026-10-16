@@ -150,7 +150,7 @@ These are scenarios 5–15. They used to sit in `scenarios/responsive.md` and ke
 - 768: the transport bar is two rows (play controls, then camera and hop).
 - 360 portrait, matching `viewer-scout-look-phone.jpg`: top bar is back, play name, and a **Look** chip. The chip opens a bottom sheet of looks, each row 48px, current look checked. The transport bar has play/pause, a 44px scrubber hit area, and speed, then a second row for POV, Broadcast, Top, and Hop.
 - 360 landscape: chrome hides after 3 seconds and returns on tap.
-- The facemask bars are about 60% of the desktop thickness on the phone.
+- The viewer has no facemask bars.
 - WebGL fallback and play-error screens follow the login card pattern from scenario 5.
 - No horizontal scroll.
 

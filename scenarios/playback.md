@@ -30,7 +30,7 @@ The scrubber sits on the viewer. `window.__pov` is available in `npm run dev`.
 
 - The same slider time shows the same formation on a second visit.
 - 0.5× moves the play slower than 1×. 2× moves it faster.
-- The chips are 0.5, 1, 1.5, and 2. **0.25×** appears only at http://127.0.0.1:5173/?rate=0.25 .
+- The chips are **0.25×**, **0.5×**, **1×**, **1.5×**, and **2×**. Quarter speed is always on the bar. The phone layout is `scenarios/playback-rates.md`.
 
 ## Scenario 3 — Step keys
 
@@ -65,8 +65,10 @@ The scrubber sits on the viewer. `window.__pov` is available in `npm run dev`.
 
 **Expected:**
 
-- Pale lines trace each player's waypoints while shown.
+- Pale ribbons trace each player's waypoints while shown. They are much thicker than a 1px hairline, about 6 CSS pixels, in POV, Broadcast, and Top-down.
+- On a 360px-wide phone the ribbons stay readable in each camera. Compare `docs/routes-360-pov.png`, `docs/routes-360-broadcast.png`, and `docs/routes-360-topdown.png`.
 - They disappear when hidden. The play clock is unchanged.
+- Routes are one draw. With the sample play they are 180 triangles, and the scene including them stays within the 2,000 triangle budget.
 
 ## Scenario 6 — Controls fit a 360px phone
 

@@ -321,16 +321,17 @@ describe('LoadError screen', () => {
     const duration = play.meta.duration
     const fill = (index: number, pairs: number) => {
       const player = play.players[index]!
+      const x = player.team === 'offense' ? 30 : 40
       const points = []
       // `pairs` strictly decreasing steps (all t >= -10), then a legal finish at duration.
+      // Six waypoints is the schema cap, so four decreasing steps fit with that finish.
       for (let i = 0; i <= pairs; i += 1) {
-        points.push({ t: -i * 0.2, x: 30, y: 26, face: 0 })
+        points.push({ t: -i * 0.2, x, y: 26, face: 0 })
       }
-      points.push({ t: duration, x: 30, y: 26, face: 0 })
+      points.push({ t: duration, x, y: 26, face: 0 })
       player.waypoints = points
     }
-    fill(0, 30)
-    fill(1, 30)
+    for (let i = 0; i < 15; i += 1) fill(i, 4)
     const result = validatePlay(play)
     expect(result.ok).toBe(false)
     if (result.ok) return

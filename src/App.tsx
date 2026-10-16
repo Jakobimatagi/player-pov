@@ -10,6 +10,8 @@ import {
 import { useCappedDpr } from './gfx/useCappedDpr'
 import { registerContextRestore, runContextRestore } from './gfx/useContextRestore'
 import { detectWebGL } from './gfx/webglSupport'
+import { gyroListening, gyroState } from './camera/gyro'
+import { lookState } from './camera/look'
 import { clockState, earliestWaypoint, pauseKeepingPlace } from './playback/clockState'
 import { useClock } from './playback/useClock'
 import { playUrlFromSearch } from './play/load'
@@ -21,7 +23,6 @@ import { GestureInput } from './scene/GestureInput'
 import { Players } from './scene/Players'
 import { RouteLines } from './scene/RouteLines'
 import { CameraBar, HopChips } from './ui/CameraBar'
-import { FacemaskOverlay } from './ui/FacemaskOverlay'
 import { Scrubber } from './ui/Scrubber'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
@@ -32,6 +33,9 @@ function exposeDevClock(): void {
   window.__pov = {
     tRef: clockState.tRef,
     playingRef: clockState.playingRef,
+    look: lookState,
+    gyro: gyroState,
+    gyroListening,
   }
 }
 
@@ -123,7 +127,6 @@ export function App() {
   const onFrameloop = useCallback((mode: 'always' | 'demand' | 'never') => {
     setFrameloop((current) => (current === mode ? current : mode))
   }, [])
-  const showQuarter = new URLSearchParams(window.location.search).get('rate') === '0.25'
   const gfx = !webglOk || loss.failed || forceFlat ? 'failed' : loss.lost ? 'lost' : 'ok'
 
   if (loaded.status === 'loading') {
@@ -179,7 +182,6 @@ export function App() {
           <Scrubber
             duration={loaded.play.meta.duration}
             startT={earliestWaypoint(loaded.play.wpT)}
-            showQuarter={showQuarter}
             onFrameloop={onFrameloop}
           />
         </div>
@@ -198,7 +200,6 @@ export function App() {
         </details>
       )}
       {loss.lost && <ContextLossOverlay heldT={heldT} />}
-      <FacemaskOverlay play={loaded.play} />
       <span data-testid="play-t" hidden>
         {heldT.toFixed(2)}
       </span>

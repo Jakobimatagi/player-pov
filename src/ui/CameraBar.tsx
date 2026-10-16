@@ -12,6 +12,7 @@ import { lookState, resetLook, setHoldLook } from '../camera/look'
 import type { CamMode } from '../camera/modes'
 import type { CompiledPlay } from '../play/types'
 import { poseXY } from '../scene/framePose'
+import { GyroLook } from './GyroLook'
 import { WatchAs } from './WatchAs'
 
 const MODES: { mode: CamMode; label: string; short: string }[] = [
@@ -162,6 +163,7 @@ export function CameraBar({
             Hold look
           </button>
         )}
+        <GyroLook onFrameloop={onFrameloop} />
       </div>
     </div>
   )

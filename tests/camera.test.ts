@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   attachPlayer,
@@ -414,14 +414,13 @@ describe('camera modes', () => {
     lookState.snap = false
   })
 
-  it('draws the facemask as a screen overlay', () => {
-    const overlay = readFileSync('src/ui/FacemaskOverlay.tsx', 'utf8')
+  it('does not draw a facemask overlay', () => {
+    expect(existsSync('src/ui/FacemaskOverlay.tsx')).toBe(false)
     const css = readFileSync('src/index.css', 'utf8')
-    expect(overlay).toContain('data-testid="facemask"')
-    expect(overlay).not.toContain('useFrame')
-    expect(css).toMatch(/\.facemask[\s\S]*position:\s*absolute/)
-    expect(css).toMatch(/\.facemask[\s\S]*pointer-events:\s*none/)
+    const app = readFileSync('src/App.tsx', 'utf8')
+    expect(css).not.toMatch(/\.facemask/)
     expect(css).not.toMatch(/box-shadow/)
+    expect(app).not.toContain('Facemask')
   })
 
   it('fades a box inside 0.4 yd of the POV eye', () => {

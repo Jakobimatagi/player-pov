@@ -48,9 +48,11 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `scene-3d.md`                  | Field, players, ball                      |
 | `responsive.md`                | Viewer widths and touch targets (1–4)     |
 | `playback.md`                  | Play, pause, scrub, speeds                |
+| `playback-rates.md`            | 0.25× through 2× on a phone               |
 | `end-of-play.md`               | Replay                                    |
 | `camera-pov.md`                | POV camera                                |
 | `pov-free-look.md`             | POV free-look, Hold look, touch hop       |
+| `gyro-look.md`                 | Look with phone                           |
 | `camera-broadcast.md`          | Broadcast camera                          |
 | `camera-top-down.md`           | Top-down camera                           |
 | `player-hop.md`                | Attach and hop                            |
