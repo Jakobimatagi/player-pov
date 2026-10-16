@@ -30,6 +30,6 @@ Studio is at http://127.0.0.1:54323 . The seeded team is **Demo Knights** (head 
 
 ## Hosting
 
-Vercel Hobby and Supabase free tier are for an unpaid personal pilot. Hobby is non-commercial: move to Vercel Pro before charging a team. Move Supabase to Pro on the first paid team, the first missed keep-alive, or a database over 300 MB.
+Vercel Hobby project **player-pov** (`prj_SRL6YyKAz9unWp7dEa4Xr5HQDxHe`) and the Supabase free-tier project **player-pov** (`bfaopibbbldsxvjprfdx`) are one pair for an unpaid personal pilot. Hobby is non-commercial: move to Vercel Pro before charging a team. Move Supabase to Pro on the first paid team, the first missed keep-alive, or a database over 300 MB.
 
-`vercel.json` rewrites every path to `index.html`. `keepalive.yml` calls `GET /rest/v1/rpc/health` every two days. `backup.yml` uploads an age-encrypted dump each night. The private age key stays offline. `deploy.yml` pushes migrations to staging, then waits for the GitHub `production` environment before production.
+`vercel.json` rewrites every path to `index.html`. `keepalive.yml` calls `GET /rest/v1/rpc/health` every two days. `backup.yml` uploads an age-encrypted dump each night. The private age key stays offline. `deploy.yml` waits for the GitHub `production` environment, then pushes migrations to that one database. Preview and production share the same Supabase URL and anon key. The env vars, cron, and migration order are in `scenarios/deploy.md`.
