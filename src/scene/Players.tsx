@@ -171,6 +171,8 @@ export function Players({
   }
 
   useLayoutEffect(() => {
+    offensePickRef.current?.layers.set(1)
+    defensePickRef.current?.layers.set(1)
     const arm = (mesh: InstancedMesh | null) => {
       if (mesh == null) return
       const fade = new Float32Array(mesh.count)

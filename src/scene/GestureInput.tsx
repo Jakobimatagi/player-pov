@@ -9,6 +9,7 @@ import type { CompiledPlay } from '../play/types'
 import { poseXY } from './framePose'
 
 const raycaster = new Raycaster()
+raycaster.layers.set(1)
 const ndc = new Vector2()
 
 /** Pointer gestures on the canvas. The scrubber is outside, so its swipes never hop. */
