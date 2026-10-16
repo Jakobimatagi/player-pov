@@ -172,10 +172,7 @@ export function WatchAs({
           />
           <div
             ref={menuRef}
-            id={listId}
             className="watch-menu"
-            role="listbox"
-            aria-label="Watch as"
             data-testid="watch-list"
             data-sheet="false"
             onKeyDown={onMenuKey}
@@ -186,20 +183,22 @@ export function WatchAs({
                 Close
               </button>
             </div>
-            <WatchGroup
-              title="Offense"
-              titleId={offenseId}
-              choices={choices.offense}
-              watchIndex={watchIndex}
-              onPick={pick}
-            />
-            <WatchGroup
-              title="Defense"
-              titleId={defenseId}
-              choices={choices.defense}
-              watchIndex={watchIndex}
-              onPick={pick}
-            />
+            <div id={listId} role="listbox" aria-label="Watch as">
+              <WatchGroup
+                title="Offense"
+                titleId={offenseId}
+                choices={choices.offense}
+                watchIndex={watchIndex}
+                onPick={pick}
+              />
+              <WatchGroup
+                title="Defense"
+                titleId={defenseId}
+                choices={choices.defense}
+                watchIndex={watchIndex}
+                onPick={pick}
+              />
+            </div>
           </div>
         </div>
       )}

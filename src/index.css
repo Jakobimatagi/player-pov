@@ -140,6 +140,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 6;
+  pointer-events: none;
 }
 
 .watch-backdrop {
@@ -147,20 +148,20 @@ body {
   top: 0;
   right: 0;
   left: 0;
-  bottom: 6rem;
   min-width: 44px;
   min-height: 44px;
   border: 0;
   padding: 0;
   background: rgba(20, 20, 20, 0.45);
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .watch-menu {
   position: absolute;
   left: 0.5rem;
-  bottom: 6rem;
   z-index: 1;
+  pointer-events: auto;
   width: min(20rem, calc(100% - 1rem));
   max-height: min(28rem, 60vh);
   overflow: auto;

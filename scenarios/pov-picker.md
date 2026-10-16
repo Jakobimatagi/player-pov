@@ -56,12 +56,13 @@ The shell still follows `scenarios/responsive.md` scenario 1.
 
 1. Set the viewport to 360×800 and reload.
 2. Open **Watch as**.
-3. Repeat the no-scroll check at 768×1024, 1024×768, 1366×768, and 1920×1080 with the list open, then closed.
+3. With the sheet open, tap **Broadcast**, then tap or drag the scrubber.
+4. Repeat the no-scroll check at 768×1024, 1024×768, 1366×768, and 1920×1080 with the list open, then closed.
 
 **Expected:**
 
 - At 360 the list is a bottom sheet (`data-sheet` is `true`) sitting above the camera bar. Offense and Defense are both on screen or reached by scrolling inside the sheet.
-- The camera buttons stay visible and usable. The sheet does not cover them.
+- The camera buttons and the scrubber stay visible. A tap reaches them while the sheet is open: **Broadcast** sets `data-mode` to `broadcast`, and the scrubber moves the playhead. The sheet may close, because the tap is outside the list.
 - **Watch as**, **Close**, and every option are at least 44×44. Text is at least 14px.
 - `document.documentElement.scrollWidth <= document.documentElement.clientWidth` at 360, 768, 1024, 1366, and 1920, with the list open and with it closed.
 - From 768 up the list is a menu anchored to the button, not a full-width sheet.
