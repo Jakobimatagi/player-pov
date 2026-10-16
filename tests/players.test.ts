@@ -46,6 +46,51 @@ describe('box players', () => {
     expect(source).toMatch(/visual = boxVisual/)
   })
 
+  it('faces jersey numbers outward and samples one atlas cell', () => {
+    const geo = createNumberGeometry(boxVisual.numberAnchor)
+    const position = geo.getAttribute('position')
+    const faces: { x: number; z: number; nx: number; nz: number }[] = []
+    for (let i = 0; i < position.count; i += 3) {
+      const ax = position.getX(i) ?? 0
+      const ay = position.getY(i) ?? 0
+      const az = position.getZ(i) ?? 0
+      const bx = position.getX(i + 1) ?? 0
+      const by = position.getY(i + 1) ?? 0
+      const bz = position.getZ(i + 1) ?? 0
+      const cx = position.getX(i + 2) ?? 0
+      const cy = position.getY(i + 2) ?? 0
+      const cz = position.getZ(i + 2) ?? 0
+      const ux = bx - ax
+      const uy = by - ay
+      const uz = bz - az
+      const vx = cx - ax
+      const vy = cy - ay
+      const vz = cz - az
+      faces.push({
+        x: (ax + bx + cx) / 3,
+        z: (az + bz + cz) / 3,
+        nx: uy * vz - uz * vy,
+        nz: ux * vy - uy * vx,
+      })
+    }
+    const front = faces.filter((face) => face.x > 0.2)
+    const back = faces.filter((face) => face.x < -0.2)
+    const plusZ = faces.filter((face) => face.z > 0.3)
+    const minusZ = faces.filter((face) => face.z < -0.3)
+    expect(front.length).toBeGreaterThan(0)
+    expect(back.length).toBeGreaterThan(0)
+    expect(plusZ.length).toBeGreaterThan(0)
+    expect(minusZ.length).toBeGreaterThan(0)
+    for (const face of front) expect(face.nx).toBeGreaterThan(0)
+    for (const face of back) expect(face.nx).toBeLessThan(0)
+    for (const face of plusZ) expect(face.nz).toBeGreaterThan(0)
+    for (const face of minusZ) expect(face.nz).toBeLessThan(0)
+
+    const shader = readFileSync('src/scene/jerseyAtlas.ts', 'utf8')
+    expect(shader).toContain('vMapUv = vec2((cellCol + uv.x) / 10.0')
+    expect(shader).not.toContain('vUv = vec2((cellCol')
+  })
+
   it('keeps the full scene within 2000 triangles and 10 meshes', () => {
     const tris =
       triangleCount(buildGrass()) +

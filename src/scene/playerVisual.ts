@@ -49,8 +49,9 @@ function pushQuad(
   c: [number, number, number],
   d: [number, number, number],
 ): void {
-  positions.push(...a, ...b, ...c, ...a, ...c, ...d)
-  uvs.push(0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1)
+  // a-d-c / a-c-b. The opposite order points into the box and the camera culls it.
+  positions.push(...a, ...d, ...c, ...a, ...c, ...b)
+  uvs.push(0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0)
 }
 
 /** Chest, back, and both sides so a sideline camera can read the jersey. */
