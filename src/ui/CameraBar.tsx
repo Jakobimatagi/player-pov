@@ -8,6 +8,7 @@ import {
   subscribeCamera,
 } from '../camera/cameraState'
 import { hopInTeam, nearestOpponent } from '../camera/hop'
+import { lookState, resetLook, setHoldLook } from '../camera/look'
 import type { CamMode } from '../camera/modes'
 import type { CompiledPlay } from '../play/types'
 import { poseXY } from '../scene/framePose'
@@ -32,6 +33,7 @@ export function CameraBar({
   const [mode, setMode] = useState<CamMode>(cameraState.mode)
   const [attached, setAttached] = useState(cameraState.attached)
   const [watch, setWatch] = useState(cameraState.watchAs)
+  const [holdLook, setHoldLookOn] = useState(lookState.hold)
   const watchOpen = useRef(false)
   const closeWatch = useRef<() => void>(() => {})
 
@@ -98,8 +100,12 @@ export function CameraBar({
         if (cameraState.movingRef.current) onFrameloop('always')
         return
       }
-      if (event.key === 'Escape') detachPlayer()
-      else if (event.key === 'p' || event.key === 'P') {
+      if (event.key === 'Escape') {
+        detachPlayer()
+        resetLook()
+        cameraState.movingRef.current = true
+        onFrameloop('always')
+      } else if (event.key === 'p' || event.key === 'P') {
         povAttached(qbIndex)
         if (cameraState.movingRef.current) onFrameloop('always')
       }
@@ -129,13 +135,34 @@ export function CameraBar({
           <span className="short-label">{item.short}</span>
         </button>
       ))}
-      <WatchAs
-        play={play}
-        qbIndex={qbIndex}
-        onFrameloop={onFrameloop}
-        openRef={watchOpen}
-        closeRef={closeWatch}
-      />
+      <div className="watch-row">
+        <WatchAs
+          play={play}
+          qbIndex={qbIndex}
+          onFrameloop={onFrameloop}
+          openRef={watchOpen}
+          closeRef={closeWatch}
+        />
+        {mode === 'pov' && (
+          <button
+            type="button"
+            className={holdLook ? 'btn primary hold-look' : 'btn hold-look'}
+            aria-pressed={holdLook}
+            data-testid="hold-look"
+            onClick={() => {
+              const next = !holdLook
+              setHoldLookOn(next)
+              setHoldLook(next, performance.now() / 1000)
+              if (!next) {
+                cameraState.movingRef.current = true
+                onFrameloop('always')
+              }
+            }}
+          >
+            Hold look
+          </button>
+        )}
+      </div>
     </div>
   )
 }

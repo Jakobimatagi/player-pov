@@ -1,4 +1,5 @@
 import { yardsToWorld } from '../play/coords'
+import { easeLook, lookNeedsFrame, lookState, resetLook } from './look'
 import { easeOrbit, orbitState } from './orbit'
 
 export type CamMode = 'pov' | 'broadcast' | 'topdown'
@@ -28,6 +29,8 @@ export interface RigState {
   focusY: number
   zoom: number
   heading: number
+  /** Attached index last frame, so a hop can clear free-look. */
+  povAttached: number
   initialized: boolean
   fovDirty: boolean
   moving: boolean
@@ -102,6 +105,7 @@ export function createRigState(): RigState {
     focusY: 26.67,
     zoom: 1,
     heading: 0,
+    povAttached: -1,
     initialized: false,
     fovDirty: true,
     moving: true,
@@ -199,10 +203,14 @@ function fillGoal(state: RigState, input: RigInput, attached: number): void {
     const face = read(input.headingArr, index)
     const eyeX = x + Math.cos(face) * EYE_FORWARD
     const eyeY = y + Math.sin(face) * EYE_FORWARD
-    const lookX = eyeX + Math.cos(state.heading) * LOOK_AHEAD
-    const lookY = eyeY + Math.sin(state.heading) * LOOK_AHEAD
+    const yaw = state.heading + lookState.yaw
+    const pitch = lookState.pitch
+    const cosP = Math.cos(pitch)
+    const lookX = eyeX + Math.cos(yaw) * LOOK_AHEAD * cosP
+    const lookY = eyeY + Math.sin(yaw) * LOOK_AHEAD * cosP
+    const lookH = EYE + Math.sin(pitch) * LOOK_AHEAD
     yardsToWorld(eyeX, eyeY, EYE, camPoint)
-    yardsToWorld(lookX, lookY, EYE, lookPoint)
+    yardsToWorld(lookX, lookY, lookH, lookPoint)
     goal.x = camPoint.x
     goal.y = camPoint.y
     goal.z = camPoint.z
@@ -297,6 +305,9 @@ function rawFocus(input: RigInput, attached: number): void {
 /** Advance the rig. No object allocation. A large seek snaps POV and glides the other modes. */
 export function stepRig(state: RigState, input: RigInput): void {
   easeOrbit(input.now, input.dt)
+  if (state.initialized && input.attached !== state.povAttached) resetLook()
+  state.povAttached = input.attached
+  easeLook(input.now, input.dt)
   const attached = resolveAttached(input)
   const playerHeading = read(input.headingArr, attached >= 0 ? attached : 0)
   const largeSeek =
@@ -370,7 +381,11 @@ export function stepRig(state: RigState, input: RigInput): void {
   state.fovDirty = Math.abs(state.fov - prevFov) > 0.01
   const err = Math.hypot(state.x - goal.x, state.y - goal.y, state.z - goal.z)
   state.moving =
-    inTransition || orbitState.active || err > 0.05 || Math.abs(state.fov - goal.fov) > 0.05
+    inTransition ||
+    orbitState.active ||
+    lookNeedsFrame() ||
+    err > 0.05 ||
+    Math.abs(state.fov - goal.fov) > 0.05
   state.mode = input.mode
   state.initialized = true
 }

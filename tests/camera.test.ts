@@ -1,5 +1,22 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { cameraState, selectMode } from '../src/camera/cameraState'
+import {
+  attachPlayer,
+  cameraState,
+  detachPlayer,
+  selectMode,
+  watchPlayer,
+} from '../src/camera/cameraState'
+import {
+  LOOK_PITCH_LIMIT,
+  LOOK_YAW_LIMIT,
+  easeLook,
+  lookState,
+  nudgeLook,
+  releaseLook,
+  resetLook,
+  setHoldLook,
+} from '../src/camera/look'
 import {
   createRigState,
   matchedFov,
@@ -9,6 +26,7 @@ import {
   type RigInput,
 } from '../src/camera/modes'
 import { yardsToWorld } from '../src/play/coords'
+import { clockState } from '../src/playback/clockState'
 
 function input(patch: Partial<RigInput> = {}): RigInput {
   const xy = patch.xy ?? new Float32Array([30, 26.67])
@@ -201,6 +219,153 @@ describe('camera modes', () => {
     expect(state.usingOrtho).toBe(true)
     expect(state.zoom).toBeGreaterThan(fitted)
     expect(Math.abs(state.zoom - goal)).toBeLessThan(Math.abs(fitted - goal))
+  })
+
+  it('aims free-look from eye height and clears it when the attached player changes', () => {
+    resetLook()
+    lookState.yaw = Math.PI / 2
+    lookState.pitch = (20 * Math.PI) / 180
+    const state = createRigState()
+    stepRig(state, input({ mode: 'pov', attached: 0, dt: 0, now: 5 }))
+    const eye = yardsToWorld(30.15, 26.67, 1.75, { x: 0, y: 0, z: 0 })
+    const cosP = Math.cos((20 * Math.PI) / 180)
+    const look = yardsToWorld(
+      30.15 + Math.cos(Math.PI / 2) * 10 * cosP,
+      26.67 + Math.sin(Math.PI / 2) * 10 * cosP,
+      1.75 + Math.sin((20 * Math.PI) / 180) * 10,
+      { x: 0, y: 0, z: 0 },
+    )
+    expect(state.x).toBeCloseTo(eye.x, 3)
+    expect(state.y).toBeCloseTo(eye.y, 3)
+    expect(state.z).toBeCloseTo(eye.z, 3)
+    expect(state.lookX).toBeCloseTo(look.x, 3)
+    expect(state.lookY).toBeCloseTo(look.y, 3)
+    expect(state.lookZ).toBeCloseTo(look.z, 3)
+    expect(state.lookY).toBeGreaterThan(state.y)
+
+    const moved = new Float32Array([50, 26.67])
+    stepRig(
+      state,
+      input({ mode: 'pov', attached: 0, xy: moved, now: 7, dt: 2, playT: 0, prevPlayT: 0 }),
+    )
+    const nextEye = yardsToWorld(50.15, 26.67, 1.75, { x: 0, y: 0, z: 0 })
+    expect(state.x).toBeCloseTo(nextEye.x, 2)
+    expect(state.y).toBeCloseTo(1.75, 2)
+    expect(lookState.yaw).toBeCloseTo(Math.PI / 2, 4)
+
+    stepRig(state, input({ mode: 'pov', attached: 1, xy: moved, now: 8, dt: 0.016 }))
+    expect(lookState.yaw).toBe(0)
+    expect(lookState.pitch).toBe(0)
+
+    lookState.yaw = 0.3
+    stepRig(state, input({ mode: 'broadcast', attached: 1, now: 9, dt: 0.016 }))
+    expect(lookState.yaw).toBeCloseTo(0.3, 5)
+    resetLook()
+  })
+
+  it('clamps free-look and eases back about 1 s after release unless held', () => {
+    resetLook()
+    nudgeLook(100000, 100000, 0)
+    expect(lookState.yaw).toBeCloseTo(-LOOK_YAW_LIMIT, 5)
+    expect(lookState.pitch).toBeCloseTo(-LOOK_PITCH_LIMIT, 5)
+    nudgeLook(-100000, -100000, 0)
+    expect(lookState.yaw).toBeCloseTo(LOOK_YAW_LIMIT, 5)
+    expect(lookState.pitch).toBeCloseTo(LOOK_PITCH_LIMIT, 5)
+    releaseLook(0)
+    const yaw = lookState.yaw
+    easeLook(0.99, 0.2)
+    expect(lookState.yaw).toBeCloseTo(yaw, 5)
+    easeLook(1.2, 0.3)
+    expect(Math.abs(lookState.yaw)).toBeLessThan(Math.abs(yaw))
+
+    resetLook()
+    nudgeLook(-80, 0, 0)
+    releaseLook(0)
+    setHoldLook(true, 0.2)
+    const held = lookState.yaw
+    easeLook(5, 1)
+    expect(lookState.yaw).toBeCloseTo(held, 5)
+    setHoldLook(false, 5)
+    easeLook(5.5, 0.2)
+    expect(lookState.yaw).toBeCloseTo(held, 5)
+    easeLook(6.3, 0.4)
+    expect(Math.abs(lookState.yaw)).toBeLessThan(Math.abs(held))
+    resetLook()
+  })
+
+  it('stays awake through the ease wait and does not touch the play clock', () => {
+    resetLook()
+    const state = createRigState()
+    stepRig(state, input({ mode: 'pov', attached: 0, now: 2, dt: 0 }))
+    nudgeLook(-30, 0, 2)
+    releaseLook(2)
+    stepRig(
+      state,
+      input({ mode: 'pov', attached: 0, now: 2.4, dt: 0.016, playT: 1.2, prevPlayT: 1.2 }),
+    )
+    expect(lookState.yaw).not.toBe(0)
+    expect(state.moving).toBe(true)
+
+    clockState.tRef.current = 1.25
+    clockState.playingRef.current = true
+    nudgeLook(12, -4, 3)
+    expect(clockState.tRef.current).toBe(1.25)
+    expect(clockState.playingRef.current).toBe(true)
+    clockState.tRef.current = 0
+    clockState.playingRef.current = false
+    resetLook()
+  })
+
+  it('resets free-look when the attached player changes, on every Watch as pick, and on detach', () => {
+    resetLook()
+    cameraState.mode = 'pov'
+    cameraState.attached = 0
+    cameraState.watchAs = -1
+    cameraState.povSubject = 0
+    lookState.yaw = 0.25
+    attachPlayer(0, 4)
+    expect(cameraState.watchAs).toBe(0)
+    expect(lookState.yaw).toBeCloseTo(0.25, 5)
+
+    lookState.yaw = 0.2
+    selectMode('broadcast', 0, 5)
+    expect(cameraState.mode).toBe('broadcast')
+    expect(cameraState.attached).toBe(0)
+    expect(lookState.yaw).toBeCloseTo(0.2, 5)
+    selectMode('pov', 0, 6)
+    expect(lookState.yaw).toBeCloseTo(0.2, 5)
+
+    watchPlayer(0, 0, 7)
+    expect(cameraState.attached).toBe(0)
+    expect(lookState.yaw).toBe(0)
+
+    lookState.yaw = 0.4
+    attachPlayer(1, 8)
+    expect(lookState.yaw).toBe(0)
+    expect(cameraState.attached).toBe(1)
+
+    lookState.yaw = 0.4
+    detachPlayer()
+    expect(cameraState.attached).toBe(-1)
+    expect(cameraState.watchAs).toBe(-1)
+    expect(lookState.yaw).toBe(0)
+
+    cameraState.mode = 'broadcast'
+    cameraState.attached = -1
+    cameraState.watchAs = -1
+    cameraState.povSubject = -1
+    cameraState.playId = ''
+    resetLook()
+  })
+
+  it('draws the facemask as a screen overlay', () => {
+    const overlay = readFileSync('src/ui/FacemaskOverlay.tsx', 'utf8')
+    const css = readFileSync('src/index.css', 'utf8')
+    expect(overlay).toContain('data-testid="facemask"')
+    expect(overlay).not.toContain('useFrame')
+    expect(css).toMatch(/\.facemask[\s\S]*position:\s*absolute/)
+    expect(css).toMatch(/\.facemask[\s\S]*pointer-events:\s*none/)
+    expect(css).not.toMatch(/box-shadow/)
   })
 
   it('fades a box inside 0.4 yd of the POV eye', () => {

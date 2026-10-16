@@ -50,11 +50,12 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `playback.md`                  | Play, pause, scrub, speeds                |
 | `end-of-play.md`               | Replay                                    |
 | `camera-pov.md`                | POV camera                                |
+| `pov-free-look.md`             | POV free-look, Hold look, touch hop       |
 | `camera-broadcast.md`          | Broadcast camera                          |
 | `camera-top-down.md`           | Top-down camera                           |
 | `player-hop.md`                | Attach and hop                            |
 | `pov-picker.md`                | Watch as list                             |
-| `touch.md`                     | Tap, swipe, orbit, pinch, hop chips       |
+| `touch.md`                     | Tap, swipe, orbit, pinch, POV hop         |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 

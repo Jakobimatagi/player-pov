@@ -1,3 +1,4 @@
+import { resetLook } from './look'
 import type { CamMode } from './modes'
 
 /** Shared camera selection. The rig and the player meshes read it; the buttons write it. */
@@ -54,24 +55,29 @@ export function attachPlayer(index: number, nowSeconds = performance.now() / 100
   if (!same) {
     cameraState.transitionUntil = nowSeconds + 0.6
     cameraState.movingRef.current = true
+    resetLook()
   }
   emit()
 }
 
 export function detachPlayer(): void {
   if (cameraState.attached < 0 && cameraState.watchAs < 0) return
+  const changed = cameraState.attached >= 0
   cameraState.attached = -1
   cameraState.watchAs = -1
+  if (changed) resetLook()
   emit()
 }
 
-/** Pick from Watch as: attach that player and look through them. */
+/** Pick from Watch as: attach that player, look through them, and drop any free-look. */
 export function watchPlayer(
   index: number,
   qbIndex: number,
   nowSeconds = performance.now() / 1000,
 ): void {
   attachPlayer(index, nowSeconds)
+  resetLook()
+  cameraState.movingRef.current = true
   if (cameraState.mode !== 'pov') selectMode('pov', qbIndex, nowSeconds)
 }
 

@@ -21,6 +21,7 @@ import { GestureInput } from './scene/GestureInput'
 import { Players } from './scene/Players'
 import { RouteLines } from './scene/RouteLines'
 import { CameraBar, HopChips } from './ui/CameraBar'
+import { FacemaskOverlay } from './ui/FacemaskOverlay'
 import { Scrubber } from './ui/Scrubber'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
@@ -197,6 +198,7 @@ export function App() {
         </details>
       )}
       {loss.lost && <ContextLossOverlay heldT={heldT} />}
+      <FacemaskOverlay play={loaded.play} />
       <span data-testid="play-t" hidden>
         {heldT.toFixed(2)}
       </span>
