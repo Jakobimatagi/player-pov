@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   advanceClock,
@@ -41,6 +42,16 @@ describe('playback clock', () => {
     clockState.rateRef.current = 0.5
     advanceClock(0.1)
     expect(clockState.tRef.current).toBeCloseTo(0.05, 5)
+    clockState.rateRef.current = 0.25
+    advanceClock(0.1)
+    expect(clockState.tRef.current).toBeCloseTo(0.075, 5)
+  })
+
+  it('lists quarter speed with the faster rates and stores the rate on the clock', () => {
+    const source = readFileSync('src/ui/Scrubber.tsx', 'utf8')
+    expect(source).toContain('0.25, 0.5, 1, 1.5, 2')
+    expect(source).toContain('clockState.rateRef.current = value')
+    expect(source).toContain('{value}×')
   })
 
   it('replay returns to the snap and plays', () => {

@@ -135,6 +135,7 @@ body {
 
 .watch-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem;
   min-width: 0;
@@ -142,12 +143,28 @@ body {
 }
 
 .watch-row .watch-toggle {
-  flex: 1 1 auto;
+  flex: 1 1 8rem;
   min-width: 44px;
+  max-width: 100%;
 }
 
-.watch-row .hold-look {
-  flex: 0 0 auto;
+.watch-row .hold-look,
+.watch-row .gyro-look {
+  flex: 1 1 auto;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.gyro-look[aria-pressed='true'] {
+  background: #c8102e;
+  border-color: #c8102e;
+  color: #fff;
+}
+
+.gyro-look:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .watch-toggle {
@@ -276,6 +293,8 @@ body {
   flex-wrap: wrap;
   gap: 0.45rem;
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.45rem 0.6rem;
   background: #1c1c1c;
   border: 1px solid #3a3a3a;
@@ -292,30 +311,18 @@ body {
   font-size: 0.875rem;
 }
 
-.facemask {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
+.rate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  max-width: 100%;
+  min-width: 0;
 }
 
-.facemask.is-on {
-  opacity: 0.9;
-}
-
-.facemask .mask-bar {
-  fill: #1c1c1c;
-}
-
-.facemask[data-team='offense'] .helmet-band {
-  fill: #c8102e;
-}
-
-.facemask[data-team='defense'] .helmet-band {
-  fill: #f2f2f2;
+.rate-chips .btn {
+  padding-inline: 0.55rem;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .route-toggle {
@@ -410,16 +417,6 @@ body {
     width: auto;
     max-width: 100%;
     border-radius: 0.8rem 0.8rem 0 0;
-  }
-
-  .facemask.is-on {
-    opacity: 0.55;
-  }
-
-  .facemask .mask-bar {
-    transform: scaleX(0.6);
-    transform-box: fill-box;
-    transform-origin: center;
   }
 }
 
