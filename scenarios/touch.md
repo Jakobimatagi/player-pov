@@ -1,6 +1,6 @@
 # Touch and mobile
 
-Pointer events on the canvas attach, hop, orbit, and pinch. The scrubber sits outside the canvas, so a swipe on it never changes the attached player. `touch-action: none` is set on the canvas. Hit testing uses a 1.5× invisible box around each player.
+Pointer events on the canvas attach, hop, orbit, pinch, and, in POV, free-look. In Broadcast and Top-down a one-finger swipe hops. In POV a one-finger drag looks (`scenarios/pov-free-look.md`) and a hop is the hop chips or a two-finger swipe. The scrubber sits outside the canvas, so a swipe on it never changes the attached player. `touch-action: none` is set on the canvas. Hit testing uses a 1.5× invisible box around each player.
 
 The shell still follows `scenarios/responsive.md` scenario 1. Hop chips are part of that scenario: they show only for a coarse pointer, and only while a player is attached.
 
@@ -34,12 +34,12 @@ Chrome DevTools device mode (or a touchscreen) is enough. A fine pointer still c
 
 ## Scenario 3 — Swipe hops
 
-**Preconditions:** The QB is attached.
+**Preconditions:** The mode is Broadcast or Top-down. The QB is attached. POV is different: a one-finger drag looks, and hop is a chip or a two-finger swipe (`scenarios/pov-free-look.md` scenario 5).
 
 **Steps:**
 
-1. Swipe right across the field, more than 60 px in under 400 ms, mostly horizontal.
-2. Swipe up or down the same way.
+1. Swipe one finger right across the field, more than 60 px in under 400 ms, mostly horizontal.
+2. Swipe one finger up or down the same way.
 
 **Expected:**
 
@@ -101,5 +101,6 @@ Chrome DevTools device mode (or a touchscreen) is enough. A fine pointer still c
 **Expected:**
 
 - **Hop left** and **Hop right** are visible and at least 44×44.
-- Hop right matches a right swipe: the next player in snap order.
-- On a fine pointer those chips are absent.
+- Hop right matches a right swipe in Broadcast or Top-down: the next player in snap order.
+- In POV the chip still hops. A one-finger drag does not.
+- On a fine pointer those chips are absent. Hop there with the arrow keys, or in POV with a two-finger swipe.

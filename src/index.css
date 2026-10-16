@@ -129,6 +129,27 @@ body {
   display: none;
 }
 
+.camera-bar .btn {
+  white-space: nowrap;
+}
+
+.watch-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.watch-row .watch-toggle {
+  flex: 1 1 auto;
+  min-width: 44px;
+}
+
+.watch-row .hold-look {
+  flex: 0 0 auto;
+}
+
 .watch-toggle {
   max-width: 100%;
   overflow: hidden;
@@ -271,6 +292,32 @@ body {
   font-size: 0.875rem;
 }
 
+.facemask {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.facemask.is-on {
+  opacity: 0.9;
+}
+
+.facemask .mask-bar {
+  fill: #1c1c1c;
+}
+
+.facemask[data-team='offense'] .helmet-band {
+  fill: #c8102e;
+}
+
+.facemask[data-team='defense'] .helmet-band {
+  fill: #f2f2f2;
+}
+
 .route-toggle {
   position: absolute;
   top: 0.75rem;
@@ -353,7 +400,7 @@ body {
     display: inline;
   }
 
-  .watch-toggle {
+  .watch-row {
     flex: 1 1 100%;
   }
 
@@ -363,6 +410,16 @@ body {
     width: auto;
     max-width: 100%;
     border-radius: 0.8rem 0.8rem 0 0;
+  }
+
+  .facemask.is-on {
+    opacity: 0.55;
+  }
+
+  .facemask .mask-bar {
+    transform: scaleX(0.6);
+    transform-box: fill-box;
+    transform-origin: center;
   }
 }
 

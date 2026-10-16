@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Raycaster, Vector2 } from 'three'
 import { attachPlayer, cameraState, detachPlayer, povAttached } from '../camera/cameraState'
 import { hopInTeam, nearestOpponent } from '../camera/hop'
+import { lookState, nudgeLook, releaseLook } from '../camera/look'
 import { nudgeBroadcastDistance, nudgeOrbit, nudgeTopZoom } from '../camera/orbit'
 import { createTracker, noteDown, noteMove, noteUp } from '../input/gesture'
 import type { CompiledPlay } from '../play/types'
@@ -84,6 +85,7 @@ export function GestureInput({
       )
       const now = event.timeStamp / 1000
       if (result.kind === 'orbit') nudgeOrbit(result.dx, result.dy, now)
+      else if (result.kind === 'look') nudgeLook(result.dx, result.dy, now)
       else if (result.kind === 'pinch' && cameraState.mode === 'broadcast')
         nudgeBroadcastDistance(result.scale, now)
       else if (result.kind === 'pinch' && cameraState.mode === 'topdown')
@@ -100,7 +102,13 @@ export function GestureInput({
         event.clientY,
         event.timeStamp,
         cameraState.attached >= 0,
+        cameraState.mode,
       )
+      if (lookState.dragging) {
+        releaseLook(event.timeStamp / 1000)
+        cameraState.movingRef.current = true
+        wake()
+      }
       if (result.kind === 'tap') {
         if (result.player >= 0) attachPlayer(result.player)
         else if (cameraState.mode !== 'pov') detachPlayer()
@@ -118,6 +126,12 @@ export function GestureInput({
       if (tracker.id === event.pointerId || tracker.id2 === event.pointerId) {
         tracker.active = false
         tracker.two = false
+        tracker.looked = false
+        if (lookState.dragging) {
+          releaseLook(event.timeStamp / 1000)
+          cameraState.movingRef.current = true
+          wake()
+        }
       }
     }
     canvas.addEventListener('pointerdown', down)
