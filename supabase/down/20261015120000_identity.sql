@@ -11,7 +11,10 @@ drop table if exists
   public.profiles,
   public.teams;
 
+drop function if exists public.accept_invite(text);
 drop function if exists app.accept_invite(text);
+drop function if exists app.cap_invite_expiry();
+drop function if exists app.transfer_team_owner();
 drop function if exists app.stamp_attested_email();
 drop function if exists app.guard_last_head_coach();
 drop function if exists app.is_owner(uuid);
@@ -27,7 +30,6 @@ drop type if exists public.team_role;
 
 drop schema if exists app;
 
-drop extension if exists citext;
-drop extension if exists pgcrypto;
+-- citext and pgcrypto stay. Other migrations and the local auth stub use them.
 
 commit;

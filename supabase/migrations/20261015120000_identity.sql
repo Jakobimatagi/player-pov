@@ -26,7 +26,7 @@ create table public.teams (
   season text,
   hash_rule text not null default 'NFHS' check (hash_rule in ('NFHS', 'NCAA')),
   season_ends_on date not null,
-  created_by uuid references auth.users,
+  created_by uuid references auth.users on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -94,6 +94,8 @@ create table public.consent_records (
   subject_email extensions.citext not null,
   attested_by uuid references auth.users on delete set null,
   attested_email extensions.citext not null,
+  -- Null today. Later: 'head_coach' or 'parent'. No parent flow yet.
+  attester_kind text check (attester_kind is null or attester_kind in ('head_coach', 'parent')),
   statement_version text not null,
   statement_text text not null,
   attested_at timestamptz not null default now()
@@ -170,6 +172,26 @@ as $$
 declare
   others int;
 begin
+  -- Account deletion cascades with no jwt. That is not a coach removing a head coach.
+  if tg_op = 'DELETE' and auth.uid() is null then
+    return old;
+  end if;
+
+  if tg_op = 'UPDATE' and (
+    new.user_id is distinct from old.user_id
+    or new.team_id is distinct from old.team_id
+  ) then
+    raise exception 'membership user_id and team_id cannot change';
+  end if;
+
+  if tg_op = 'UPDATE'
+    and old.role is distinct from 'head_coach'::public.team_role
+    and new.role = 'head_coach'::public.team_role
+    and not app.is_owner(old.team_id)
+  then
+    raise exception 'only the team owner can promote a head coach';
+  end if;
+
   if old.role <> 'head_coach'::public.team_role then
     if tg_op = 'DELETE' then
       return old;
@@ -217,6 +239,57 @@ $$;
 create trigger memberships_last_head_coach
   before update or delete on public.memberships
   for each row execute function app.guard_last_head_coach();
+
+-- ON DELETE SET NULL clears created_by. Hand the team to the earliest other head coach.
+create function app.transfer_team_owner()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  next_owner uuid;
+begin
+  if tg_op = 'UPDATE' and old.created_by is not null and new.created_by is null then
+    select m.user_id into next_owner
+    from public.memberships m
+    where m.team_id = new.id
+      and m.role = 'head_coach'::public.team_role
+      and m.user_id is distinct from old.created_by
+    order by m.created_at asc, m.user_id asc
+    limit 1;
+    if next_owner is not null then
+      new.created_by := next_owner;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger teams_transfer_owner
+  before update of created_by on public.teams
+  for each row execute function app.transfer_team_owner();
+
+-- Clients may ask for a shorter window. Anything past 14 days is capped; a missing value is 7.
+create function app.cap_invite_expiry()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.expires_at is null then
+    new.expires_at := pg_catalog.now() + interval '7 days';
+  elsif new.expires_at > pg_catalog.now() + interval '14 days' then
+    new.expires_at := pg_catalog.now() + interval '14 days';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger invites_cap_expiry
+  before insert or update of expires_at on public.invites
+  for each row execute function app.cap_invite_expiry();
 
 -- Copies the attester's login email onto the row. ON DELETE SET NULL clears
 -- attested_by and leaves attested_email in place.
@@ -267,6 +340,14 @@ begin
   if v_uid is null or v_email is null or btrim(v_email) = '' then
     raise exception 'invite email does not match';
   end if;
+  if not exists (
+    select 1
+    from auth.users u
+    where u.id = v_uid
+      and u.email_confirmed_at is not null
+  ) then
+    raise exception 'email is not confirmed';
+  end if;
 
   begin
     v_bytes := pg_catalog.decode(token, 'hex');
@@ -286,6 +367,9 @@ begin
 
   if not found then
     raise exception 'invite not found';
+  end if;
+  if v_invite.invited_by is null then
+    raise exception 'invite has no inviter';
   end if;
   if v_invite.email <> v_email::extensions.citext then
     raise exception 'invite email does not match';
@@ -335,6 +419,16 @@ begin
 
   return v_uid;
 end;
+$$;
+
+-- PostgREST exposes public. The body is app.accept_invite; authenticated is the only grantee.
+create function public.accept_invite(token text)
+returns uuid
+language sql
+security invoker
+set search_path = ''
+as $$
+  select app.accept_invite(token)
 $$;
 
 alter table public.teams enable row level security;
@@ -420,10 +514,12 @@ revoke all on table
 grant select, insert, update, delete on table
   public.teams,
   public.profiles,
-  public.memberships,
   public.invites,
   public.consent_records
   to authenticated;
+grant select, insert, delete on table public.memberships to authenticated;
+revoke update on table public.memberships from authenticated;
+grant update (role, position) on table public.memberships to authenticated;
 grant all on table
   public.teams,
   public.profiles,
@@ -444,6 +540,8 @@ revoke all on function app.is_staff(uuid) from public, anon;
 revoke all on function app.is_head_coach(uuid) from public, anon;
 revoke all on function app.is_owner(uuid) from public, anon;
 revoke all on function app.accept_invite(text) from public, anon;
+revoke all on function public.accept_invite(text) from public, anon, service_role;
+grant execute on function public.accept_invite(text) to authenticated;
 grant execute on function app.my_role(uuid) to authenticated, service_role;
 grant execute on function app.is_member(uuid) to authenticated, service_role;
 grant execute on function app.is_staff(uuid) to authenticated, service_role;
@@ -453,5 +551,7 @@ grant execute on function app.accept_invite(text) to authenticated, service_role
 
 revoke all on function app.guard_last_head_coach() from public, anon, authenticated;
 revoke all on function app.stamp_attested_email() from public, anon, authenticated;
+revoke all on function app.transfer_team_owner() from public, anon, authenticated;
+revoke all on function app.cap_invite_expiry() from public, anon, authenticated;
 
 commit;

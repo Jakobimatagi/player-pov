@@ -1,5 +1,5 @@
 begin;
-select plan(52);
+select plan(62);
 set local search_path = public, extensions, auth;
 
 do $do$
@@ -282,6 +282,20 @@ select is(
 );
 
 select throws_ok(
+  $$update public.memberships
+    set user_id = '77777777-7777-4777-8777-777777777777'
+    where user_id = '22222222-2222-4222-8222-222222222222'$$,
+  '42501',
+  'permission denied for table memberships',
+  'authenticated cannot update membership user_id'
+);
+select lives_ok(
+  $$update public.memberships set position = 'QB'
+    where user_id = '33333333-3333-4333-8333-333333333333'$$,
+  'a head coach can update position'
+);
+
+select throws_ok(
   $$insert into public.memberships (team_id, user_id, role)
     values (
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -435,6 +449,14 @@ select throws_ok(
   'only the team owner can remove a head coach',
   'a co-head cannot remove another head coach'
 );
+select throws_ok(
+  $$update public.memberships set role = 'head_coach'
+    where team_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+      and user_id = '33333333-3333-4333-8333-333333333333'$$,
+  'P0001',
+  'only the team owner can promote a head coach',
+  'a co-head cannot promote a member to head coach'
+);
 
 select is(
   set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true)
@@ -445,6 +467,18 @@ select is(
     ),
   '11111111-1111-4111-8111-111111111111{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","email":"t1@example.com"}',
   'act as owner t1'
+);
+select lives_ok(
+  $$update public.memberships set role = 'head_coach'
+    where team_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+      and user_id = '33333333-3333-4333-8333-333333333333'$$,
+  'the owner can promote a member to head coach'
+);
+select lives_ok(
+  $$update public.memberships set role = 'player'
+    where team_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+      and user_id = '33333333-3333-4333-8333-333333333333'$$,
+  'the owner can return that member to player'
 );
 select lives_ok(
   $$update public.memberships set role = 'coach'
@@ -463,6 +497,14 @@ select is(
 
 -- accept_invite: wrong email, expired, missing consent, then a single use.
 reset role;
+select throws_ok(
+  $$update public.memberships
+    set team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    where user_id = '33333333-3333-4333-8333-333333333333'$$,
+  'P0001',
+  'membership user_id and team_id cannot change',
+  'a trigger rejects a membership team_id change'
+);
 insert into public.invites (team_id, email, display_name, role, token_hash, invited_by)
 values
   (
@@ -496,6 +538,14 @@ values
     'player',
     pg_temp.token_hash('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
     '11111111-1111-4111-8111-111111111111'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'noinviter@example.com',
+    'No Inviter',
+    'player',
+    pg_temp.token_hash('abababababababababababababababababababababababababababababababab'),
+    null
   );
 update public.invites
 set expires_at = now() - interval '1 day'
@@ -531,7 +581,7 @@ select is(
   'act as invitee'
 );
 select throws_ok(
-  $$select app.accept_invite('cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc')$$,
+  $$select public.accept_invite('cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc')$$,
   'P0001',
   'invite email does not match',
   'accept_invite fails for the wrong email'
@@ -546,7 +596,7 @@ select is(
   'jwt email is the expired invite'
 );
 select throws_ok(
-  $$select app.accept_invite('dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd')$$,
+  $$select public.accept_invite('dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd')$$,
   'P0001',
   'invite expired',
   'accept_invite fails for an expired invite'
@@ -561,7 +611,7 @@ select is(
   'jwt email is the invite with no consent'
 );
 select throws_ok(
-  $$select app.accept_invite('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')$$,
+  $$select public.accept_invite('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')$$,
   'P0001',
   'consent record required',
   'accept_invite fails when the consent record is missing'
@@ -575,9 +625,15 @@ select is(
   '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated","email":"good@example.com"}',
   'jwt email is the open invite'
 );
+select throws_ok(
+  $$select public.accept_invite('abababababababababababababababababababababababababababababababab')$$,
+  'P0001',
+  'invite has no inviter',
+  'accept_invite rejects an invite with no inviter'
+);
 select lives_ok(
-  $$select app.accept_invite('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')$$,
-  'accept_invite joins the matching invitee'
+  $$select public.accept_invite('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')$$,
+  'public.accept_invite joins the matching invitee'
 );
 select is(
   (
@@ -588,10 +644,58 @@ select is(
   'accept_invite inserted the membership'
 );
 select throws_ok(
-  $$select app.accept_invite('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')$$,
+  $$select public.accept_invite('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')$$,
   'P0001',
   'invite already accepted',
   'accept_invite fails when the invite is reused'
+);
+
+reset role;
+select pg_temp.make_user('88888888-8888-4888-8888-888888888888', 'owner3@example.com');
+select pg_temp.make_user('99999999-9999-4999-8999-999999999999', 'early3@example.com');
+select pg_temp.make_user('12121212-1212-4121-8121-121212121212', 'late3@example.com');
+insert into public.teams (id, name, season, hash_rule, season_ends_on, created_by) values (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  'Team C',
+  '2026',
+  'NFHS',
+  '2026-11-30',
+  '88888888-8888-4888-8888-888888888888'
+);
+insert into public.memberships (team_id, user_id, role, created_at) values
+  (
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    '88888888-8888-4888-8888-888888888888',
+    'head_coach',
+    now()
+  ),
+  (
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    '99999999-9999-4999-8999-999999999999',
+    'head_coach',
+    now() - interval '2 days'
+  ),
+  (
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    '12121212-1212-4121-8121-121212121212',
+    'head_coach',
+    now() - interval '1 day'
+  );
+do $$
+begin
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('request.jwt.claims', '', true);
+end $$;
+delete from auth.users where id = '88888888-8888-4888-8888-888888888888';
+select is(
+  (select created_by from public.teams where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  '99999999-9999-4999-8999-999999999999'::uuid,
+  'deleting the owner transfers the team to the earliest remaining head coach'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.accept_invite(text)', 'execute')
+    and not has_function_privilege('anon', 'public.accept_invite(text)', 'execute'),
+  'public.accept_invite is granted to authenticated and not anon'
 );
 
 select is(
@@ -606,6 +710,12 @@ select throws_ok(
   '42501',
   'permission denied for table memberships',
   'anon has no grant on memberships'
+);
+select throws_ok(
+  $$select public.accept_invite('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')$$,
+  '42501',
+  'permission denied for function accept_invite',
+  'anon cannot execute public.accept_invite'
 );
 
 select * from finish();

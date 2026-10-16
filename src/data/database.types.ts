@@ -131,6 +131,7 @@ export type Database = {
           subject_email: string
           attested_by: string | null
           attested_email: string
+          attester_kind: string | null
           statement_version: string
           statement_text: string
           attested_at: string
@@ -143,6 +144,7 @@ export type Database = {
           subject_email: string
           attested_by?: string | null
           attested_email?: string
+          attester_kind?: string | null
           statement_version: string
           statement_text: string
           attested_at?: string
@@ -155,6 +157,7 @@ export type Database = {
           subject_email?: string
           attested_by?: string | null
           attested_email?: string
+          attester_kind?: string | null
           statement_version?: string
           statement_text?: string
           attested_at?: string
@@ -175,6 +178,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_invite: {
+        Args: { token: string }
+        Returns: string
+      }
       position_group_of: {
         Args: { p: PositionCode }
         Returns: PositionGroup | null

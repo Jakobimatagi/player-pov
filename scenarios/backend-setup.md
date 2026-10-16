@@ -6,7 +6,7 @@ The hosted project is **player-pov**, ref `bfaopibbbldsxvjprfdx`, region `us-wes
 
 1. `supabase/migrations/20261015120000_identity.sql`
 
-`supabase/down/20261015120000_identity.sql` drops that migration. It is not in `supabase/migrations`, so `supabase db push` does not apply it. Members join only through `app.accept_invite`. A head coach stores `sha256` of a 32-byte token, never the token itself. Anon has no table grants.
+`supabase/down/20261015120000_identity.sql` drops that migration and leaves `citext` and `pgcrypto` in place. It is not in `supabase/migrations`, so `supabase db push` does not apply it. Members join only through `app.accept_invite`, called from `public.accept_invite` so the API can reach it. A head coach stores `sha256` of a 32-byte token, never the token itself. Anon has no table grants. Authenticated can update `memberships.role` and `memberships.position` only.
 
 `roster_public` exposes `team_id`, `user_id`, `display_name`, `position`, and `role`. It does not expose email. The architecture sentence that lists only the three name columns is the privacy rule; the view keeps the two ids from the DDL so the app can tell rows apart.
 
