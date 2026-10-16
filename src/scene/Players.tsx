@@ -23,12 +23,8 @@ import { Ball } from './Ball'
 import { poseHeading, poseVel, poseXY, publishedBall } from './framePose'
 import { withInstanceFade } from './instanceFade'
 import { buildJerseyAtlas, createNumberMaterial, jerseyCells } from './jerseyAtlas'
-import {
-  boxVisual,
-  createNumberGeometry,
-  createPickMaterial,
-  type PlayerVisual,
-} from './playerVisual'
+import { blockyVisual } from './blockyVisual'
+import { createNumberGeometry, createPickMaterial, type PlayerVisual } from './playerVisual'
 
 const matrix = new Matrix4()
 const quaternion = new Quaternion()
@@ -90,7 +86,7 @@ function writeFromSample(
 export function Players({
   play,
   t = 0,
-  visual = boxVisual,
+  visual = blockyVisual,
 }: {
   play: CompiledPlay
   t?: number

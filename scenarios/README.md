@@ -55,6 +55,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `player-hop.md`                | Attach and hop                            |
 | `touch.md`                     | Tap, swipe, orbit, pinch, hop chips       |
 | `performance.md`               | Quality ladder and frame budget           |
+| `blocky-and-facemask.md`       | Blocky players and the POV facemask       |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 
