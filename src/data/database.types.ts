@@ -182,6 +182,27 @@ export type Database = {
         Args: { token: string }
         Returns: string
       }
+      create_team: {
+        Args: {
+          p_name: string
+          p_school: string
+          p_season: string
+          p_hash_rule: string
+          p_season_ends_on: string
+        }
+        Returns: string
+      }
+      create_invite: {
+        Args: {
+          p_team: string
+          p_email: string
+          p_name: string
+          p_role: TeamRole
+          p_position: PositionCode | null
+          p_statement: string
+        }
+        Returns: string
+      }
       position_group_of: {
         Args: { p: PositionCode }
         Returns: PositionGroup | null

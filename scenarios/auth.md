@@ -17,7 +17,7 @@ Nothing in this file is applied to the hosted project. On Supabase **player-pov*
 5. Do not send Supabase's invite-user mail as the join path. The link is `/accept-invite?token=<64 hex characters>`.
 6. Exposed API schemas stay `public` and `graphql_public`. The app calls `public.accept_invite`. No new migration.
 
-Migrations still waiting, in order: `supabase/migrations/20261015120000_identity.sql`, then `supabase/migrations/20261015130100_health.sql`. Do not run `supabase/seed.sql` on the host.
+Migrations still waiting, in order: `supabase/migrations/20261015120000_identity.sql`, then `supabase/migrations/20261015130100_health.sql`, then `supabase/migrations/20261015140200_team.sql`. Do not run `supabase/seed.sql` on the host.
 
 ## Scenario 1 — Player login
 

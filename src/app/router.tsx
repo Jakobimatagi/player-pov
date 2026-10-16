@@ -7,12 +7,14 @@ import {
   SignupPage,
 } from '../auth/pages'
 import { HomePage, SessionLayout, WatchPage } from './HomeGate'
+import { TeamPage } from '../team/TeamPage'
 
 const router = createBrowserRouter([
   {
     element: <SessionLayout />,
     children: [
       { path: '/', element: <HomePage /> },
+      { path: '/team', element: <TeamPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/signup', element: <SignupPage /> },
       { path: '/forgot-password', element: <ForgotPasswordPage /> },

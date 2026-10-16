@@ -73,6 +73,7 @@ export type AuthSnap = {
   ready: boolean
   session: Session | null
   role: TeamRole | null
+  teamId: string | null
   membershipLoaded: boolean
   membershipError: boolean
   expired: boolean
@@ -83,6 +84,7 @@ let snap: AuthSnap = {
   ready: supabase == null,
   session: null,
   role: null,
+  teamId: null,
   membershipLoaded: supabase == null,
   membershipError: false,
   expired: false,
@@ -129,17 +131,19 @@ export function waitForMembership(timeoutMs = MEMBERSHIP_WAIT_MS): Promise<AuthS
 
 async function loadRole(userId: string): Promise<{
   role: TeamRole | null
+  teamId: string | null
   error: boolean
 }> {
-  if (supabase == null) return { role: null, error: false }
+  if (supabase == null) return { role: null, teamId: null, error: false }
   const { data, error } = await supabase
     .from('memberships')
-    .select('role')
+    .select('role, team_id')
     .eq('user_id', userId)
     .limit(1)
-  if (error) return { role: null, error: true }
+  if (error) return { role: null, teamId: null, error: true }
   const role = data?.[0]?.role ?? null
-  return { role, error: false }
+  const teamId = data?.[0]?.team_id ?? null
+  return { role, teamId, error: false }
 }
 
 async function applySession(session: Session | null, expired: boolean): Promise<void> {
@@ -148,6 +152,7 @@ async function applySession(session: Session | null, expired: boolean): Promise<
       ready: true,
       session: null,
       role: null,
+      teamId: null,
       membershipLoaded: true,
       membershipError: false,
       expired,
@@ -159,6 +164,7 @@ async function applySession(session: Session | null, expired: boolean): Promise<
     ready: true,
     session,
     role: membership.role,
+    teamId: membership.teamId,
     membershipLoaded: true,
     membershipError: membership.error,
     expired,
