@@ -2,7 +2,7 @@
 
 In POV, a mouse drag or a one-finger drag looks around the attached player. The eye stays at helmet height and keeps following that player. Yaw is relative to the player's facing and stops at about ±100°. Pitch stops at about ±35°. About 1 s after the pointer goes up, the view eases back to forward. **Hold look** keeps the offset.
 
-Playback does not pause, and the scrubber does not follow the pointer. A tap with no movement still attaches. In POV a one-finger drag is look, so hopping is the hop chips or a two-finger swipe. The facemask is a screen overlay and stays put. The offset resets when the attached player changes, on every **Watch as** pick, and on Escape. Escape does that even when Hold look is on, and it leaves the toggle as it was. Leaving POV with the same player keeps it. Opening the Watch as list does not clear Hold look, and keys still go to that list while it is open.
+Playback does not pause, and the scrubber does not follow the pointer. A tap with no movement still attaches. In POV a one-finger drag is look, so hopping is the hop chips or a two-finger swipe. There is no facemask overlay. The offset resets when the attached player changes, on every **Watch as** pick, and on Escape. Escape does that even when Hold look is on, and it leaves the toggle as it was. Leaving POV with the same player keeps it. Opening the Watch as list does not clear Hold look, and keys still go to that list while it is open. **Look with phone**, when `DeviceOrientationEvent` exists, sits on the Watch as row. That control is `scenarios/gyro-look.md`.
 
 Broadcast and Top-down still hop on a one-finger swipe. That check is `scenarios/touch.md` scenario 3. The shell still follows `scenarios/responsive.md` scenario 1.
 
@@ -51,7 +51,7 @@ Broadcast and Top-down still hop on a one-finger swipe. That check is `scenarios
 - The button's name is `Hold look`, it is at least 44×44, and it shows pressed after step 1.
 - The offset stays after release while it is pressed.
 - After it is turned off, the view eases back to forward about 1 s later.
-- **Hold look** sits beside **Watch as**. At 360 that pair wraps onto its own row under the camera buttons, both targets stay at least 44×44, and the page does not scroll sideways.
+- **Hold look** sits beside **Watch as**. At 360 that row wraps under the camera buttons, every target stays at least 44×44, and the page does not scroll sideways. **Look with phone** is on that row when the device orientation API exists.
 - While the list is open, **Hold look** stays pressed and the offset stays put. `1` does not change the mode. `↓` moves in the list and does not hop.
 
 ## Scenario 4 — Playback keeps running
@@ -100,23 +100,22 @@ Broadcast and Top-down still hop on a one-finger swipe. That check is `scenarios
 - Step 2 attaches H. `data-attached` is `h`.
 - The drag looks, once POV is on, and does not change who is attached.
 
-## Scenario 7 — The facemask stays fixed
+## Scenario 7 — No facemask overlay
 
-**Preconditions:** POV, so `data-testid="facemask"` has `data-active="true"`.
+**Preconditions:** POV.
 
 **Steps:**
 
-1. Note the side bars and the bottom band.
+1. Look for side bars or a bottom helmet band.
 2. Drag to yaw and pitch.
 3. Press `2`.
 
 **Expected:**
 
-- The bars stay pinned to the screen while the field turns behind them. They do not slide, roll, or scale with the drag.
-- Clicks pass through the overlay.
-- At 360 the side bars are thinner than at 768 and up.
-- Broadcast sets `data-active` to `false` and the overlay is gone.
-- There is no shadow on the bars.
+- There is no `data-testid="facemask"` element.
+- POV, Broadcast, and Top-down show the field with no screen-fixed bars and no helmet band.
+- The drag still looks around. Clicks hit the canvas.
+- There is no shadow where a mask used to be.
 
 ## Scenario 8 — Reset on hop or leaving POV
 

@@ -8,23 +8,20 @@ import {
   spaceClock,
 } from '../playback/clockState'
 
-const BASE_RATES = [0.5, 1, 1.5, 2]
+const PLAYBACK_RATES = [0.25, 0.5, 1, 1.5, 2] as const
 
 export function Scrubber({
   duration,
   startT = 0,
-  showQuarter,
   onFrameloop,
 }: {
   duration: number
   startT?: number
-  showQuarter: boolean
   onFrameloop: (mode: 'always' | 'demand' | 'never') => void
 }) {
   const [t, setT] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [rate, setRate] = useState(1)
-  const rates = showQuarter ? [0.25, ...BASE_RATES] : BASE_RATES
 
   useEffect(() => {
     clockState.durationRef.current = duration
@@ -72,7 +69,7 @@ export function Scrubber({
   const atEnd = !playing && t >= duration - 1e-3 && duration > 0
 
   return (
-    <div className="scrubber" data-testid="scrubber">
+    <div className="scrubber" data-testid="scrubber" data-rate={rate}>
       <button
         type="button"
         className="btn"
@@ -95,19 +92,23 @@ export function Scrubber({
       <span className="clock-readout" data-testid="clock-readout">
         {t.toFixed(2)} / {duration.toFixed(2)}
       </span>
-      {rates.map((value) => (
-        <button
-          key={value}
-          type="button"
-          className={value === rate ? 'btn primary' : 'btn'}
-          onClick={() => {
-            clockState.rateRef.current = value
-            setRate(value)
-          }}
-        >
-          {value}×
-        </button>
-      ))}
+      <span className="rate-chips" data-testid="rate-chips">
+        {PLAYBACK_RATES.map((value) => (
+          <button
+            key={value}
+            type="button"
+            className={value === rate ? 'btn primary' : 'btn'}
+            aria-pressed={value === rate}
+            data-testid={`rate-${value}`}
+            onClick={() => {
+              clockState.rateRef.current = value
+              setRate(value)
+            }}
+          >
+            {value}×
+          </button>
+        ))}
+      </span>
       {atEnd && (
         <button type="button" className="btn primary" onClick={() => replayClock()}>
           Replay

@@ -1,4 +1,5 @@
 import { yardsToWorld } from '../play/coords'
+import { stepGyro } from './gyro'
 import { easeLook, lookNeedsFrame, lookState, resetLook } from './look'
 import { easeOrbit, orbitState } from './orbit'
 
@@ -308,6 +309,7 @@ export function stepRig(state: RigState, input: RigInput): void {
   if (state.initialized && input.attached !== state.povAttached) resetLook()
   state.povAttached = input.attached
   easeLook(input.now, input.dt)
+  stepGyro(input.dt)
   const attached = resolveAttached(input)
   const playerHeading = read(input.headingArr, attached >= 0 ? attached : 0)
   const largeSeek =
