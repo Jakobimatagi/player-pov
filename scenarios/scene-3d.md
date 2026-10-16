@@ -74,6 +74,7 @@ The field is geometry, not a texture. Open http://127.0.0.1:5173 after `npm run 
 **Expected:**
 
 - White jersey numbers are readable on the sides of the boxes, not only on the chest and back.
+- 16 reads 16, not 91.
 - Numbers are one draw call for every player.
 
 ## Scenario 7 — Swap the player visual

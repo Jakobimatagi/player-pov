@@ -46,10 +46,10 @@ export function createNumberMaterial(atlas: CanvasTexture): Material {
       .replace(
         '#include <uv_vertex>',
         `#include <uv_vertex>
-#ifdef USE_UV
+#ifdef USE_MAP
   float cellCol = mod(aCell, 10.0);
   float cellRow = floor(aCell / 10.0);
-  vUv = vec2((cellCol + uv.x) / 10.0, 1.0 - (cellRow + uv.y) / 10.0);
+  vMapUv = vec2((cellCol + uv.x) / 10.0, 1.0 - (cellRow + 1.0 - uv.y) / 10.0);
 #endif`,
       )
   }
