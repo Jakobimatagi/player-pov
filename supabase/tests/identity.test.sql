@@ -1,6 +1,29 @@
 begin;
-select plan(32);
+select plan(52);
 set local search_path = public, extensions, auth;
+
+do $do$
+begin
+  if to_regprocedure('auth.jwt()') is null then
+    execute $fn$
+      create function auth.jwt()
+      returns jsonb
+      language sql
+      stable
+      as $body$
+        select nullif(current_setting('request.jwt.claims', true), '')::jsonb
+      $body$
+    $fn$;
+  end if;
+end
+$do$;
+
+create function pg_temp.token_hash(token text)
+returns bytea
+language sql
+as $$
+  select extensions.digest(pg_catalog.decode(token, 'hex'), 'sha256')
+$$;
 
 create function pg_temp.make_user(uid uuid, email text)
 returns void
@@ -138,6 +161,8 @@ begin
   perform pg_temp.make_user('33333333-3333-4333-8333-333333333333', 'pqb@example.com');
   perform pg_temp.make_user('44444444-4444-4444-8444-444444444444', 'pfs@example.com');
   perform pg_temp.make_user('55555555-5555-4555-8555-555555555555', 't2@example.com');
+  perform pg_temp.make_user('66666666-6666-4666-8666-666666666666', 'h2@example.com');
+  perform pg_temp.make_user('77777777-7777-4777-8777-777777777777', 'good@example.com');
 end $$;
 
 insert into public.teams (id, name, season, hash_rule, season_ends_on, created_by) values
@@ -158,12 +183,13 @@ insert into public.memberships (team_id, user_id, role, position) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '44444444-4444-4444-8444-444444444444', 'player', 'S'),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '55555555-5555-4555-8555-555555555555', 'head_coach', null);
 
-insert into public.invites (team_id, email, display_name, role, invited_by)
+insert into public.invites (team_id, email, display_name, role, token_hash, invited_by)
 values (
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   'pending@example.com',
   'Pending',
   'player',
+  pg_temp.token_hash('1111111111111111111111111111111111111111111111111111111111111111'),
   '11111111-1111-4111-8111-111111111111'
 );
 
@@ -238,12 +264,13 @@ select is(
 );
 
 select lives_ok(
-  $$insert into public.invites (team_id, email, display_name, role, invited_by)
+  $$insert into public.invites (team_id, email, display_name, role, token_hash, invited_by)
     values (
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       'new@example.com',
       'New Coach',
       'coach',
+      pg_temp.token_hash('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),
       '11111111-1111-4111-8111-111111111111'
     )$$,
   't1 can insert an invite'
@@ -252,6 +279,51 @@ select is(
   (select count(*)::int from public.invites where email = 'new@example.com'),
   1,
   't1 can read the invite they inserted'
+);
+
+select throws_ok(
+  $$insert into public.memberships (team_id, user_id, role)
+    values (
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      '77777777-7777-4777-8777-777777777777',
+      'player'
+    )$$,
+  '42501',
+  'new row violates row-level security policy for table "memberships"',
+  'direct insert into memberships is denied'
+);
+
+select ok(
+  not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'invites' and column_name = 'token'
+  )
+  and not exists (
+    select 1 from public.invites
+    where invites::text like '%aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%'
+  ),
+  'the raw token is not stored'
+);
+
+select throws_ok(
+  $$insert into public.invites (team_id, email, display_name, role, token_hash, invited_by)
+    values (
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'new@example.com',
+      'Again',
+      'player',
+      pg_temp.token_hash('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'),
+      '11111111-1111-4111-8111-111111111111'
+    )$$,
+  '23505',
+  'duplicate key value violates unique constraint "invites_pending_team_email_idx"',
+  'a second open invite for the same team and email is rejected'
+);
+
+select is(
+  (select attested_email::text from public.consent_records where subject_email = 'pending@example.com'),
+  't1@example.com',
+  'consent stores the attesting email'
 );
 
 select lives_ok(
@@ -324,6 +396,204 @@ select ok(
   't2 sees zero rows of team A in every public table'
 );
 
+-- Co-head coaches cannot demote or remove each other. The owner can.
+reset role;
+insert into public.profiles (user_id, display_name)
+values ('66666666-6666-4666-8666-666666666666', 'Co Head');
+insert into public.memberships (team_id, user_id, role)
+values (
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  '66666666-6666-4666-8666-666666666666',
+  'head_coach'
+);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  set_config('request.jwt.claim.sub', '66666666-6666-4666-8666-666666666666', true)
+    || set_config(
+      'request.jwt.claims',
+      '{"sub":"66666666-6666-4666-8666-666666666666","role":"authenticated","email":"h2@example.com"}',
+      true
+    ),
+  '66666666-6666-4666-8666-666666666666{"sub":"66666666-6666-4666-8666-666666666666","role":"authenticated","email":"h2@example.com"}',
+  'act as co-head h2'
+);
+select throws_ok(
+  $$update public.memberships set role = 'coach'
+    where team_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+      and user_id = '11111111-1111-4111-8111-111111111111'$$,
+  'P0001',
+  'only the team owner can change a head coach',
+  'a co-head cannot demote another head coach'
+);
+select throws_ok(
+  $$delete from public.memberships
+    where team_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+      and user_id = '11111111-1111-4111-8111-111111111111'$$,
+  'P0001',
+  'only the team owner can remove a head coach',
+  'a co-head cannot remove another head coach'
+);
+
+select is(
+  set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true)
+    || set_config(
+      'request.jwt.claims',
+      '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","email":"t1@example.com"}',
+      true
+    ),
+  '11111111-1111-4111-8111-111111111111{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","email":"t1@example.com"}',
+  'act as owner t1'
+);
+select lives_ok(
+  $$update public.memberships set role = 'coach'
+    where team_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+      and user_id = '66666666-6666-4666-8666-666666666666'$$,
+  'the owner can demote a co-head'
+);
+select is(
+  (
+    select role::text from public.memberships
+    where user_id = '66666666-6666-4666-8666-666666666666'
+  ),
+  'coach',
+  'the co-head is now a coach'
+);
+
+-- accept_invite: wrong email, expired, missing consent, then a single use.
+reset role;
+insert into public.invites (team_id, email, display_name, role, token_hash, invited_by)
+values
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'other@example.com',
+    'Wrong',
+    'player',
+    pg_temp.token_hash('cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'),
+    '11111111-1111-4111-8111-111111111111'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'expired@example.com',
+    'Expired',
+    'player',
+    pg_temp.token_hash('dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'),
+    '11111111-1111-4111-8111-111111111111'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'noconsent@example.com',
+    'No Consent',
+    'player',
+    pg_temp.token_hash('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'),
+    '11111111-1111-4111-8111-111111111111'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'good@example.com',
+    'Good Player',
+    'player',
+    pg_temp.token_hash('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
+    '11111111-1111-4111-8111-111111111111'
+  );
+update public.invites
+set expires_at = now() - interval '1 day'
+where email = 'expired@example.com';
+insert into public.consent_records (
+  team_id, subject_email, attested_by, statement_version, statement_text
+) values
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'other@example.com',
+    '11111111-1111-4111-8111-111111111111',
+    'consent-v0-provisional',
+    'I confirm this player''s parent/guardian or school has consented to this account'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'good@example.com',
+    '11111111-1111-4111-8111-111111111111',
+    'consent-v0-provisional',
+    'I confirm this player''s parent/guardian or school has consented to this account'
+  );
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  set_config('request.jwt.claim.sub', '77777777-7777-4777-8777-777777777777', true)
+    || set_config(
+      'request.jwt.claims',
+      '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated","email":"good@example.com"}',
+      true
+    ),
+  '77777777-7777-4777-8777-777777777777{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated","email":"good@example.com"}',
+  'act as invitee'
+);
+select throws_ok(
+  $$select app.accept_invite('cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc')$$,
+  'P0001',
+  'invite email does not match',
+  'accept_invite fails for the wrong email'
+);
+select is(
+  set_config(
+    'request.jwt.claims',
+    '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated","email":"expired@example.com"}',
+    true
+  ),
+  '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated","email":"expired@example.com"}',
+  'jwt email is the expired invite'
+);
+select throws_ok(
+  $$select app.accept_invite('dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd')$$,
+  'P0001',
+  'invite expired',
+  'accept_invite fails for an expired invite'
+);
+select is(
+  set_config(
+    'request.jwt.claims',
+    '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated","email":"noconsent@example.com"}',
+    true
+  ),
+  '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated","email":"noconsent@example.com"}',
+  'jwt email is the invite with no consent'
+);
+select throws_ok(
+  $$select app.accept_invite('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')$$,
+  'P0001',
+  'consent record required',
+  'accept_invite fails when the consent record is missing'
+);
+select is(
+  set_config(
+    'request.jwt.claims',
+    '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated","email":"good@example.com"}',
+    true
+  ),
+  '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated","email":"good@example.com"}',
+  'jwt email is the open invite'
+);
+select lives_ok(
+  $$select app.accept_invite('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')$$,
+  'accept_invite joins the matching invitee'
+);
+select is(
+  (
+    select role::text from public.memberships
+    where user_id = '77777777-7777-4777-8777-777777777777'
+  ),
+  'player',
+  'accept_invite inserted the membership'
+);
+select throws_ok(
+  $$select app.accept_invite('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')$$,
+  'P0001',
+  'invite already accepted',
+  'accept_invite fails when the invite is reused'
+);
+
 select is(
   set_config('request.jwt.claim.sub', '', true) || set_config('request.jwt.claims', '', true),
   '',
@@ -331,10 +601,11 @@ select is(
 );
 set local role anon;
 set local search_path = public, extensions, auth;
-select is(
-  (select count(*)::int from public.memberships),
-  0,
-  'anon select of memberships returns no rows'
+select throws_ok(
+  $$select count(*) from public.memberships$$,
+  '42501',
+  'permission denied for table memberships',
+  'anon has no grant on memberships'
 );
 
 select * from finish();

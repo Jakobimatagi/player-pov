@@ -91,7 +91,8 @@ export type Database = {
           display_name: string
           role: TeamRole
           position: PositionCode | null
-          invited_by: string
+          token_hash: string
+          invited_by: string | null
           expires_at: string
           accepted_at: string | null
         }
@@ -102,7 +103,8 @@ export type Database = {
           display_name: string
           role: TeamRole
           position?: PositionCode | null
-          invited_by: string
+          token_hash: string
+          invited_by?: string | null
           expires_at?: string
           accepted_at?: string | null
         }
@@ -113,7 +115,8 @@ export type Database = {
           display_name?: string
           role?: TeamRole
           position?: PositionCode | null
-          invited_by?: string
+          token_hash?: string
+          invited_by?: string | null
           expires_at?: string
           accepted_at?: string | null
         }
@@ -126,7 +129,8 @@ export type Database = {
           invite_id: string | null
           user_id: string | null
           subject_email: string
-          attested_by: string
+          attested_by: string | null
+          attested_email: string
           statement_version: string
           statement_text: string
           attested_at: string
@@ -137,7 +141,8 @@ export type Database = {
           invite_id?: string | null
           user_id?: string | null
           subject_email: string
-          attested_by: string
+          attested_by?: string | null
+          attested_email?: string
           statement_version: string
           statement_text: string
           attested_at?: string
@@ -148,7 +153,8 @@ export type Database = {
           invite_id?: string | null
           user_id?: string | null
           subject_email?: string
-          attested_by?: string
+          attested_by?: string | null
+          attested_email?: string
           statement_version?: string
           statement_text?: string
           attested_at?: string

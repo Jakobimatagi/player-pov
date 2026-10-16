@@ -6,6 +6,8 @@ The hosted project is **player-pov**, ref `bfaopibbbldsxvjprfdx`, region `us-wes
 
 1. `supabase/migrations/20261015120000_identity.sql`
 
+`supabase/down/20261015120000_identity.sql` drops that migration. It is not in `supabase/migrations`, so `supabase db push` does not apply it. Members join only through `app.accept_invite`. A head coach stores `sha256` of a 32-byte token, never the token itself. Anon has no table grants.
+
 `roster_public` exposes `team_id`, `user_id`, `display_name`, `position`, and `role`. It does not expose email. The architecture sentence that lists only the three name columns is the privacy rule; the view keeps the two ids from the DDL so the app can tell rows apart.
 
 ## Scenario 1 — Seeded team in Studio
@@ -44,8 +46,8 @@ Replace `ANON_KEY` with the anon key from `npx supabase status`.
 
 **Expected:**
 
-- The body is `[]`.
-- The status is 200.
+- The status is 401 or 403.
+- The body is not a list of membership rows. Anon has no grant on `memberships`.
 
 ## Scenario 3 — Team B sees nothing of team A
 
@@ -60,6 +62,9 @@ Replace `ANON_KEY` with the anon key from `npx supabase status`.
 
 - The pgTAP file passes, including assertion 5: as `t2`, every public table returns 0 rows of team A.
 - Assertion 4: `t1` inserts an invite and deletes `c1`, and deleting `t1` raises `cannot remove the last head coach`.
+- A direct insert into `memberships` is denied. `accept_invite` fails for the wrong email, an expired invite, a reused invite, and a missing consent record.
+- A co-head cannot demote or remove another head coach. The team owner can demote the co-head.
+- The raw invite token is not stored. A second open invite for the same team and email is rejected.
 - Assertion 9: after that delete, `c1`'s jwt sees 0 membership rows.
 - Assertion 10: `p_qb` sees exactly one membership row (their own). `roster_public` returns all four team A members and no email column.
 - `scripts/check-rls.sql` is what CI runs after the tests. It raises if any public table has row level security off.
