@@ -1,13 +1,20 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useSyncExternalStore } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { supabase } from '../data/supabase'
 import { AuthField, AuthScreen } from './AuthScreen'
 import {
   asAuthFlowClient,
   inviteRedirect,
-  parseInviteToken,
+  inviteTokenFromState,
+  loginLocation,
+  rememberedInviteToken,
+  rememberInviteToken,
   resendSignup,
+  signedInAs,
+  stripInviteToken,
+  SWITCH_ACCOUNT,
+  WRONG_ACCOUNT,
   submitAcceptInvite,
   submitForgot,
   submitInviteSignup,
@@ -22,11 +29,14 @@ import {
   INVITE_INVALID,
   linkExpired,
   passwordIssue,
+  reloadMembership,
   RESET_EXPIRED,
   safeNext,
   SESSION_EXPIRED,
+  signOut,
   SIGNED_OUT,
   subscribeAuth,
+  waitForMembership,
 } from './session'
 
 function originRedirect(path: string): string {
@@ -35,12 +45,14 @@ function originRedirect(path: string): string {
 
 export function LoginPage() {
   const [params] = useSearchParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const next = safeNext(params.get('next'))
+  const inviteToken = inviteTokenFromState(location.state)
   const banner = params.get('expired') === '1' ? SESSION_EXPIRED : null
   const signedOut = params.get('signedout') === '1'
 
@@ -56,6 +68,12 @@ export function LoginPage() {
       const result = await submitLogin(asAuthFlowClient(supabase), email, password)
       if (!result.ok) {
         setError(result.message)
+        return
+      }
+      await waitForMembership()
+      if (inviteToken != null) {
+        rememberInviteToken(window.sessionStorage, inviteToken)
+        navigate('/accept-invite', { replace: true })
         return
       }
       navigate(next, { replace: true })
@@ -143,7 +161,7 @@ export function SignupPage() {
         password,
         confirm: password,
         redirectTo: originRedirect('/'),
-        data: { display_name: name, coach },
+        data: { display_name: name },
       })
       if (!result.ok) {
         setError(result.message)
@@ -349,27 +367,54 @@ export function ResetPasswordPage() {
 }
 
 export function AcceptInvitePage() {
-  const [params] = useSearchParams()
   const navigate = useNavigate()
   const snap = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
-  const token = parseInviteToken(params.get('token'))
+  const [token] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    const fromUrl = stripInviteToken(window.location.search).token
+    if (fromUrl != null) {
+      rememberInviteToken(window.sessionStorage, fromUrl)
+      return fromUrl
+    }
+    return rememberedInviteToken(window.sessionStorage)
+  })
   const invalid = token == null || linkExpired(window.location.search, window.location.hash)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [wrongAccount, setWrongAccount] = useState(false)
   const [sent, setSent] = useState(false)
   const [pending, setPending] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const signedIn = snap.session != null
 
   useEffect(() => {
+    const stripped = stripInviteToken(window.location.search)
+    if (stripped.token == null) return
+    rememberInviteToken(window.sessionStorage, stripped.token)
+    const next = `${window.location.pathname}${stripped.search}${window.location.hash}`
+    window.history.replaceState(window.history.state, '', next)
+  }, [])
+
+  useEffect(() => {
     if (invalid || token == null || supabase == null || !snap.ready || !signedIn) return
     let cancelled = false
-    void submitAcceptInvite(asAuthFlowClient(supabase), token).then((result) => {
+    void submitAcceptInvite(asAuthFlowClient(supabase), token).then(async (result) => {
       if (cancelled) return
-      if (result.ok) navigate('/', { replace: true })
-      else setError(result.message)
+      if (result.ok) {
+        await reloadMembership()
+        if (cancelled) return
+        navigate('/', { replace: true })
+        return
+      }
+      if (result.reason === 'wrong-account') {
+        setWrongAccount(true)
+        setError(null)
+        return
+      }
+      setWrongAccount(false)
+      setError(result.message)
     })
     return () => {
       cancelled = true
@@ -430,7 +475,7 @@ export function AcceptInvitePage() {
     )
   }
 
-  const loginTo = `/login?next=${encodeURIComponent(`/accept-invite?token=${token}`)}`
+  const loginTo = loginLocation(token)
 
   if (supabase != null && !snap.ready) {
     return (
@@ -443,34 +488,48 @@ export function AcceptInvitePage() {
     )
   }
 
+  async function switchAccount() {
+    await signOut('local')
+    setWrongAccount(false)
+    setError(null)
+  }
+
   if (snap.session != null) {
+    const signedInEmail = snap.session.user.email ?? 'this account'
     return (
       <AuthScreen banner="You're invited">
         <h1>Accept invite</h1>
-        {error ? (
-          <p className="auth-error" role="alert">
-            {error}
-          </p>
+        {wrongAccount ? (
+          <>
+            <p className="auth-note">{signedInAs(signedInEmail)}</p>
+            <p className="auth-error" role="alert">
+              {WRONG_ACCOUNT}
+            </p>
+            <button type="button" className="auth-submit" onClick={() => void switchAccount()}>
+              {SWITCH_ACCOUNT}
+            </button>
+          </>
+        ) : error ? (
+          <>
+            <p className="auth-error" role="alert">
+              {error}
+            </p>
+            <button
+              type="button"
+              className="auth-submit"
+              onClick={() => {
+                setError(null)
+                setAttempt((value) => value + 1)
+              }}
+            >
+              Try again
+            </button>
+          </>
         ) : (
           <p className="auth-note" role="status">
             Joining the team…
           </p>
         )}
-        {error ? (
-          <button
-            type="button"
-            className="auth-submit"
-            onClick={() => {
-              setError(null)
-              setAttempt((value) => value + 1)
-            }}
-          >
-            Try again
-          </button>
-        ) : null}
-        <Link className="auth-textlink" to={loginTo}>
-          Log in
-        </Link>
       </AuthScreen>
     )
   }
@@ -527,7 +586,7 @@ export function AcceptInvitePage() {
           <button className="auth-submit" type="submit" disabled={pending}>
             Create account
           </button>
-          <Link className="auth-textlink" to={loginTo}>
+          <Link className="auth-textlink" to={loginTo.pathname} state={loginTo.state}>
             Log in
           </Link>
         </form>

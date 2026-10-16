@@ -1,8 +1,19 @@
+import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearAcceptInflight,
   inviteRedirect,
+  acceptFailure,
+  INVITE_TOKEN_KEY,
+  inviteTokenFromState,
+  loginLocation,
   mapAcceptError,
+  rememberedInviteToken,
+  rememberInviteToken,
+  signedInAs,
+  stripInviteToken,
+  SWITCH_ACCOUNT,
+  WRONG_ACCOUNT,
   parseInviteToken,
   submitAcceptInvite,
   submitForgot,
@@ -63,7 +74,8 @@ describe('accept invite', () => {
   })
 
   it('maps server failures onto the invite and confirmation copy', () => {
-    expect(mapAcceptError({ message: 'invite email does not match' })).toBe(INVITE_INVALID)
+    expect(mapAcceptError({ message: 'invite email does not match' })).toBe(WRONG_ACCOUNT)
+    expect(acceptFailure({ message: 'invite email does not match' }).reason).toBe('wrong-account')
     expect(mapAcceptError({ message: 'invite expired' })).toBe(INVITE_INVALID)
     expect(mapAcceptError({ message: 'invite already accepted' })).toBe(INVITE_INVALID)
     expect(mapAcceptError({ message: 'email is not confirmed' })).toBe(CONFIRM_EMAIL)
@@ -91,7 +103,7 @@ describe('accept invite', () => {
       submitAcceptInvite(flow, TOKEN),
       submitAcceptInvite(flow, TOKEN),
     ])
-    expect(first).toEqual({ ok: false, message: INVITE_INVALID })
+    expect(first).toEqual({ ok: false, message: INVITE_INVALID, reason: 'invalid' })
     expect(second).toEqual(first)
     expect(rpc).toHaveBeenCalledTimes(1)
     const retry = await submitAcceptInvite(flow, TOKEN)
@@ -103,8 +115,56 @@ describe('accept invite', () => {
   it('rejects a token that is not 64 hex characters', async () => {
     const flow = client({})
     const result = await submitAcceptInvite(flow, 'nope')
-    expect(result).toEqual({ ok: false, message: INVITE_INVALID })
+    expect(result).toEqual({ ok: false, message: INVITE_INVALID, reason: 'invalid' })
     expect(flow.rpc).not.toHaveBeenCalled()
+  })
+})
+
+describe('invite token handling', () => {
+  it('strips the token from the query and keeps it in storage and login state', () => {
+    const storage = new Map<string, string>()
+    const memory = {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        storage.set(key, value)
+      },
+    }
+    const stripped = stripInviteToken(`?token=${TOKEN}&expired=1`)
+    expect(stripped.token).toBe(TOKEN)
+    expect(stripped.search).toBe('?expired=1')
+    expect(stripInviteToken('').token).toBeNull()
+    rememberInviteToken(memory, TOKEN)
+    expect(storage.get(INVITE_TOKEN_KEY)).toBe(TOKEN)
+    expect(rememberedInviteToken(memory)).toBe(TOKEN)
+    const login = loginLocation(TOKEN)
+    expect(login.pathname).toBe('/login')
+    expect(login.state).toEqual({ inviteToken: TOKEN })
+    expect(JSON.stringify(login)).not.toContain('next=')
+    expect(inviteTokenFromState(login.state)).toBe(TOKEN)
+    expect(inviteTokenFromState(null)).toBeNull()
+  })
+
+  it('keeps the stashed token when the signed-in email does not match', async () => {
+    clearAcceptInflight()
+    const storage = new Map<string, string>()
+    const memory = {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        storage.set(key, value)
+      },
+    }
+    rememberInviteToken(memory, TOKEN)
+    const rpc = vi.fn(async () => ({
+      data: null,
+      error: { message: 'invite email does not match' },
+    }))
+    const flow = client({ rpc })
+    const result = await submitAcceptInvite(flow, TOKEN)
+    expect(result).toEqual({ ok: false, message: WRONG_ACCOUNT, reason: 'wrong-account' })
+    expect(rememberedInviteToken(memory)).toBe(TOKEN)
+    expect(signedInAs('player@demo.local')).toBe("You're signed in as player@demo.local.")
+    expect(SWITCH_ACCOUNT).toBe('Sign out and switch')
+    expect(flow.from).not.toHaveBeenCalled()
   })
 })
 
@@ -144,7 +204,7 @@ describe('auth flows', () => {
       password: 'password1234',
       confirm: 'password1234',
       redirectTo: 'http://127.0.0.1:5173/',
-      data: { display_name: 'Coach Kim', coach: true },
+      data: { display_name: 'Coach Kim' },
     })
     expect(sent).toEqual({ ok: true, needsConfirm: true })
     expect(signUp).toHaveBeenCalledWith({
@@ -152,9 +212,12 @@ describe('auth flows', () => {
       password: 'password1234',
       options: {
         emailRedirectTo: 'http://127.0.0.1:5173/',
-        data: { display_name: 'Coach Kim', coach: true },
+        data: { display_name: 'Coach Kim' },
       },
     })
+    expect(readFileSync(new URL('../src/auth/pages.tsx', import.meta.url), 'utf8')).not.toMatch(
+      /data:\s*\{[^}]*\bcoach\b/,
+    )
   })
 
   it('sends the invite token on the signup redirect and does not read a table', async () => {

@@ -19,6 +19,7 @@ This pull request does not apply any of the following.
    - `VITE_SUPABASE_URL` = `https://bfaopibbbldsxvjprfdx.supabase.co`
    - `VITE_SUPABASE_ANON_KEY` = the anon key from the Supabase dashboard
    - Do not set a service-role key.
+   - Auth redirect URLs are the production host `/**` and, only if preview mail should work, `https://player-pov-*-<team-slug>.vercel.app/**`. Do not allow `https://*.vercel.app/**`. Otherwise leave mail links off for previews.
 5. Create the GitHub environment `production` with a required reviewer. `deploy.yml` uses it before `supabase db push`.
 6. GitHub Actions secrets:
    - `VITE_SUPABASE_URL` (same URL as Vercel)

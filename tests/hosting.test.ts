@@ -12,8 +12,15 @@ describe('hosting', () => {
   it('rewrites every path to the SPA shell', () => {
     const vercel = JSON.parse(read('../vercel.json')) as {
       rewrites: { source: string; destination: string }[]
+      headers: { source: string; headers: { key: string; value: string }[] }[]
     }
     expect(vercel.rewrites).toEqual([{ source: '/(.*)', destination: '/index.html' }])
+    expect(vercel.headers).toEqual([
+      {
+        source: '/(.*)',
+        headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
+      },
+    ])
   })
 
   it('keeps the free-tier jobs on the documented schedules', () => {

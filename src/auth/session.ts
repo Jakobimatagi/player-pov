@@ -101,6 +101,25 @@ export function getAuthSnap(): AuthSnap {
   return snap
 }
 
+/** True once a signed-in user's membership query has finished. */
+export function membershipSettled(snap: AuthSnap): boolean {
+  return snap.ready && snap.session != null && snap.membershipLoaded
+}
+
+export function waitForMembership(): Promise<AuthSnap> {
+  const current = getAuthSnap()
+  if (membershipSettled(current)) return Promise.resolve(current)
+  return new Promise((resolve) => {
+    const stop = subscribeAuth(() => {
+      const next = getAuthSnap()
+      if (membershipSettled(next)) {
+        stop()
+        resolve(next)
+      }
+    })
+  })
+}
+
 async function loadRole(userId: string): Promise<{
   role: TeamRole | null
   error: boolean
@@ -137,6 +156,11 @@ async function applySession(session: Session | null, expired: boolean): Promise<
     membershipError: membership.error,
     expired,
   })
+}
+
+export async function reloadMembership(): Promise<void> {
+  if (supabase == null || snap.session == null) return
+  await applySession(snap.session, false)
 }
 
 export function startAuth(): void {

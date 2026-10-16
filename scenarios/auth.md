@@ -11,7 +11,7 @@ The seeded player is `player@demo.local` / `password1234` (local seed only). Ema
 Nothing in this file is applied to the hosted project. On Supabase **player-pov** (`bfaopibbbldsxvjprfdx`), before hosted login works:
 
 1. Site URL: the Vercel production URL for player-pov.
-2. Redirect URLs: `http://127.0.0.1:5173/**`, `https://<production-host>/**`, and `https://*.vercel.app/**` if preview deployments should accept mail links. The wildcard is what lets `?token=` survive. Local `supabase/config.toml` already lists `http://127.0.0.1:5173/**`.
+2. Redirect URLs: `http://127.0.0.1:5173/**` and `https://<production-host>/**`. Preview mail, if you want it, is only `https://player-pov-*-<team-slug>.vercel.app/**` with this project's Vercel team slug. Do not allow `https://*.vercel.app/**`. If that preview pattern is not added, leave mail links off for preview deployments. Local `supabase/config.toml` already lists `http://127.0.0.1:5173/**`.
 3. Email provider on. Confirm email on. No new OAuth providers.
 4. Confirmation and recovery templates keep `{{ .ConfirmationURL }}`.
 5. Do not send Supabase's invite-user mail as the join path. The link is `/accept-invite?token=<64 hex characters>`.
@@ -128,11 +128,12 @@ Migrations still waiting, in order: `supabase/migrations/20261015120000_identity
 1. Open http://127.0.0.1:5173/accept-invite .
 2. Open http://127.0.0.1:5173/accept-invite?token=abcd .
 3. Open http://127.0.0.1:5173/accept-invite?token= followed by 64 hex characters, while logged out. Submit the invited email and a password of at least 10 characters.
-4. Open `/login?next=` that same accept-invite path and sign in with an account whose email does not match the invite.
+4. Click **Log in**, sign in with an account whose email does not match the invite, then choose **Sign out and switch**.
 
 **Expected:**
 
 - Steps 1 and 2 show `This invite is no longer valid. Ask your coach for a new one, or log in.` The page does not ask for a password.
-- Step 3 shows **Email**, **Password**, and **Confirm password**. **Log in** points at `/login` with that accept-invite path as `next`. The confirmation link returns to `/accept-invite?token=<those 64 hex characters>`.
-- A confirmed session calls `accept_invite` once. A matching invite lands on home. A mismatched email, an expired token, or a used token shows the same invalid-invite sentence. An unconfirmed email shows `Confirm your email first`.
-- The screen does not list invite rows or teammates.
+- Step 3 shows **Email**, **Password**, and **Confirm password**. The address bar drops `?token=` after the page loads. **Log in** goes to `/login` and carries the token in navigation state, not in `next=`. The confirmation mail still returns to `/accept-invite?token=<those 64 hex characters>`, and that page stashes the token and strips it from the address.
+- A confirmed session calls `accept_invite` once, reloads the membership, and a matching invite lands on Player Home. An unconfirmed email shows `Confirm your email first`.
+- A signed-in email that does not match shows `You're signed in as <that email>.` and `This invite is for a different email.` **Sign out and switch** keeps the token. An expired or used token shows the invalid-invite sentence.
+- The screen does not list invite rows or teammates. A coach checkbox is not sent as a role.

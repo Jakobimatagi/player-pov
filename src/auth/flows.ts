@@ -44,7 +44,12 @@ export type AuthFlowClient = {
 export type FlowOk = { ok: true }
 export type FlowFail = { ok: false; message: string }
 export type SignupResult = { ok: true; needsConfirm: boolean } | FlowFail
-export type AcceptResult = { ok: true } | FlowFail
+export type AcceptReason = 'invalid' | 'unconfirmed' | 'wrong-account'
+export type AcceptResult = { ok: true } | { ok: false; message: string; reason: AcceptReason }
+
+export const INVITE_TOKEN_KEY = 'invite_token'
+export const WRONG_ACCOUNT = 'This invite is for a different email.'
+export const SWITCH_ACCOUNT = 'Sign out and switch'
 
 const acceptInflight = new Map<string, Promise<AcceptResult>>()
 
@@ -60,10 +65,55 @@ export function inviteRedirect(origin: string, token: string): string {
   return `${origin}/accept-invite?token=${encodeURIComponent(token)}`
 }
 
-export function mapAcceptError(error: FlowError | null): string {
+export function signedInAs(email: string): string {
+  return `You're signed in as ${email}.`
+}
+
+export function acceptFailure(error: FlowError | null): {
+  message: string
+  reason: AcceptReason
+} {
   const message = (error?.message ?? '').toLowerCase()
-  if (message.includes('not confirmed')) return CONFIRM_EMAIL
-  return INVITE_INVALID
+  if (message.includes('not confirmed')) return { message: CONFIRM_EMAIL, reason: 'unconfirmed' }
+  if (message.includes('email does not match'))
+    return { message: WRONG_ACCOUNT, reason: 'wrong-account' }
+  return { message: INVITE_INVALID, reason: 'invalid' }
+}
+
+export function mapAcceptError(error: FlowError | null): string {
+  return acceptFailure(error).message
+}
+
+export function stripInviteToken(search: string): { token: string | null; search: string } {
+  const params = new URLSearchParams(search.replace(/^\?/, ''))
+  const token = parseInviteToken(params.get('token'))
+  params.delete('token')
+  const rest = params.toString()
+  return { token, search: rest === '' ? '' : `?${rest}` }
+}
+
+export function rememberInviteToken(storage: Pick<Storage, 'setItem'>, token: string): void {
+  const parsed = parseInviteToken(token)
+  if (parsed == null) return
+  storage.setItem(INVITE_TOKEN_KEY, parsed)
+}
+
+export function rememberedInviteToken(storage: Pick<Storage, 'getItem'>): string | null {
+  return parseInviteToken(storage.getItem(INVITE_TOKEN_KEY))
+}
+
+export function inviteTokenFromState(state: unknown): string | null {
+  if (state == null || typeof state !== 'object' || !('inviteToken' in state)) return null
+  const raw = (state as { inviteToken?: unknown }).inviteToken
+  return typeof raw === 'string' ? parseInviteToken(raw) : null
+}
+
+/** Login carries the invite in history state. The address bar does not. */
+export function loginLocation(token: string): {
+  pathname: '/login'
+  state: { inviteToken: string }
+} {
+  return { pathname: '/login', state: { inviteToken: token } }
 }
 
 export function asAuthFlowClient(client: SupabaseClient<Database>): AuthFlowClient {
@@ -175,14 +225,16 @@ export async function submitReset(
 
 async function runAccept(client: AuthFlowClient, token: string): Promise<AcceptResult> {
   const { error } = await client.rpc('accept_invite', { token })
-  if (error) return { ok: false, message: mapAcceptError(error) }
+  if (error) return { ok: false, ...acceptFailure(error) }
   return { ok: true }
 }
 
 /** One in-flight call per token. A failed call can be retried; a success is not sent twice. */
 export function submitAcceptInvite(client: AuthFlowClient, token: string): Promise<AcceptResult> {
   const parsed = parseInviteToken(token)
-  if (parsed == null) return Promise.resolve({ ok: false, message: INVITE_INVALID })
+  if (parsed == null) {
+    return Promise.resolve({ ok: false, message: INVITE_INVALID, reason: 'invalid' })
+  }
   const existing = acceptInflight.get(parsed)
   if (existing) return existing
   const pending = runAccept(client, parsed).then((result) => {
