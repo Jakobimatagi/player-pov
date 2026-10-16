@@ -270,6 +270,27 @@ create trigger teams_transfer_owner
   before update of created_by on public.teams
   for each row execute function app.transfer_team_owner();
 
+-- Column grants hide created_by from authenticated. This rejects a rewrite
+-- from any caller who can still update the row.
+create function app.guard_team_owner()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  -- Changes pass when auth.uid() is null (service or ownership transfer).
+  if auth.uid() is not null and new.created_by is distinct from old.created_by then
+    raise exception 'team owner cannot be reassigned';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger teams_guard_owner
+  before update of created_by on public.teams
+  for each row execute function app.guard_team_owner();
+
 -- Clients may ask for a shorter window. Anything past 14 days is capped; a missing value is 7.
 create function app.cap_invite_expiry()
 returns trigger
@@ -512,11 +533,14 @@ revoke all on table
   public.consent_records
   from public, anon;
 grant select, insert, update, delete on table
-  public.teams,
   public.profiles,
   public.invites,
   public.consent_records
   to authenticated;
+grant select, insert, delete on table public.teams to authenticated;
+revoke update on table public.teams from authenticated;
+grant update (name, school, season, hash_rule, season_ends_on)
+  on table public.teams to authenticated;
 grant select, insert, delete on table public.memberships to authenticated;
 revoke update on table public.memberships from authenticated;
 grant update (role, position) on table public.memberships to authenticated;
@@ -552,6 +576,7 @@ grant execute on function app.accept_invite(text) to authenticated, service_role
 revoke all on function app.guard_last_head_coach() from public, anon, authenticated;
 revoke all on function app.stamp_attested_email() from public, anon, authenticated;
 revoke all on function app.transfer_team_owner() from public, anon, authenticated;
+revoke all on function app.guard_team_owner() from public, anon, authenticated;
 revoke all on function app.cap_invite_expiry() from public, anon, authenticated;
 
 commit;

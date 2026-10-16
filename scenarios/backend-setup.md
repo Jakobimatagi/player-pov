@@ -6,7 +6,7 @@ The hosted project is **player-pov**, ref `bfaopibbbldsxvjprfdx`, region `us-wes
 
 1. `supabase/migrations/20261015120000_identity.sql`
 
-`supabase/down/20261015120000_identity.sql` drops that migration and leaves `citext` and `pgcrypto` in place. It is not in `supabase/migrations`, so `supabase db push` does not apply it. Members join only through `app.accept_invite`, called from `public.accept_invite` so the API can reach it. A head coach stores `sha256` of a 32-byte token, never the token itself. Anon has no table grants. Authenticated can update `memberships.role` and `memberships.position` only.
+`supabase/down/20261015120000_identity.sql` drops that migration and leaves `citext` and `pgcrypto` in place. It is not in `supabase/migrations`, so `supabase db push` does not apply it. Members join only through `app.accept_invite`, called from `public.accept_invite` so the API can reach it. A head coach stores `sha256` of a 32-byte token, never the token itself. Anon has no table grants. Authenticated can update `memberships.role` and `memberships.position` only, and `teams.name`, `teams.school`, `teams.season`, `teams.hash_rule`, and `teams.season_ends_on` only. `teams.created_by` stays with the owner. If that owner deletes their account and no other head coach remains, the team is ownerless. There is no repair for that case yet.
 
 `roster_public` exposes `team_id`, `user_id`, `display_name`, `position`, and `role`. It does not expose email. The architecture sentence that lists only the three name columns is the privacy rule; the view keeps the two ids from the DDL so the app can tell rows apart.
 
@@ -64,6 +64,8 @@ Replace `ANON_KEY` with the anon key from `npx supabase status`.
 - Assertion 4: `t1` inserts an invite and deletes `c1`, and deleting `t1` raises `cannot remove the last head coach`.
 - A direct insert into `memberships` is denied. `accept_invite` fails for the wrong email, an expired invite, a reused invite, and a missing consent record.
 - A co-head cannot demote or remove another head coach. The team owner can demote the co-head.
+- As `t1` (`set role authenticated` with jwt claims), changing `teams.created_by` fails, and changing `memberships.user_id` or `memberships.team_id` fails with `permission denied for table memberships`.
+- If the owner deletes their account and no other head coach exists, `created_by` stays null and the team is ownerless. No repair is implemented.
 - The raw invite token is not stored. A second open invite for the same team and email is rejected.
 - Assertion 9: after that delete, `c1`'s jwt sees 0 membership rows.
 - Assertion 10: `p_qb` sees exactly one membership row (their own). `roster_public` returns all four team A members and no email column.

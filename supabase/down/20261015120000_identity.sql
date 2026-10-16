@@ -14,6 +14,7 @@ drop table if exists
 drop function if exists public.accept_invite(text);
 drop function if exists app.accept_invite(text);
 drop function if exists app.cap_invite_expiry();
+drop function if exists app.guard_team_owner();
 drop function if exists app.transfer_team_owner();
 drop function if exists app.stamp_attested_email();
 drop function if exists app.guard_last_head_coach();

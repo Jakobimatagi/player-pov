@@ -1,5 +1,5 @@
 begin;
-select plan(62);
+select plan(65);
 set local search_path = public, extensions, auth;
 
 do $do$
@@ -288,6 +288,27 @@ select throws_ok(
   '42501',
   'permission denied for table memberships',
   'authenticated cannot update membership user_id'
+);
+select throws_ok(
+  $$update public.memberships
+    set team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    where user_id = '33333333-3333-4333-8333-333333333333'$$,
+  '42501',
+  'permission denied for table memberships',
+  'authenticated cannot update membership team_id'
+);
+select throws_ok(
+  $$update public.teams
+    set created_by = '55555555-5555-4555-8555-555555555555'
+    where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
+  '42501',
+  'permission denied for table teams',
+  't1 cannot change teams.created_by'
+);
+select lives_ok(
+  $$update public.teams set name = 'Team A renamed'
+    where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
+  't1 can rename the team'
 );
 select lives_ok(
   $$update public.memberships set position = 'QB'
