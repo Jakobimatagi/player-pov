@@ -14,7 +14,7 @@ This pull request does not apply any of the following.
 
 1. Leave Supabase **player-pov** on the free tier. Do not run `supabase/seed.sql` there.
 2. Apply `supabase/migrations/20261015120000_identity.sql`.
-3. Apply `supabase/migrations/20261015130100_health.sql`.
+3. Apply `supabase/migrations/20261015130100_health.sql`, then `supabase/migrations/20261015140200_team.sql`.
 4. On Vercel project **player-pov** (`prj_SRL6YyKAz9unWp7dEa4Xr5HQDxHe`), Hobby, framework Vite, output directory `dist`, set Production and Preview:
    - `VITE_SUPABASE_URL` = `https://bfaopibbbldsxvjprfdx.supabase.co`
    - `VITE_SUPABASE_ANON_KEY` = the anon key from the Supabase dashboard

@@ -1,16 +1,18 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useSyncExternalStore } from 'react'
-import { Navigate, Outlet, useLocation } from 'react-router'
+import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { App } from '../App'
 import {
   destination,
   getAuthSnap,
   noteActivity,
+  reloadMembership,
   safeNext,
   startAuth,
   subscribeAuth,
 } from '../auth/session'
 import { supabase } from '../data/supabase'
+import { submitCreateTeam } from '../team/invite'
 import { AccountMenu } from './AccountMenu'
 
 function useAuth() {
@@ -77,6 +79,11 @@ export function HomePage() {
     return (
       <Shell title="Player Home">
         <p>Nothing assigned yet. Check with your coach.</p>
+        <p>
+          <Link className="team-textlink" to="/team">
+            Roster
+          </Link>
+        </p>
       </Shell>
     )
   }
@@ -84,6 +91,11 @@ export function HomePage() {
     return (
       <Shell title="Coach home">
         <p>Playbooks open from the next step.</p>
+        <p>
+          <Link className="team-textlink" to="/team">
+            Roster
+          </Link>
+        </p>
       </Shell>
     )
   }
@@ -91,17 +103,42 @@ export function HomePage() {
 }
 
 export function CreateTeamPage() {
+  const navigate = useNavigate()
   const [note, setNote] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setNote('Saving the team is the next step.')
+    if (supabase == null) {
+      setNote('This preview has no account server yet.')
+      return
+    }
+    const form = new FormData(event.currentTarget)
+    setPending(true)
+    setNote(null)
+    try {
+      const result = await submitCreateTeam(supabase, {
+        name: String(form.get('name') ?? ''),
+        school: String(form.get('school') ?? ''),
+        season: String(form.get('season') ?? ''),
+        hashRule: String(form.get('hash') ?? 'NFHS'),
+        seasonEndsOn: String(form.get('ends') ?? ''),
+      })
+      if (!result.ok) {
+        setNote(result.message)
+        return
+      }
+      await reloadMembership()
+      navigate('/team', { replace: true })
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
     <Shell title="Create team">
       <p>Ask your coach for an invite</p>
-      <form className="auth-card stack-form" onSubmit={onSubmit}>
+      <form className="auth-card stack-form" onSubmit={(event) => void onSubmit(event)}>
         <label className="auth-field">
           <span>Team name</span>
           <input name="name" required />
@@ -115,16 +152,24 @@ export function CreateTeamPage() {
           <input name="season" placeholder="2026" />
         </label>
         <label className="auth-field">
+          <span>Season ends</span>
+          <input name="ends" type="date" required />
+        </label>
+        <label className="auth-field">
           <span>Hash rule</span>
           <select name="hash" defaultValue="NFHS">
             <option>NFHS</option>
             <option>NCAA</option>
           </select>
         </label>
-        <button className="auth-submit" type="submit">
+        <button className="auth-submit" type="submit" disabled={pending}>
           Create team
         </button>
-        {note ? <p className="auth-note">{note}</p> : null}
+        {note ? (
+          <p className="auth-error" role="alert">
+            {note}
+          </p>
+        ) : null}
       </form>
     </Shell>
   )

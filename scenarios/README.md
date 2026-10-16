@@ -61,6 +61,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `backend-setup.md`             | Identity schema, RLS, anon client         |
 | `deploy.md`                    | Vercel, keep-alive, encrypted backup      |
 | `auth.md`                      | Sign in, reset, invite, sign out          |
+| `team-management.md`           | Create team, roster, copyable invite      |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 
