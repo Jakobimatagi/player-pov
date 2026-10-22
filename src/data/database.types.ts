@@ -178,9 +178,65 @@ export type Database = {
       }
     }
     Functions: {
-      accept_invite: {
-        Args: { token: string }
+      accept_invite:
+        | {
+            Args: { p_invite_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: { token: string }
+            Returns: string
+          }
+      create_team: {
+        Args: {
+          p_name: string
+          p_school: string
+          p_season: string
+          p_hash_rule: string
+          p_season_ends_on: string
+        }
         Returns: string
+      }
+      create_player_invite: {
+        Args: {
+          p_team: string
+          p_email: string
+          p_name: string
+          p_role: TeamRole
+          p_position: PositionCode | null
+          p_consent: boolean
+          p_statement: string | null
+        }
+        Returns: string
+      }
+      delete_member_data: {
+        Args: { p_team: string; p_user: string }
+        Returns: undefined
+      }
+      invite_status: {
+        Args: { p_invite: string }
+        Returns: string
+      }
+      remove_member: {
+        Args: { p_team: string; p_user: string }
+        Returns: undefined
+      }
+      resend_invite: {
+        Args: { p_invite: string }
+        Returns: string
+      }
+      revoke_invite: {
+        Args: { p_invite: string }
+        Returns: undefined
+      }
+      update_member: {
+        Args: {
+          p_team: string
+          p_user: string
+          p_role: TeamRole
+          p_position: PositionCode | null
+        }
+        Returns: undefined
       }
       position_group_of: {
         Args: { p: PositionCode }
