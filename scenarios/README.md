@@ -48,13 +48,19 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `scene-3d.md`                  | Field, players, ball                      |
 | `responsive.md`                | Viewer widths and touch targets (1–4)     |
 | `playback.md`                  | Play, pause, scrub, speeds                |
+| `playback-rates.md`            | 0.25× through 2× on a phone               |
 | `end-of-play.md`               | Replay                                    |
 | `camera-pov.md`                | POV camera                                |
+| `pov-free-look.md`             | POV free-look, Hold look, touch hop       |
+| `gyro-look.md`                 | Look with phone                           |
 | `camera-broadcast.md`          | Broadcast camera                          |
 | `camera-top-down.md`           | Top-down camera                           |
 | `player-hop.md`                | Attach and hop                            |
-| `touch.md`                     | Tap, swipe, orbit, pinch, hop chips       |
+| `pov-picker.md`                | Watch as list                             |
+| `touch.md`                     | Tap, swipe, orbit, pinch, POV hop         |
 | `performance.md`               | Quality ladder and frame budget           |
+| `backend-setup.md`             | Identity schema, RLS, anon client         |
+| `deploy.md`                    | Vercel, keep-alive, encrypted backup      |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 
