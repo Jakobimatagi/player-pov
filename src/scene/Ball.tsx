@@ -7,7 +7,7 @@ export const Ball = forwardRef<Mesh>(function Ball(_props, ref) {
   const geometry = useMemo(() => buildBallGeometry(), [])
   return (
     <mesh ref={ref} geometry={geometry} frustumCulled={false}>
-      <meshLambertMaterial color="#c4a574" />
+      <meshBasicMaterial color="#c4a574" />
     </mesh>
   )
 })

@@ -109,15 +109,22 @@ function pushBox(
       [x0, y0, z0],
     ],
   ]
-  for (const quad of quads) {
+  const shade = [0.75, 0.75, 1, 0.6, 0.85, 0.85]
+  quads.forEach((quad, face) => {
     const a = quad[0]
     const b = quad[1]
     const c = quad[2]
     const d = quad[3]
-    if (a == null || b == null || c == null || d == null) continue
-    pushTri(buf, a, b, c, color)
-    pushTri(buf, a, c, d, color)
-  }
+    if (a == null || b == null || c == null || d == null) return
+    const scale = shade[face] ?? 1
+    const tint: [number, number, number] = [
+      (color[0] ?? 0) * scale,
+      (color[1] ?? 0) * scale,
+      (color[2] ?? 0) * scale,
+    ]
+    pushTri(buf, a, b, c, tint)
+    pushTri(buf, a, c, d, tint)
+  })
 }
 
 function addDigit(
