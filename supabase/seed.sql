@@ -72,9 +72,76 @@ values (
 insert into public.profiles (user_id, display_name)
 values ('00000000-0000-4000-8000-000000000001', 'Coach Kim');
 
+insert into auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  '00000000-0000-4000-8000-000000000002',
+  'authenticated',
+  'authenticated',
+  'player@demo.local',
+  extensions.crypt('password1234', extensions.gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{"display_name":"Sam Lee"}'::jsonb,
+  now(),
+  now(),
+  '',
+  '',
+  '',
+  ''
+);
+
+insert into auth.identities (
+  user_id,
+  identity_data,
+  provider,
+  provider_id,
+  last_sign_in_at,
+  created_at,
+  updated_at
+) values (
+  '00000000-0000-4000-8000-000000000002',
+  jsonb_build_object(
+    'sub', '00000000-0000-4000-8000-000000000002',
+    'email', 'player@demo.local',
+    'email_verified', true
+  ),
+  'email',
+  '00000000-0000-4000-8000-000000000002',
+  now(),
+  now(),
+  now()
+);
+
+insert into public.profiles (user_id, display_name)
+values ('00000000-0000-4000-8000-000000000002', 'Sam Lee');
+
 insert into public.memberships (team_id, user_id, role)
 values (
   '00000000-0000-4000-8000-0000000000a1',
   '00000000-0000-4000-8000-000000000001',
   'head_coach'
+);
+
+insert into public.memberships (team_id, user_id, role, position)
+values (
+  '00000000-0000-4000-8000-0000000000a1',
+  '00000000-0000-4000-8000-000000000002',
+  'player',
+  'QB'
 );

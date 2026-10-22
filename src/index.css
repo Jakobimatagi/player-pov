@@ -489,3 +489,516 @@ body {
     --page-pad: 48px;
   }
 }
+
+.auth-screen {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: var(--page-pad);
+  background: #141414;
+}
+
+.auth-wordmark {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.auth-playbook {
+  color: #c8102e;
+}
+
+.auth-card {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.auth-card h1 {
+  margin: 0 0 12px;
+  font-size: 1.4rem;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+}
+
+.auth-field input,
+.auth-field select {
+  width: 100%;
+  min-height: 48px;
+  font-size: 1rem;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  background: #101010;
+  color: #f4f1ea;
+}
+
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0 0 12px;
+}
+
+.auth-check input {
+  width: 44px;
+  height: 44px;
+}
+
+.auth-submit,
+.auth-submit-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: #c8102e;
+  color: #fff;
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.auth-textlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  color: #f4f1ea;
+}
+
+.auth-hint {
+  margin-top: auto;
+  margin-bottom: 8px;
+}
+
+.auth-error,
+.auth-note,
+.auth-readonly,
+.auth-banner {
+  font-size: 1rem;
+}
+
+.auth-error {
+  color: #ffb4b4;
+}
+
+.auth-banner {
+  width: 100%;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #c8102e;
+}
+
+.auth-readonly {
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #101010;
+}
+
+.auth-pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.app-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--page-pad);
+}
+
+.app-main {
+  width: min(100%, 1600px);
+  margin: 0 auto;
+  padding: var(--page-pad);
+}
+
+.account {
+  position: relative;
+}
+
+.account-button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: #c8102e;
+  color: #fff;
+  font-size: 0.875rem;
+}
+
+.account-menu {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: #1c1c1c;
+  border-radius: 16px 16px 0 0;
+}
+
+.account-menu button {
+  min-height: 48px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #f4f1ea;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.account-menu button:last-child {
+  color: #c8102e;
+}
+
+.account-name {
+  margin: 0 0 8px;
+}
+
+.stack-form {
+  margin-top: 16px;
+}
+
+@media (min-width: 768px) {
+  .auth-screen {
+    justify-content: center;
+  }
+
+  .auth-card {
+    width: min(100%, 520px);
+    padding: 28px;
+    border: 1px solid #2e2e2e;
+    border-radius: 12px;
+    background: #1c1c1c;
+  }
+
+  .auth-banner {
+    width: min(100%, 520px);
+  }
+
+  .auth-hint {
+    margin-top: 0;
+  }
+
+  .auth-submit,
+  .auth-submit-link {
+    min-height: 48px;
+  }
+
+  .account-menu {
+    position: absolute;
+    top: 48px;
+    right: 0;
+    bottom: auto;
+    left: auto;
+    width: 240px;
+    border-radius: 8px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-pair {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .auth-card,
+  .auth-banner {
+    width: min(100%, 560px);
+  }
+}
+
+.coach-frame,
+.player-frame {
+  min-height: 100%;
+  display: flex;
+}
+
+.coach-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--page-pad);
+  padding-bottom: 80px;
+}
+
+.side-nav,
+.roster-table,
+.nav-toggle {
+  display: none;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3d9a4a;
+  flex: none;
+}
+
+.status-dot[data-status='Pending'],
+.status-dot[data-status='Removed'] {
+  background: #c8102e;
+}
+
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  height: 64px;
+  background: #1c1c1c;
+}
+
+.tab-bar a,
+.side-nav a,
+.nav-drawer a,
+.roster-filters button,
+.more,
+.invite-button,
+.nav-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  color: #f4f1ea;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  font-size: 0.875rem;
+}
+
+.tab-bar a,
+.side-nav a,
+.nav-drawer a,
+.roster-filters button,
+.more,
+.invite-button {
+  display: inline-flex;
+}
+
+.tab-bar a {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 2px;
+  text-align: center;
+  line-height: 1.1;
+  white-space: normal;
+}
+
+.roster-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.roster-head h1 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.invite-button {
+  background: #c8102e;
+  border-radius: 8px;
+  padding: 0 12px;
+}
+
+.roster-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.roster-filters button {
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #3a3a3a;
+}
+
+.roster-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roster-cards li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+.pos-badge {
+  border: 1px solid #3a3a3a;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.more {
+  margin-left: auto;
+}
+
+.invite-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  padding: 16px;
+  background: #1c1c1c;
+  border-radius: 16px 16px 0 0;
+}
+
+.auth-submit.secondary {
+  background: transparent;
+  color: #f4f1ea;
+  border: 1px solid #3a3a3a;
+}
+
+.nav-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 6;
+  width: min(280px, 80vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #1c1c1c;
+}
+
+.row-menu {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #1c1c1c;
+  border-radius: 16px 16px 0 0;
+}
+
+.row-menu button,
+.row-menu select {
+  min-height: 48px;
+  font-size: 1rem;
+  color: #f4f1ea;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  text-align: left;
+  padding: 0 12px;
+}
+
+@media (min-width: 768px) {
+  .coach-main {
+    padding-bottom: var(--page-pad);
+  }
+
+  .tab-bar,
+  .roster-cards {
+    display: none;
+  }
+
+  .nav-toggle,
+  .status-dot {
+    display: inline-flex;
+  }
+
+  .roster-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .roster-table th,
+  .roster-table td {
+    text-align: left;
+    padding: 8px 4px;
+  }
+
+  .col-status {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .nav-toggle {
+    display: none;
+  }
+
+  .side-nav {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    flex: none;
+    gap: 4px;
+    padding: 16px 8px;
+    background: #1a1a1a;
+  }
+
+  .status-dot {
+    display: none;
+  }
+
+  .col-status {
+    display: table-cell;
+  }
+
+  .invite-sheet,
+  .row-menu {
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    top: 10vh;
+    width: min(480px, calc(100% - 32px));
+    transform: translateX(-50%);
+    border-radius: 12px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .side-nav {
+    width: 220px;
+  }
+}
