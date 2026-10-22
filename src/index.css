@@ -121,10 +121,156 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .camera-bar .short-label {
   display: none;
+}
+
+.camera-bar .btn {
+  white-space: nowrap;
+}
+
+.watch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.watch-row .watch-toggle {
+  flex: 1 1 8rem;
+  min-width: 44px;
+  max-width: 100%;
+}
+
+.watch-row .hold-look,
+.watch-row .gyro-look {
+  flex: 1 1 auto;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gyro-look[aria-pressed='true'] {
+  background: #c8102e;
+  border-color: #c8102e;
+  color: #fff;
+}
+
+.gyro-look[data-gyro='blocked'] {
+  opacity: 0.45;
+}
+
+.watch-toggle {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.watch-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.watch-backdrop {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  padding: 0;
+  background: rgba(20, 20, 20, 0.45);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.watch-menu {
+  position: absolute;
+  left: 0.5rem;
+  z-index: 1;
+  pointer-events: auto;
+  width: min(20rem, calc(100% - 1rem));
+  max-height: min(28rem, 60vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #1c1c1c;
+  border: 1px solid #4a4a4a;
+  border-radius: 0.6rem;
+  padding: 0.35rem;
+  color: #f4f1ea;
+}
+
+.watch-menu[data-sheet='true'] {
+  left: 0;
+  right: 0;
+  width: auto;
+  max-width: 100%;
+  border-radius: 0.8rem 0.8rem 0 0;
+  padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
+}
+
+.watch-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 0.35rem;
+  background: #1c1c1c;
+  font-size: 1rem;
+}
+
+.watch-group-label {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.7rem;
+  color: #b9b4aa;
+  font-size: 1rem;
+}
+
+.watch-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.watch-option[aria-selected='true'] {
+  border-color: #c8102e;
+  background: #2a1518;
+}
+
+.watch-option:focus-visible,
+.watch-toggle:focus-visible {
+  outline: 2px solid #f4f1ea;
+  outline-offset: 2px;
 }
 
 .scrub-row {
@@ -149,6 +295,8 @@ body {
   flex-wrap: wrap;
   gap: 0.45rem;
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.45rem 0.6rem;
   background: #1c1c1c;
   border: 1px solid #3a3a3a;
@@ -176,6 +324,20 @@ body {
   pointer-events: none;
   background: #1c1c1c;
   border-radius: 0.4rem;
+}
+
+.rate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.rate-chips .btn {
+  padding-inline: 0.55rem;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .route-toggle {
@@ -258,6 +420,20 @@ body {
 
   .camera-bar .short-label {
     display: inline;
+  }
+
+  .watch-row {
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .watch-menu {
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: 100%;
+    border-radius: 0.8rem 0.8rem 0 0;
   }
 }
 
