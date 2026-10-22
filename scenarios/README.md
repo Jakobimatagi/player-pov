@@ -60,6 +60,9 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `touch.md`                     | Tap, swipe, orbit, pinch, POV hop         |
 | `backend-setup.md`             | Identity schema, RLS, anon client         |
 | `deploy.md`                    | Vercel, keep-alive, encrypted backup      |
+| `touch.md`                     | Tap, swipe, orbit, pinch, hop chips       |
+| `performance.md`               | Quality ladder and frame budget           |
+| `blocky-and-facemask.md`       | Blocky players and the POV facemask       |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { FIELD_CENTER_Y, yardsToWorld } from '../src/play/coords'
 import { HASH_Y, fieldConfig, hashRuleFromSearch } from '../src/field/fieldConfig'
@@ -49,6 +50,22 @@ describe('field geometry', () => {
     const nfhsZ = yardsToWorld(35, HASH_Y.NFHS[0], 0, { x: 0, y: 0, z: 0 }).z
     const ncaaZ = yardsToWorld(35, HASH_Y.NCAA[0], 0, { x: 0, y: 0, z: 0 }).z
     expect(Math.abs(nfhsZ - ncaaZ)).toBeGreaterThan(1)
+  })
+
+  it('bakes goalpost face shade and keeps the scene unlit', () => {
+    const geo = buildFieldMarkings(fieldConfig('NFHS'))
+    const color = geo.getAttribute('color')
+    const yellow = new Set<string>()
+    for (let i = 0; i < color.count; i += 1) {
+      const r = color.getX(i) ?? 0
+      const g = color.getY(i) ?? 0
+      if (r > 0.4 && g > 0.3 && (color.getZ(i) ?? 0) < 0.2) yellow.add(r.toFixed(3))
+    }
+    expect(yellow.size).toBeGreaterThan(1)
+    const field = readFileSync('src/scene/Field.tsx', 'utf8')
+    expect(field).not.toMatch(/Light/)
+    const ball = readFileSync('src/scene/Ball.tsx', 'utf8')
+    expect(ball).not.toMatch(/Lambert/)
   })
 
   it('puts the ball spot on the 25 at midfield', () => {

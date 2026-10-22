@@ -11,6 +11,7 @@ import {
   type Mesh,
 } from 'three'
 import { cameraState } from '../camera/cameraState'
+import { qualityState, showNumber } from '../gfx/quality'
 import { povFade } from '../camera/modes'
 import type { CompiledPlay } from '../play/types'
 import { yardsToWorld } from '../play/coords'
@@ -22,12 +23,8 @@ import { Ball } from './Ball'
 import { poseHeading, poseVel, poseXY, publishedBall } from './framePose'
 import { withInstanceFade } from './instanceFade'
 import { buildJerseyAtlas, createNumberMaterial, jerseyCells } from './jerseyAtlas'
-import {
-  boxVisual,
-  createNumberGeometry,
-  createPickMaterial,
-  type PlayerVisual,
-} from './playerVisual'
+import { blockyVisual } from './blockyVisual'
+import { createNumberGeometry, createPickMaterial, type PlayerVisual } from './playerVisual'
 
 const matrix = new Matrix4()
 const quaternion = new Quaternion()
@@ -89,7 +86,7 @@ function writeFromSample(
 export function Players({
   play,
   t = 0,
-  visual = boxVisual,
+  visual = blockyVisual,
 }: {
   play: CompiledPlay
   t?: number
@@ -145,7 +142,16 @@ export function Players({
         const y = poseXY[playerIndex * 2 + 1] ?? 0
         const heading = poseHeading[playerIndex] ?? 0
         const gone = playerIndex === hide
-        scale.set(gone ? 0 : 1, gone ? 0 : 1, gone ? 0 : 1)
+        const attachedNow = cameraState.attached
+        const dist =
+          attachedNow < 0
+            ? 0
+            : Math.hypot(
+                (poseXY[playerIndex * 2] ?? 0) - (poseXY[attachedNow * 2] ?? 0),
+                (poseXY[playerIndex * 2 + 1] ?? 0) - (poseXY[attachedNow * 2 + 1] ?? 0),
+              )
+        const show = showNumber(qualityState.level, attachedNow, playerIndex, dist)
+        scale.set(gone || !show ? 0 : 1, gone || !show ? 0 : 1, gone || !show ? 0 : 1)
         yardsToWorld(x, y, 0, world)
         position.set(world.x, world.y, world.z)
         euler.set(0, heading, 0)

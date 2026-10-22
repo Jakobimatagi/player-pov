@@ -327,6 +327,58 @@ body {
   min-height: 44px;
 }
 
+.perf-overlay {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 3;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  pointer-events: none;
+  background: #1c1c1c;
+  border-radius: 0.4rem;
+}
+
+.facemask {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms linear;
+}
+
+.facemask.is-on {
+  opacity: 0.9;
+}
+
+.facemask .mask-bar {
+  fill: #1c1c1c;
+}
+
+.facemask[data-team='offense'] .helmet-band {
+  fill: #c8102e;
+}
+
+.facemask[data-team='defense'] .helmet-band {
+  fill: #f2f2f2;
+}
+
+@media (max-width: 767px) {
+  .facemask.is-on {
+    opacity: 0.55;
+  }
+
+  .facemask .mask-bar {
+    transform: scaleX(0.6);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+}
+
 .route-toggle {
   position: absolute;
   top: 0.75rem;

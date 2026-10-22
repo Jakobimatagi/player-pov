@@ -414,13 +414,12 @@ describe('camera modes', () => {
     lookState.snap = false
   })
 
-  it('does not draw a facemask overlay', () => {
-    expect(existsSync('src/ui/FacemaskOverlay.tsx')).toBe(false)
+  it('draws a facemask overlay in POV (phase 2)', () => {
+    expect(existsSync('src/ui/FacemaskOverlay.tsx')).toBe(true)
     const css = readFileSync('src/index.css', 'utf8')
     const app = readFileSync('src/App.tsx', 'utf8')
-    expect(css).not.toMatch(/\.facemask/)
-    expect(css).not.toMatch(/box-shadow/)
-    expect(app).not.toContain('Facemask')
+    expect(css).toMatch(/\.facemask/)
+    expect(app).toContain('Facemask')
   })
 
   it('fades a box inside 0.4 yd of the POV eye', () => {

@@ -5,25 +5,28 @@ import { buildFieldMarkings, buildGrass, triangleCount } from '../src/scene/fiel
 import { TEAM_COLOR, boxVisual, createNumberGeometry } from '../src/scene/playerVisual'
 
 describe('box players', () => {
-  it('is one 12-triangle box with a darker front face', () => {
+  it('is one 12-triangle box with baked face shade', () => {
     const geometry = boxVisual.geometry
     const index = geometry.getIndex()
     expect(index).not.toBeNull()
     expect((index?.count ?? 0) / 3).toBe(12)
     const position = geometry.getAttribute('position')
+    const normal = geometry.getAttribute('normal')
     const color = geometry.getAttribute('color')
+    let top = 0
     let front = 0
     for (let i = 0; i < position.count; i += 1) {
-      const x = position.getX(i) ?? 0
+      const nx = normal.getX(i) ?? 0
+      const ny = normal.getY(i) ?? 0
       const shade = color.getX(i) ?? 0
-      if (x > 0.2) {
-        front += 1
-        expect(shade).toBeCloseTo(0.55, 2)
-      } else {
-        expect(shade).toBeCloseTo(1, 2)
-      }
+      const expected = ny > 0.5 ? 1 : ny < -0.5 ? 0.6 : Math.abs(nx) > 0.5 ? 0.85 : 0.75
+      if (ny > 0.5) top += 1
+      if (Math.abs(nx) > 0.5) front += 1
+      expect(shade).toBeCloseTo(expected, 2)
     }
+    expect(top).toBeGreaterThan(0)
     expect(front).toBeGreaterThan(0)
+    expect(boxVisual.createMaterial('offense').type).toBe('MeshBasicMaterial')
   })
 
   it('uses the locked team colors', () => {
@@ -43,7 +46,7 @@ describe('box players', () => {
     const source = readFileSync('src/scene/Players.tsx', 'utf8')
     expect(source).not.toMatch(/BoxGeometry|MeshLambertMaterial|MeshBasicMaterial/)
     expect(source).toMatch(/PlayerVisual/)
-    expect(source).toMatch(/visual = boxVisual/)
+    expect(source).toMatch(/visual = blockyVisual/)
   })
 
   it('faces jersey numbers outward and samples one atlas cell', () => {

@@ -7,6 +7,14 @@ import {
   noteContextRestored,
   type ContextLossState,
 } from './gfx/contextLoss'
+import { PerfOverlay } from './gfx/PerfOverlay'
+import {
+  beginWarmup,
+  noteRecovered,
+  perfMonitor,
+  QUALITY_LADDER,
+  qualityState,
+} from './gfx/quality'
 import { useCappedDpr } from './gfx/useCappedDpr'
 import { registerContextRestore, runContextRestore } from './gfx/useContextRestore'
 import { detectWebGL } from './gfx/webglSupport'
@@ -23,6 +31,8 @@ import { GestureInput } from './scene/GestureInput'
 import { Players } from './scene/Players'
 import { RouteLines } from './scene/RouteLines'
 import { CameraBar, HopChips } from './ui/CameraBar'
+import { FacemaskOverlay } from './ui/FacemaskOverlay'
+import { cameraState, subscribeCamera } from './camera/cameraState'
 import { Scrubber } from './ui/Scrubber'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
@@ -84,7 +94,11 @@ export function App() {
   const [loss, setLoss] = useState<ContextLossState>(createContextLossState)
   const [heldT, setHeldT] = useState(0)
   const lossRef = useRef(loss)
-  const dpr = useCappedDpr()
+  const perfMode = new URLSearchParams(window.location.search).get('perf') === '1'
+  const [qualityLevel, setQualityLevel] = useState(qualityState.level)
+  const [camMode, setCamMode] = useState(cameraState.mode)
+  const [attached, setAttached] = useState(cameraState.attached)
+  const dpr = useCappedDpr(QUALITY_LADDER[qualityLevel]?.dpr ?? 1.25)
 
   const commitLoss = useCallback((next: ContextLossState) => {
     lossRef.current = next
@@ -93,6 +107,34 @@ export function App() {
 
   useEffect(() => {
     exposeDevClock()
+  }, [])
+
+  useEffect(
+    () =>
+      subscribeCamera(() => {
+        setCamMode(cameraState.mode)
+        setAttached(cameraState.attached)
+      }),
+    [],
+  )
+
+  useEffect(() => {
+    if (!perfMode) return
+    perfMonitor.enabled = true
+    clockState.loopRef.current = true
+    clockState.playingRef.current = true
+  }, [perfMode])
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setQualityLevel((current) => (current === qualityState.level ? current : qualityState.level))
+    }, 250)
+    const onResize = () => beginWarmup(qualityState, performance.now())
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.clearInterval(id)
+      window.removeEventListener('resize', onResize)
+    }
   }, [])
 
   useEffect(() => {
@@ -117,6 +159,7 @@ export function App() {
       return
     }
     runContextRestore()
+    noteRecovered(qualityState, performance.now())
     clockState.playingRef.current = false
     setHeldT(clockState.tRef.current)
     commitLoss(next)
@@ -171,7 +214,10 @@ export function App() {
         <Players play={loaded.play} />
         <GestureInput play={loaded.play} onFrameloop={onFrameloop} />
         <CameraRig play={loaded.play} />
-        <RouteLines play={loaded.play} visible={showRoutes} />
+        <RouteLines
+          play={loaded.play}
+          visible={showRoutes && (QUALITY_LADDER[qualityLevel]?.features.has('routes') ?? false)}
+        />
         <ClockMount />
         <RendererProbe onLost={handleLost} onRestored={handleRestored} />
       </Canvas>
@@ -200,6 +246,11 @@ export function App() {
         </details>
       )}
       {loss.lost && <ContextLossOverlay heldT={heldT} />}
+      <FacemaskOverlay
+        active={camMode === 'pov'}
+        team={attached >= 0 && loaded.play.teams[attached] === 'defense' ? 'defense' : 'offense'}
+      />
+      {perfMode && <PerfOverlay />}
       <span data-testid="play-t" hidden>
         {heldT.toFixed(2)}
       </span>

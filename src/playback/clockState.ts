@@ -13,6 +13,8 @@ export const clockState = {
   startRef: { current: 0 },
   /** Set by the canvas so a scrub outside the frame loop can redraw. */
   invalidateRef: { current: (): void => undefined },
+  /** `?perf=1` replays the sample instead of stopping at the end. */
+  loopRef: { current: false },
 }
 
 const MAX_DT = 0.1
@@ -23,8 +25,11 @@ export function advanceClock(dt: number): void {
   const step = Math.min(Math.max(dt, 0), MAX_DT) * clockState.rateRef.current
   let next = clockState.tRef.current + step
   if (next >= clockState.durationRef.current) {
-    next = clockState.durationRef.current
-    clockState.playingRef.current = false
+    if (clockState.loopRef.current) next = 0
+    else {
+      next = clockState.durationRef.current
+      clockState.playingRef.current = false
+    }
   }
   clockState.tRef.current = next
 }
