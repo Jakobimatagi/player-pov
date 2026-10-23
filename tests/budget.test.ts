@@ -26,7 +26,7 @@ describe('phase 2 budget', () => {
     expect(1024 * 1024 * 4).toBe(4 * 1024 * 1024)
   })
 
-  it('keeps 22 players at 12 waypoints within 258 ribbon triangles and 10 meshes', () => {
+  it('maxRoutes keeps 22 players at 12 waypoints within 258 ribbon triangles and 10 meshes', () => {
     const count = 22
     const waypoints = 12
     const wpStart = new Uint16Array(count + 1)
