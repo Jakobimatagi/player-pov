@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { COVER_2_LOOK, COVER_3_LOOK } from '../src/play/cover2Look'
-import { compileSource, playChecksum } from '../src/play/compileSource'
+import { compileSource } from '../src/play/compileSource'
+import { playChecksum } from '../src/play/nodeChecksum'
 import { importPlayFile } from '../src/play/importPlayFile'
 import { validatePlay } from '../src/play/load'
 import { pythonSemanticErrors } from '../src/play/pythonParity'
@@ -60,7 +61,7 @@ describe('compile source', () => {
         expect(got?.waypoints[index]?.y).toBeCloseTo(point.y, 6)
       })
     }
-    const checksum = compiled.checksum
+    const checksum = playChecksum(compiled.play)
     for (let i = 0; i < 100; i += 1) {
       expect(playChecksum(compileSource(imported.source, imported.look).play)).toBe(checksum)
     }

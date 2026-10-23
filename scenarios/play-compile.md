@@ -45,3 +45,29 @@ Save the compile output as `/tmp/compiled.json` before the Python check.
 
 - H's route changes only for Cover 3.
 - Cover 2 keeps the base corner route.
+
+## Scenario 4 — The browser checksum matches node
+
+**Preconditions:** `npm test` can run. Fixtures are the JSON files in `fixtures/` and `public/plays/`.
+
+**Steps:**
+
+1. Run `npx vitest run tests/play-input.test.ts`.
+
+**Expected:**
+
+- WebCrypto `checksumSource` equals node `playChecksum` on every fixture and on the Cover 2 and Cover 3 looks.
+- `src/play/compileSource.ts` does not import `node:`.
+
+## Scenario 5 — compileChart stays off node:crypto
+
+**Steps:**
+
+1. Run `npx vitest run tests/play-input.test.ts`.
+2. Run `npm run build`, then `node scripts/scan-bundle.mjs dist`.
+
+**Expected:**
+
+- `compileChart` on Trips Flood vs Cover 2 returns 22 players and no checksum.
+- A 15 yd/s leg maps to `{ side: 'ours', slot: 'h', leg: 2 }`.
+- `scan-bundle` prints nothing and exits 0. A bundle that contains `node:crypto` fails that scan.

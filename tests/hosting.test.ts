@@ -73,5 +73,8 @@ describe('hosting', () => {
     expect(scan(token('service_role')).status).toBe(1)
     expect(scan('SUPABASE_SERVICE_ROLE').status).toBe(1)
     expect(scan('sb_secret_example').status).toBe(1)
+    expect(scan('import "node:crypto"').status).toBe(1)
+    expect(scan('import "node:crypto"').stderr).toContain('node: import')
+    expect(scan('{node:1}').status).toBe(0)
   })
 })

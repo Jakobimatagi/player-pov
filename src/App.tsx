@@ -1,5 +1,6 @@
 import { Canvas, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import {
   createContextLossState,
   noteContextLost,
@@ -22,8 +23,8 @@ import { gyroListening, gyroState } from './camera/gyro'
 import { lookState } from './camera/look'
 import { clockState, earliestWaypoint, pauseKeepingPlace } from './playback/clockState'
 import { useClock } from './playback/useClock'
-import { playUrlFromSearch } from './play/load'
-import { usePlay } from './play/usePlay'
+import { draftBackTarget } from './play/draftBack'
+import { playInputFromLocation, usePlayInput } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
 import { CameraRig } from './scene/CameraRig'
 import { Field } from './scene/Field'
@@ -88,7 +89,14 @@ function ClockMount() {
 }
 
 export function App() {
-  const loaded = usePlay(playUrlFromSearch(window.location.search))
+  const params = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const input = playInputFromLocation(window.location.search, {
+    playId: params.playId,
+    draftKey: params.draftKey,
+  })
+  const loaded = usePlayInput(input)
   const [webglOk] = useState(detectWebGL)
   const forceFlat = new URLSearchParams(window.location.search).get('webgl') === '0'
   const [loss, setLoss] = useState<ContextLossState>(createContextLossState)
@@ -232,6 +240,19 @@ export function App() {
           />
         </div>
       </div>
+      {input.kind === 'draft' && (
+        <button
+          type="button"
+          className="btn back-to-editor"
+          onClick={() => {
+            // TODO(C7): navigate to /plays/<id>/edit
+            if (draftBackTarget(location.key) === -1) navigate(-1)
+            else navigate('/')
+          }}
+        >
+          Back to editor
+        </button>
+      )}
       <button type="button" className="btn route-toggle" onClick={() => setShowRoutes((v) => !v)}>
         {showRoutes ? 'Hide routes' : 'Show routes'}
       </button>

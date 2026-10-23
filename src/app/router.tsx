@@ -19,6 +19,7 @@ const router = createBrowserRouter([
       { path: '/forgot-password', element: <ForgotPasswordPage /> },
       { path: '/reset-password', element: <ResetPasswordPage /> },
       { path: '/accept-invite', element: <AcceptInvitePage /> },
+      { path: '/watch/draft/:draftKey', element: <WatchPage /> },
       { path: '/watch/:playId', element: <WatchPage /> },
       { path: '/team', element: <TeamPage /> },
     ],
