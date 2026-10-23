@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(27);
 set local search_path = public, extensions;
 
 -- Supabase internals stay out of this check. public and app are in it,
@@ -137,6 +137,18 @@ select ok(
 select ok(
   has_function_privilege('service_role', 'app.guard_playbook_play()', 'EXECUTE'),
   'service_role can execute guard_playbook_play'
+);
+select ok(
+  not has_function_privilege('anon', 'app.guard_package_look()', 'EXECUTE'),
+  'anon cannot execute guard_package_look'
+);
+select ok(
+  not has_function_privilege('authenticated', 'app.guard_package_look()', 'EXECUTE'),
+  'authenticated cannot execute guard_package_look'
+);
+select ok(
+  not has_function_privilege('service_role', 'app.guard_package_look()', 'EXECUTE'),
+  'service_role cannot execute guard_package_look'
 );
 
 set local role anon;

@@ -190,6 +190,12 @@ Dev Lead, recorded here so this section matches `20261023010000_plays.sql`:
 
 The checksum stored by `save_play_version` is a client integrity hint and is not verified. The server checks that each checksum matches `^[0-9a-f]{64}$` and does not recompute it. `p_source`, `p_compiled`, and `p_look_source` are each rejected at 64KB.
 
+Dev Lead, on the C3b branch, so this section matches `20261023041126_scout_packages.sql`:
+
+- Both look paths stay. A player has to see the default look of an assigned play, or the viewer breaks. The assigned-package path is added beside that linked path, and both require the look's team to match the play or the assignment. `lv_select` has the same package branch: an assigned player can read `scout_look_versions` for a look in their package. The recreated `can_view_play` keeps the archived-playbook join from C3.
+- The `player_slots` policy is approved as built. Staff write. A player reads their own slot on a play they can view. A slot whose play is on another team is rejected with `23514`.
+- `app.guard_package_look` is approved. It is trigger-only: `EXECUTE` is revoked from `public`, `anon`, `authenticated`, and `service_role`, with no grants, and `search_path` is pinned to empty. `team_id` on `scout_looks` and `scout_packages` is immutable, by column grants and `app.guard_team_id`. `scout_packages.created_at` is not null.
+
 Tests: pgTAP `supabase/tests/plays.test.sql` in the style of `team.test.sql`. `scripts/check-rls.sql` fails when a new public table has RLS off, and when a public view other than `roster_public` lacks `security_invoker=true`.
 
 ## 3. Routes and screens
