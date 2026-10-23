@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(56);
 set local search_path = public, extensions, auth;
 
 create function pg_temp.make_user(uid uuid, email text)
@@ -58,8 +58,8 @@ select is(
       'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
       null, null, 'Flood',
       '{"side":"offense"}'::jsonb, '{"players":[{"waypoints":[1]}]}'::jsonb,
-      'sum', 'test',
-      null, null, '{"side":"defense","name":"Cover"}'::jsonb, 'look'
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'test',
+      null, null, '{"side":"defense","name":"Cover"}'::jsonb, 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
     )
   ),
   1,
@@ -74,10 +74,10 @@ select is(
       1,
       'Flood',
       '{"side":"offense"}'::jsonb, '{"players":[{"waypoints":[1]}]}'::jsonb,
-      'sum', 'test',
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'test',
       (select default_look_id from public.plays where name = 'Flood'),
       1,
-      '{"side":"defense","name":"Cover"}'::jsonb, 'look'
+      '{"side":"defense","name":"Cover"}'::jsonb, 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
     )
   ),
   2,
@@ -91,12 +91,12 @@ select throws_ok(
       1,
       'Flood',
       '{"side":"offense"}'::jsonb, '{"players":[{"waypoints":[1]}]}'::jsonb,
-      'sum', 'test',
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'test',
       (select default_look_id from public.plays where name = 'Flood'),
       1,
-      '{"side":"defense","name":"Cover"}'::jsonb, 'look'
+      '{"side":"defense","name":"Cover"}'::jsonb, 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
     )$$,
-  'P0409',
+  'PT409',
   'version conflict',
   'a second save with the same expected version conflicts'
 );
@@ -112,8 +112,8 @@ select lives_ok(
       'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
       null, null, 'Iso',
       '{"side":"offense"}'::jsonb, '{"players":[]}'::jsonb,
-      'sum', 'test',
-      null, null, '{"side":"defense","name":"Cover 3"}'::jsonb, 'look'
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'test',
+      null, null, '{"side":"defense","name":"Cover 3"}'::jsonb, 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
     )$$,
   'coach creates an unassigned play'
 );
@@ -170,8 +170,8 @@ select throws_ok(
       'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
       null, null, 'Nope',
       '{"side":"offense"}'::jsonb, '{"players":[]}'::jsonb,
-      'sum', 'test',
-      null, null, '{"side":"defense","name":"No"}'::jsonb, 'look'
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'test',
+      null, null, '{"side":"defense","name":"No"}'::jsonb, 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
     )$$,
   '42501',
   'forbidden',
@@ -286,6 +286,286 @@ set local role authenticated;
 set local search_path = public, extensions, auth;
 
 select is((select count(*)::int from public.plays where name = 'Flood'), 1, 'quarterback sees the play after restore');
+
+-- QA leak.sql. The read cases insert the bad link and the bad look pointer
+-- with the guard trigger and foreign keys switched off, so they still run
+-- after those guards exist.
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select lives_ok(
+  $$select public.save_play_version(
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02',
+      null, null, 'B secret play',
+      '{"side":"offense","secret":"B-play"}'::jsonb,
+      '{"players":[]}'::jsonb,
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      'test',
+      null, null,
+      '{"side":"defense","name":"B secret look","secret":"B-look"}'::jsonb,
+      'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
+    )$$,
+  'team B coach saves a play'
+);
+
+reset role;
+select set_config('test.b_play', (select id::text from public.plays where name = 'B secret play'), true);
+select set_config('test.b_look', (select default_look_id::text from public.plays where name = 'B secret play'), true);
+select set_config('test.a_play', (select id::text from public.plays where name = 'Flood'), true);
+select set_config('test.a_look', (select default_look_id::text from public.plays where name = 'Flood'), true);
+
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  (select count(*)::int from public.plays where id = current_setting('test.b_play')::uuid),
+  0,
+  'coach A does not see team B play'
+);
+select is(
+  (select count(*)::int from public.scout_looks where id = current_setting('test.b_look')::uuid),
+  0,
+  'coach A does not see team B look'
+);
+
+select throws_ok(
+  $$insert into public.playbook_plays (playbook_id, play_id, sort)
+    values (
+      'cccccccc-cccc-4ccc-8ccc-cccccccccc01',
+      current_setting('test.b_play')::uuid,
+      2
+    )$$,
+  '23514',
+  'play is not on this playbook''s team',
+  'a cross-team play cannot be filed in a playbook'
+);
+
+reset role;
+delete from public.playbook_plays
+where playbook_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'
+  and play_id = current_setting('test.b_play')::uuid;
+do $$
+begin
+  if exists (
+    select 1 from pg_trigger
+    where tgname = 'playbook_plays_team_guard'
+      and tgrelid = 'public.playbook_plays'::regclass
+      and not tgisinternal
+  ) then
+    execute 'alter table public.playbook_plays disable trigger playbook_plays_team_guard';
+  end if;
+end $$;
+insert into public.playbook_plays (playbook_id, play_id, sort)
+values (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccc01',
+  current_setting('test.b_play')::uuid,
+  2
+);
+do $$
+begin
+  if exists (
+    select 1 from pg_trigger
+    where tgname = 'playbook_plays_team_guard'
+      and tgrelid = 'public.playbook_plays'::regclass
+      and not tgisinternal
+  ) then
+    execute 'alter table public.playbook_plays enable trigger playbook_plays_team_guard';
+  end if;
+end $$;
+
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  (select count(*)::int from public.plays where id = current_setting('test.b_play')::uuid),
+  0,
+  'quarterback cannot read team B play through a playbook link'
+);
+select is(
+  (select count(*)::int from public.play_versions where play_id = current_setting('test.b_play')::uuid),
+  0,
+  'quarterback cannot read team B play versions through a playbook link'
+);
+select is(
+  (select count(*)::int from public.scout_looks where id = current_setting('test.b_look')::uuid),
+  0,
+  'quarterback cannot read team B look through a linked play'
+);
+select is(
+  (select count(*)::int from public.scout_look_versions where look_id = current_setting('test.b_look')::uuid),
+  0,
+  'quarterback cannot read team B look versions through a linked play'
+);
+
+reset role;
+update public.plays
+set default_look_id = current_setting('test.a_look')::uuid
+where id = current_setting('test.a_play')::uuid;
+
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select throws_ok(
+  $$update public.plays
+    set default_look_id = current_setting('test.b_look')::uuid
+    where id = current_setting('test.a_play')::uuid$$,
+  '42501',
+  'permission denied for table plays',
+  'a coach cannot point a play at another team''s look'
+);
+
+reset role;
+select throws_ok(
+  $$update public.plays
+    set default_look_id = current_setting('test.b_look')::uuid
+    where id = current_setting('test.a_play')::uuid$$,
+  '23503',
+  'insert or update on table "plays" violates foreign key constraint "plays_default_look_team_fkey"',
+  'a cross-team default_look_id is rejected'
+);
+
+set local session_replication_role = replica;
+update public.plays
+set default_look_id = current_setting('test.b_look')::uuid
+where id = current_setting('test.a_play')::uuid;
+set local session_replication_role = origin;
+
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  (select count(*)::int from public.scout_looks where id = current_setting('test.b_look')::uuid),
+  0,
+  'coach A cannot read team B look through a cross-team default_look_id'
+);
+select is(
+  (select count(*)::int from public.scout_look_versions where look_id = current_setting('test.b_look')::uuid),
+  0,
+  'coach A cannot read team B look versions through a cross-team default_look_id'
+);
+
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  (select count(*)::int from public.scout_looks where id = current_setting('test.b_look')::uuid),
+  0,
+  'quarterback cannot read team B look through a cross-team default_look_id'
+);
+
+reset role;
+set local session_replication_role = replica;
+update public.plays
+set default_look_id = current_setting('test.a_look')::uuid
+where id = current_setting('test.a_play')::uuid;
+set local session_replication_role = origin;
+
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select throws_ok(
+  $$select public.save_play_version(
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      null, null, 'Too big source',
+      jsonb_build_object('side', 'offense', 'blob', repeat('a', 65536)),
+      '{"players":[]}'::jsonb,
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      'test',
+      null, null,
+      '{"side":"defense","name":"Cover"}'::jsonb,
+      'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
+    )$$,
+  '22023',
+  'source is over 64KB',
+  'a source over 64KB is rejected'
+);
+select throws_ok(
+  $$select public.save_play_version(
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      null, null, 'Too big compiled',
+      '{"side":"offense"}'::jsonb,
+      jsonb_build_object('players', '[]'::jsonb, 'blob', repeat('a', 65536)),
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      'test',
+      null, null,
+      '{"side":"defense","name":"Cover"}'::jsonb,
+      'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
+    )$$,
+  '22023',
+  'compiled is over 64KB',
+  'a compiled payload over 64KB is rejected'
+);
+select throws_ok(
+  $$select public.save_play_version(
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      null, null, 'Too big look',
+      '{"side":"offense"}'::jsonb,
+      '{"players":[]}'::jsonb,
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      'test',
+      null, null,
+      jsonb_build_object('side', 'defense', 'name', 'Cover', 'blob', repeat('a', 65536)),
+      'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
+    )$$,
+  '22023',
+  'look source is over 64KB',
+  'a look source over 64KB is rejected'
+);
+select throws_ok(
+  $$select public.save_play_version(
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      null, null, 'Bad sum',
+      '{"side":"offense"}'::jsonb,
+      '{"players":[]}'::jsonb,
+      'sum',
+      'test',
+      null, null,
+      '{"side":"defense","name":"Cover"}'::jsonb,
+      'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
+    )$$,
+  '22023',
+  'checksum must be 64 hex characters',
+  'a checksum that is not 64 hex characters is rejected'
+);
+select throws_ok(
+  $$select public.save_play_version(
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      null, null, 'Bad look sum',
+      '{"side":"offense"}'::jsonb,
+      '{"players":[]}'::jsonb,
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      'test',
+      null, null,
+      '{"side":"defense","name":"Cover"}'::jsonb,
+      'look'
+    )$$,
+  '22023',
+  'look checksum must be 64 hex characters',
+  'a look checksum that is not 64 hex characters is rejected'
+);
 
 reset role;
 set local role anon;

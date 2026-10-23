@@ -170,9 +170,11 @@ returns table (play_id uuid, version int, look_id uuid, look_version int)
 language plpgsql security definer set search_path = '' as $$
 begin
   if not app.is_staff(p_team) then raise exception 'forbidden' using errcode = '42501'; end if;
-  -- upsert plays row; lock it with FOR UPDATE; if current_version is distinct from p_expected then raise using errcode = 'P0409'
+  -- upsert plays row; lock it with FOR UPDATE; if current_version is distinct from p_expected then raise using errcode = 'PT409'
   -- same for the look; insert both versions; bump current_version; update updated_at
-  -- guard: jsonb_array_length of any player's waypoints <= 12 and octet_length(p_source::text) < 64 KB
+  -- guard: jsonb_array_length of any player's waypoints <= 12
+  -- octet_length of p_source, p_compiled, and p_look_source each < 64 KB
+  -- p_checksum and p_look_checksum must match ^[0-9a-f]{64}$; the server does not recompute them
 end $$;
 revoke all on function public.save_play_version(...) from public, anon; grant execute on function public.save_play_version(...) to authenticated;
 ```
@@ -182,9 +184,11 @@ Dev Lead, recorded here so this section matches `20261023010000_plays.sql`:
 2. `looks_select` stays staff, or the `default_look_id` of a play the caller can view. C3b extends it so an assigned player can also read looks in a package assigned to them.
 3. Playbooks stay visible only to staff or to players assigned to them.
 4. A player `UPDATE` that changes 0 rows is accepted. Postgres does not raise. The playbook screen shows the word `forbidden`.
-5. Table default privileges grant every privilege to `anon`, `authenticated`, and `service_role`. The migration revokes those from `public`, `anon`, and `authenticated`, then grants back the subset for each table. `anon` gets nothing. New `app` functions get an explicit `grant execute` to `authenticated` and `service_role`.
+5. Table default privileges grant every privilege to `anon`, `authenticated`, and `service_role`. The migration revokes those from `public`, `anon`, and `authenticated`, then grants back the subset for each table. `anon` gets nothing. New `app` functions get an explicit `grant execute` to `authenticated` and `service_role`. `app.guard_assignment` and `app.guard_playbook_play` are trigger-only: `authenticated` has no `EXECUTE`.
 
-`plays_select` is `can_view_play(id) or is_staff(team_id)`, so staff still see an archived play and can clear `archived_at`. `can_view_play` itself still requires `archived_at is null`, so an assigned player does not see the archived play.
+`plays_select` is `can_view_play(id) or is_staff(team_id)`, so staff still see an archived play and can clear `archived_at`. `can_view_play` itself still requires `archived_at is null`, and its assignment join requires `assignment_targets.team_id = plays.team_id`, so an assigned player does not see an archived play or another team's play filed into a book. `pb_select` keeps staff on the `is_staff` branch, including archived playbooks, and the assigned-player branch also requires `archived_at is null`. `playbook_plays` rejects a play whose team differs from the book's (`23514`). `scout_looks` has `unique (team_id, id)`, and `plays (team_id, default_look_id)` references that pair, so a default look cannot point at another team. `looks_select` and `lv_select` also require `look.team_id = plays.team_id` on the linked-play branch. `UPDATE` grants are column grants: on `plays` those columns are `name`, `formation`, `tags`, and `archived_at`. `team_id`, `created_by`, and the version columns are written only by `save_play_version`. A stale save raises `PT409`, which PostgREST turns into HTTP 409.
+
+The checksum stored by `save_play_version` is a client integrity hint and is not verified. The server checks that each checksum matches `^[0-9a-f]{64}$` and does not recompute it. `p_source`, `p_compiled`, and `p_look_source` are each rejected at 64KB.
 
 Tests: pgTAP `supabase/tests/plays.test.sql` in the style of `team.test.sql`. `scripts/check-rls.sql` fails when a new public table has RLS off, and when a public view other than `roster_public` lacks `security_invoker=true`.
 
@@ -225,7 +229,7 @@ Interaction rules:
 |---|---|---|---|
 | **C1** Cap 12 | `MAX_WAYPOINTS=12`; update `schema.json`, `validate.py` parity, the stale `routeRibbon` comment, plus a budget test case for 22×12 | `scenarios/waypoint-cap.md` (12 OK, 13 rejected with a path error, long routes thin without growing triangles) | Schema and parity tests pass. Ribbon ≤258 triangles; ≤10 meshes. The Celeron frame-time check is NOT RUN. QA's headless proxy measured 16.7 ms median and p95, capped at 60 Hz. |
 | **C2** Browser compile and viewer seam | Move the `node:crypto` checksum out of `compileSource`. Add `compileChart` and WebCrypto `checksumSource`. Add `usePlayInput` and make `/watch/:playId` honor the id (via a fixture map until C3). Add `/watch/draft/:key`. | Append to `play-compile.md`; `play-loading.md` (load by id, draft, bad key) | `scan-bundle` finds no `node:` imports. The browser checksum equals the node checksum on all fixtures. Existing `?play=` URLs still work. |
-| **C3** Plays schema and RLS | The §2 migration, down migration, pgTAP and check-rls | `scenarios/playbook-data.md` (coach writes; player write denied; other team invisible; 409 on a stale version; staff still sees an archived play) | pgTAP is green in CI. A player insert fails with 42501. A player update changes 0 rows. Two saves with the same `expected` produce one success and one P0409. |
+| **C3** Plays schema and RLS | The §2 migration, down migration, pgTAP and check-rls | `scenarios/playbook-data.md` (coach writes; player write denied; other team invisible; 409 on a stale version; staff still sees an archived play) | pgTAP is green in CI. A player insert fails with 42501. A player update changes 0 rows. Two saves with the same `expected` produce one success and one PT409. |
 | **C3b** Scout packages | `scout_packages`, `scout_package_looks`, `player_slots`, `assignments.package_id`, `assignment_targets.package_id`, and the package path on `looks_select`. Stacked on C3. | `scenarios/scout-packages.md` | A player reads looks in an assigned package and nothing from an unassigned package or another team. |
 | **C4** Data access and Playbook screen | `src/data/plays.ts`, `/playbook` list, rename, delete (archive), playbook filter. Stacked on C3, not on C3b. | `scenarios/playbook.md` | List, rename and delete round-trip on a seeded team. Player view has no write controls. A rejected player write shows `forbidden`. 44px rows on 360px wide. |
 | **C5** Editor core (pure) | `state.ts`, `actions.ts`, `hitTest.ts`, a read-only `EditorCanvas.tsx` that renders all 22 players plus routes | `scenarios/editor.md` (1–N: render, select, undo) | Reducer unit tests cover every action. `MAX_LEGS` is enforced. `hitTest` honors the 44px radius at every zoom. Snapshot render of the fixture. |

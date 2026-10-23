@@ -57,9 +57,15 @@ create table public.scout_look_versions (
   primary key (look_id, version)
 );
 
+-- (team_id, id) lets a play's default look be tied to the same team.
+alter table public.scout_looks
+  add constraint scout_looks_team_id_id_key unique (team_id, id);
+
 alter table public.plays
-  add constraint plays_default_look_id_fkey
-  foreign key (default_look_id) references public.scout_looks on delete set null;
+  add constraint plays_default_look_team_fkey
+  foreign key (team_id, default_look_id)
+  references public.scout_looks (team_id, id)
+  on delete set null (default_look_id);
 
 create table public.playbooks (
   id uuid primary key default gen_random_uuid(),
@@ -124,6 +130,44 @@ create trigger assignments_guard
   before insert or update on public.assignments
   for each row execute function app.guard_assignment();
 
+create function app.guard_playbook_play()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  book_team uuid;
+  play_team uuid;
+begin
+  select team_id into book_team from public.playbooks where id = new.playbook_id;
+  select team_id into play_team from public.plays where id = new.play_id;
+  if book_team is null or play_team is null or book_team is distinct from play_team then
+    raise exception 'play is not on this playbook''s team' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger playbook_plays_team_guard
+  before insert or update on public.playbook_plays
+  for each row execute function app.guard_playbook_play();
+
+create function app.touch_play_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at := pg_catalog.now();
+  return new;
+end;
+$$;
+
+create trigger plays_touch_updated_at
+  before update on public.plays
+  for each row execute function app.touch_play_updated_at();
+
 create view public.assignment_targets
 with (security_invoker = true) as
   select
@@ -161,6 +205,7 @@ as $$
           join public.playbook_plays pp on pp.playbook_id = at.playbook_id
           where at.user_id = auth.uid()
             and pp.play_id = p
+            and at.team_id = pl.team_id
         )
       )
   )
@@ -197,6 +242,7 @@ create policy looks_select on public.scout_looks
       select 1
       from public.plays pl
       where pl.default_look_id = scout_looks.id
+        and pl.team_id = scout_looks.team_id
         and app.can_view_play(pl.id)
     )
   );
@@ -212,6 +258,16 @@ create policy lv_select on public.scout_look_versions
       select 1
       from public.scout_looks look
       where look.id = scout_look_versions.look_id
+        and (
+          app.is_staff(look.team_id)
+          or exists (
+            select 1
+            from public.plays pl
+            where pl.default_look_id = look.id
+              and pl.team_id = look.team_id
+              and app.can_view_play(pl.id)
+          )
+        )
     )
   );
 
@@ -219,11 +275,14 @@ create policy pb_select on public.playbooks
   for select to authenticated
   using (
     app.is_staff(team_id)
-    or exists (
-      select 1
-      from public.assignment_targets at
-      where at.playbook_id = playbooks.id
-        and at.user_id = auth.uid()
+    or (
+      archived_at is null
+      and exists (
+        select 1
+        from public.assignment_targets at
+        where at.playbook_id = playbooks.id
+          and at.user_id = auth.uid()
+      )
     )
   );
 create policy pb_write on public.playbooks
@@ -324,8 +383,18 @@ begin
   if p_source is null or octet_length(p_source::text) >= 65536 then
     raise exception 'source is over 64KB' using errcode = '22023';
   end if;
-  if p_compiled is null or p_look_source is null then
-    raise exception 'compiled play and look are required' using errcode = '22023';
+  if p_compiled is null or octet_length(p_compiled::text) >= 65536 then
+    raise exception 'compiled is over 64KB' using errcode = '22023';
+  end if;
+  if p_look_source is null or octet_length(p_look_source::text) >= 65536 then
+    raise exception 'look source is over 64KB' using errcode = '22023';
+  end if;
+  -- Checksums are a client integrity hint. The server checks the shape only.
+  if p_checksum is null or p_checksum !~ '^[0-9a-f]{64}$' then
+    raise exception 'checksum must be 64 hex characters' using errcode = '22023';
+  end if;
+  if p_look_checksum is null or p_look_checksum !~ '^[0-9a-f]{64}$' then
+    raise exception 'look checksum must be 64 hex characters' using errcode = '22023';
   end if;
   if jsonb_typeof(p_compiled -> 'players') = 'array' and exists (
     select 1
@@ -351,7 +420,7 @@ begin
 
   if p_play is null then
     if p_expected is not null then
-      raise exception 'version conflict' using errcode = 'P0409';
+      raise exception 'version conflict' using errcode = 'PT409';
     end if;
     insert into public.plays (team_id, name, side, created_by)
     values (p_team, p_name, v_side, auth.uid())
@@ -366,13 +435,13 @@ begin
       raise exception 'play not found' using errcode = 'P0002';
     end if;
     if v_current is distinct from p_expected then
-      raise exception 'version conflict' using errcode = 'P0409';
+      raise exception 'version conflict' using errcode = 'PT409';
     end if;
   end if;
 
   if p_look is null then
     if p_look_expected is not null then
-      raise exception 'version conflict' using errcode = 'P0409';
+      raise exception 'version conflict' using errcode = 'PT409';
     end if;
     insert into public.scout_looks (team_id, side, name, created_by)
     values (p_team, v_look_side, v_look_name, auth.uid())
@@ -387,7 +456,7 @@ begin
       raise exception 'look not found' using errcode = 'P0002';
     end if;
     if v_look_current is distinct from p_look_expected then
-      raise exception 'version conflict' using errcode = 'P0409';
+      raise exception 'version conflict' using errcode = 'PT409';
     end if;
   end if;
 
@@ -424,9 +493,12 @@ begin
 end;
 $$;
 
-revoke all on function app.guard_assignment() from public, anon;
+revoke all on function app.guard_assignment() from public, anon, authenticated;
+revoke all on function app.guard_playbook_play() from public, anon, authenticated;
+revoke all on function app.touch_play_updated_at() from public, anon, authenticated;
 revoke all on function app.can_view_play(uuid) from public, anon;
-grant execute on function app.guard_assignment() to authenticated, service_role;
+grant execute on function app.guard_assignment() to service_role;
+grant execute on function app.guard_playbook_play() to service_role;
 grant execute on function app.can_view_play(uuid) to authenticated, service_role;
 
 revoke all on function public.save_play_version(
@@ -451,13 +523,19 @@ revoke all on table
   from public, anon, authenticated;
 revoke all on table public.assignment_targets from public, anon, authenticated;
 
-grant select, update on table public.plays to authenticated;
+-- Column grants. team_id, created_by, and version columns are written by the RPC.
+grant select on table public.plays to authenticated;
+grant update (name, formation, tags, archived_at) on table public.plays to authenticated;
 grant select on table public.play_versions to authenticated;
-grant select, update on table public.scout_looks to authenticated;
+grant select on table public.scout_looks to authenticated;
+grant update (name, side, front, coverage, opponent) on table public.scout_looks to authenticated;
 grant select on table public.scout_look_versions to authenticated;
-grant select, insert, update, delete on table public.playbooks to authenticated;
-grant select, insert, update, delete on table public.playbook_plays to authenticated;
-grant select, insert, update, delete on table public.assignments to authenticated;
+grant select, insert, delete on table public.playbooks to authenticated;
+grant update (name, description, archived_at) on table public.playbooks to authenticated;
+grant select, insert, delete on table public.playbook_plays to authenticated;
+grant update (sort) on table public.playbook_plays to authenticated;
+grant select, insert, delete on table public.assignments to authenticated;
+grant update (playbook_id, assignee_user, assignee_group, due_at) on table public.assignments to authenticated;
 grant select on table public.assignment_targets to authenticated;
 
 grant all on table

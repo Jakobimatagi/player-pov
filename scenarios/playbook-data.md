@@ -60,7 +60,7 @@ Do not point this at the hosted project, and do not run `seed.sql` anywhere but 
 
 **Expected:**
 
-- The call fails with `P0409` and the message `version conflict`.
+- The call fails with `PT409` and the message `version conflict`. PostgREST turns that into HTTP 409.
 - The play still has two versions.
 
 ## Scenario 5 — Archive hides the play from the player
