@@ -1,5 +1,5 @@
 begin;
-select plan(56);
+select plan(65);
 set local search_path = public, extensions, auth;
 
 create function pg_temp.make_user(uid uuid, email text)
@@ -287,6 +287,50 @@ set local search_path = public, extensions, auth;
 
 select is((select count(*)::int from public.plays where name = 'Flood'), 1, 'quarterback sees the play after restore');
 
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select lives_ok(
+  $$update public.playbooks set archived_at = now()
+    where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'$$,
+  'coach archives the playbook'
+);
+
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  (select count(*)::int from public.plays where name = 'Flood'),
+  0,
+  'an assigned player cannot see a play in an archived playbook'
+);
+
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  (select count(*)::int from public.plays where name = 'Flood'),
+  1,
+  'staff still sees a play in an archived playbook'
+);
+select lives_ok(
+  $$update public.playbooks set archived_at = null
+    where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'$$,
+  'coach restores the playbook'
+);
+
 -- QA leak.sql. The read cases insert the bad link and the bad look pointer
 -- with the guard trigger and foreign keys switched off, so they still run
 -- after those guards exist.
@@ -333,6 +377,26 @@ select is(
   (select count(*)::int from public.scout_looks where id = current_setting('test.b_look')::uuid),
   0,
   'coach A does not see team B look'
+);
+
+select throws_ok(
+  $$select public.save_play_version(
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      current_setting('test.b_play')::uuid,
+      1,
+      'Cross team',
+      '{"side":"offense"}'::jsonb,
+      '{"players":[]}'::jsonb,
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      'test',
+      null,
+      null,
+      '{"side":"defense","name":"Cover"}'::jsonb,
+      'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
+    )$$,
+  'P0002',
+  'play not found',
+  'saving a team B play as team A raises P0002'
 );
 
 select throws_ok(
@@ -565,6 +629,43 @@ select throws_ok(
   '22023',
   'look checksum must be 64 hex characters',
   'a look checksum that is not 64 hex characters is rejected'
+);
+
+select is(
+  (select created_by from public.playbooks where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'),
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'::uuid,
+  'a playbook created_by is the coach'
+);
+select throws_ok(
+  $$insert into public.playbooks (id, team_id, name, created_by)
+    values (
+      'cccccccc-cccc-4ccc-8ccc-cccccccccc99',
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      'Spoof book',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21'
+    )$$,
+  '42501',
+  'new row violates row-level security policy for table "playbooks"',
+  'a spoofed playbook created_by is rejected'
+);
+select is(
+  (select created_by from public.assignments
+    where playbook_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'
+      and assignee_group = 'QB'),
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'::uuid,
+  'an assignment created_by is the coach'
+);
+select throws_ok(
+  $$insert into public.assignments (team_id, playbook_id, assignee_user, created_by)
+    values (
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccc01',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21'
+    )$$,
+  '42501',
+  'new row violates row-level security policy for table "assignments"',
+  'a spoofed assignment created_by is rejected'
 );
 
 reset role;

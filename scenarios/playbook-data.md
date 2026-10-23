@@ -1,6 +1,6 @@
 # Playbook data
 
-Plays live in Postgres. Staff write them. A player reads a play only when a playbook that contains it is assigned to that player, and only while the play is not archived. These checks are the pgTAP file `supabase/tests/plays.test.sql`. Run them on local Postgres only.
+Plays live in Postgres. Staff write them. A player reads a play only when a playbook that contains it is assigned to that player, and only while the play and that playbook are not archived. These checks are the pgTAP file `supabase/tests/plays.test.sql`. Run them on local Postgres only. Edited in place: the playbook must also be unarchived.
 
 ```bash
 supabase db reset --local
@@ -77,3 +77,45 @@ Do not point this at the hosted project, and do not run `seed.sql` anywhere but 
 
 - The coach still sees the archived play and can restore it.
 - The assigned player does not see it until it is restored.
+
+## Scenario 6 — An archived playbook hides its plays
+
+**Preconditions:** The quarterback can see a play filed in an assigned playbook. The play itself is not archived.
+
+**Steps:**
+
+1. As the coach, set that playbook's `archived_at` to now.
+2. Read the play as the quarterback and as the coach.
+3. As the coach, set the playbook's `archived_at` back to null.
+
+**Expected:**
+
+- The quarterback does not see the play while the playbook is archived.
+- The coach still sees it.
+
+## Scenario 7 — created_by is the caller
+
+**Preconditions:** The coach is signed in.
+
+**Steps:**
+
+1. Insert a playbook and an assignment without `created_by`.
+2. Insert another playbook, and another assignment, with `created_by` set to a user on the other team.
+
+**Expected:**
+
+- The omitted column is stored as the coach's user id.
+- Each spoofed insert fails with `42501`.
+- `playbook_plays` has no `created_by` column, in this migration and in `docs/v2-data-model.md`, so there is nothing to stamp on that table.
+
+## Scenario 8 — Another team's play is not found
+
+**Preconditions:** Team B has a saved play. The caller is a coach on Team A.
+
+**Steps:**
+
+1. Call `save_play_version` with `p_team` set to Team A and `p_play` set to the Team B play.
+
+**Expected:**
+
+- The call fails with `P0002` and the message `play not found`.

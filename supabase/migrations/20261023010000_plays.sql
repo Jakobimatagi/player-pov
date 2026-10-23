@@ -73,10 +73,11 @@ create table public.playbooks (
   name text not null,
   description text,
   archived_at timestamptz,
-  created_by uuid references auth.users,
+  created_by uuid default auth.uid() references auth.users,
   created_at timestamptz not null default now()
 );
 
+-- No created_by column. v2 does not define one, so inserts cannot stamp it.
 create table public.playbook_plays (
   playbook_id uuid references public.playbooks on delete cascade,
   play_id uuid references public.plays on delete cascade,
@@ -93,7 +94,7 @@ create table public.assignments (
   assignee_user uuid references auth.users on delete cascade,
   assignee_group public.position_group,
   due_at timestamptz,
-  created_by uuid references auth.users,
+  created_by uuid default auth.uid() references auth.users,
   created_at timestamptz not null default now(),
   check ((assignee_user is null) <> (assignee_group is null))
 );
@@ -203,6 +204,7 @@ as $$
           select 1
           from public.assignment_targets at
           join public.playbook_plays pp on pp.playbook_id = at.playbook_id
+          join public.playbooks pb on pb.id = at.playbook_id and pb.archived_at is null
           where at.user_id = auth.uid()
             and pp.play_id = p
             and at.team_id = pl.team_id
@@ -288,7 +290,7 @@ create policy pb_select on public.playbooks
 create policy pb_write on public.playbooks
   for all to authenticated
   using (app.is_staff(team_id))
-  with check (app.is_staff(team_id));
+  with check (app.is_staff(team_id) and created_by = auth.uid());
 
 create policy pbp_select on public.playbook_plays
   for select to authenticated
@@ -342,7 +344,7 @@ create policy asg_select on public.assignments
 create policy asg_write on public.assignments
   for all to authenticated
   using (app.is_staff(team_id))
-  with check (app.is_staff(team_id));
+  with check (app.is_staff(team_id) and created_by = auth.uid());
 
 create function public.save_play_version(
   p_team uuid,
