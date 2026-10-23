@@ -84,3 +84,21 @@ Replace `ANON_KEY` with the anon key from `npx supabase status`.
 
 - The field, players, and playback load.
 - There is no sign-in screen.
+
+## Scenario 5 — Anon cannot execute security definer functions
+
+**Preconditions:** Scenario 1 has finished, so `supabase/migrations/20261023000000_revoke_anon_rpc.sql` is applied on the local database. Do not run this against the hosted project.
+
+**Steps:**
+
+1. `npx supabase test db`
+2. Read `supabase/tests/anon_rpc.test.sql`.
+
+**Expected:**
+
+- The assertion passes. No function in schema `public` with `prosecdef` is executable by `anon`. The check is `has_function_privilege('anon', p.oid, 'EXECUTE')` over `pg_proc` and `pg_namespace`.
+- That covers the nine functions from `supabase/migrations/20261015140200_team.sql`: `create_team(text, text, text, text, date)`, `create_player_invite(uuid, text, text, public.team_role, public.position_code, boolean, text)`, `accept_invite(uuid)`, `delete_member_data(uuid, uuid)`, `update_member(uuid, uuid, public.team_role, public.position_code)`, `remove_member(uuid, uuid)`, `revoke_invite(uuid)`, `resend_invite(uuid)`, and `invite_status(uuid)`.
+- `public.health()` is `security invoker` in `supabase/migrations/20261015130100_health.sql`, and `public.position_group_of` is not security definer in `supabase/migrations/20261015120000_identity.sql`. This assertion does not change their anon grants. Anon can still call `health`.
+- Authenticated execute grants on the nine functions are unchanged. The existing team and identity tests still pass.
+- `public.roster_public` is a security definer view by design. Select is granted only to `authenticated`. `anon` and `public` are revoked. Advisor lint 0010 on that view is expected.
+- `supabase/down/20261023000000_revoke_anon_rpc.sql` re-grants execute on those nine functions to `anon`. It is not in `supabase/migrations`, so `supabase db push` does not apply it.
