@@ -98,6 +98,26 @@ Replace `ANON_KEY` with the anon key from `npx supabase status`.
 
 - The file runs 29 of 29 assertions, and the file passes.
 - `create_team` is called as its own statement and the returned id is kept. `teams.created_by` for that id is `aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01`. The `head_coach` membership is read by that id. A fourth team for that user raises `a fourth team is rejected`.
-- A call with a null `auth.uid()`, and a call as `anon`, each raise `sign in required`. A hash rule other than `NFHS` or `NCAA` raises `hash rule must be NFHS or NCAA`. Duplicate team names are allowed, and this file does not reject them.
+- A call with a null `auth.uid()` raises `sign in required`. On a database that also has `supabase/migrations/20261023000000_revoke_anon_rpc.sql`, a call as `anon` raises `42501`. A hash rule other than `NFHS` or `NCAA` raises `hash rule must be NFHS or NCAA`. Duplicate team names are allowed, and this file does not reject them.
 - A player invite with consent stores a `consent_records` row at `consent-v0-provisional`. An assistant coach's invite raises `not allowed`.
 - An assistant coach cannot insert into `memberships`. Joining is only through `accept_invite`. The direct insert raises `42501`, and the file continues through the rest of the assertions.
+
+## Scenario 6 — Anon cannot execute security definer functions
+
+**Preconditions:** Scenario 1 has finished, so `supabase/migrations/20261023000000_revoke_anon_rpc.sql` is applied on the local database. Do not run this against the hosted project.
+
+**Steps:**
+
+1. `npx supabase test db`
+2. Read `supabase/tests/anon_rpc.test.sql`.
+
+**Expected:**
+
+- The file passes 12 assertions. No `SECURITY DEFINER` function outside system schemas is executable by `anon`. The check is `has_function_privilege('anon', p.oid, 'EXECUTE')` over `pg_proc` and `pg_namespace` where `prosecdef` is true. It skips `pg_catalog`, `information_schema`, `pg_toast`, other `pg_*` schemas, and the Supabase internals `auth`, `storage`, `extensions`, `graphql`, `graphql_public`, `realtime`, `vault`, `net`, `supabase_functions`, `pgsodium`, and `pgsodium_masks`. `public` and `app` are included.
+- That covers the nine functions from `supabase/migrations/20261015140200_team.sql`: `create_team(text, text, text, text, date)`, `create_player_invite(uuid, text, text, public.team_role, public.position_code, boolean, text)`, `accept_invite(uuid)`, `delete_member_data(uuid, uuid)`, `update_member(uuid, uuid, public.team_role, public.position_code)`, `remove_member(uuid, uuid)`, `revoke_invite(uuid)`, `resend_invite(uuid)`, and `invite_status(uuid)`. Each one is still executable by `authenticated`.
+- It also covers the `app` security definer functions: `my_role`, `is_member`, `is_staff`, `is_head_coach`, `is_owner`, `guard_last_head_coach`, `transfer_team_owner`, `guard_team_owner`, `cap_invite_expiry`, `stamp_attested_email`, and `accept_invite`.
+- As `anon`, `select public.invite_status(gen_random_uuid())` raises `42501`.
+- A function created afterward in `public` by `postgres` is not executable by `anon`. The migration revokes the hard-wired public default and the schema defaults for `anon`. In `public`, `authenticated` and `service_role` still have a schema default execute grant; write an explicit grant anyway so the function does not depend on that default. Every new extension function, and every function outside `public`, needs an explicit `grant execute` to `authenticated` and to `service_role`. `anon` does not receive those grants.
+- `public.health()` is `security invoker` in `supabase/migrations/20261015130100_health.sql`, and `public.position_group_of` is not security definer in `supabase/migrations/20261015120000_identity.sql`. This assertion does not change their anon grants. Anon can still call `health`.
+- `public.roster_public` is a security definer view by design. Select is granted only to `authenticated`. `anon` and `public` are revoked. Advisor lint 0010 on that view is expected.
+- `supabase/down/20261023000000_revoke_anon_rpc.sql` re-grants execute on those nine functions to `anon`. It restores the global default with `grant execute on functions to public`, and the `public` schema default with `grant execute on functions to anon`. It does not add a default grant in schema `app`. It is not in `supabase/migrations`, so `supabase db push` does not apply it.
