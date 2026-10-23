@@ -174,11 +174,11 @@ alter table public.playbooks enable row level security;
 alter table public.playbook_plays enable row level security;
 alter table public.assignments enable row level security;
 
--- can_view_play already includes staff, and it hides archived plays.
--- Adding "or is_staff" here would show archived plays to staff.
+-- can_view_play hides archived plays, including from staff.
+-- is_staff lets staff see an archived play and restore it.
 create policy plays_select on public.plays
   for select to authenticated
-  using (app.can_view_play(id));
+  using (app.can_view_play(id) or app.is_staff(team_id));
 create policy plays_update on public.plays
   for update to authenticated
   using (app.is_staff(team_id))

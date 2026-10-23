@@ -103,9 +103,9 @@ export function usePlayInput(i: PlayInput): ReturnType<typeof usePlay>
 
 Draft hand-off: the editor writes `{source, look}` to `sessionStorage['draft:'+key]`. The viewer compiles it with `compileChart`, so there is one compiler path.
 
-## 2. Migration and RLS outline (`supabase/migrations/2026101516xxxx_plays.sql`)
+## 2. Migration and RLS outline (`supabase/migrations/20261023010000_plays.sql`)
 
-These are v2 §3's tables, with only the columns this feature needs. `scout_packages`, assignments and watch tables stay in their own later PRs.
+These are v2 §3's tables, with the columns this feature needs. C3 includes `assignments` and `assignment_targets` (playbook path, no `package_id`). `scout_packages`, `scout_package_looks`, `player_slots`, `assignments.package_id`, and `assignment_targets.package_id` are C3b, stacked on C3. Watch tables stay later. C4 stacks on C3 and does not include C3b.
 
 ```sql
 create table public.plays (
@@ -142,12 +142,26 @@ create policy plays_update on public.plays for update to authenticated
 -- no insert/delete policy: create via RPC; "delete" = archived_at
 create policy pv_select on public.play_versions for select to authenticated using (app.can_view_play(play_id));
 -- no insert/update/delete on versions: immutable, written only by the RPC
-create policy looks_select on public.scout_looks for select to authenticated using (app.is_member(team_id));
+-- Dev Lead: keep the linked look. is_member would leak every look. C3b adds the assigned-package path.
+create policy looks_select on public.scout_looks for select to authenticated using (
+  app.is_staff(team_id)
+  or exists (
+    select 1 from public.plays pl
+    where pl.default_look_id = scout_looks.id and app.can_view_play(pl.id)));
 create policy looks_write  on public.scout_looks for update to authenticated using (app.is_staff(team_id)) with check (app.is_staff(team_id));
-create policy pb_select on public.playbooks for select to authenticated using (app.is_member(team_id));
+-- Dev Lead: playbooks are staff, or a player assigned to that playbook. Not every member.
+create policy pb_select on public.playbooks for select to authenticated using (
+  app.is_staff(team_id)
+  or exists (
+    select 1 from public.assignment_targets at
+    where at.playbook_id = playbooks.id and at.user_id = auth.uid()));
 create policy pb_write  on public.playbooks for all to authenticated using (app.is_staff(team_id)) with check (app.is_staff(team_id));
-create policy pbp_select on public.playbook_plays for select to authenticated using (exists (select 1 from public.playbooks b where b.id = playbook_id and app.is_member(b.team_id)));
-create policy pbp_write  on public.playbook_plays for all to authenticated using (exists (select 1 from public.playbooks b where b.id = playbook_id and app.is_staff(b.team_id))) with check (same);
+create policy pbp_select on public.playbook_plays for select to authenticated using (
+  exists (
+    select 1 from public.playbooks b
+    where b.id = playbook_id
+      and (app.is_staff(b.team_id) or app.can_view_play(play_id))));
+create policy pbp_write  on public.playbook_plays for all to authenticated using (exists (select 1 from public.playbooks b where b.id = playbook_id and app.is_staff(b.team_id))) with check (exists (select 1 from public.playbooks b where b.id = playbook_id and app.is_staff(b.team_id)));
 
 create function public.save_play_version(p_team uuid, p_play uuid, p_expected int, p_name text,
   p_source jsonb, p_compiled jsonb, p_checksum text, p_compiler text,
@@ -163,7 +177,16 @@ end $$;
 revoke all on function public.save_play_version(...) from public, anon; grant execute on function public.save_play_version(...) to authenticated;
 ```
 
-Tests: add pgTAP `supabase/tests/plays.test.sql` in the style of `team.test.sql`. Extend `scripts/check-rls.sql` so it fails when a new table has RLS off.
+Dev Lead, recorded here so this section matches `20261023010000_plays.sql`:
+
+2. `looks_select` stays staff, or the `default_look_id` of a play the caller can view. C3b extends it so an assigned player can also read looks in a package assigned to them.
+3. Playbooks stay visible only to staff or to players assigned to them.
+4. A player `UPDATE` that changes 0 rows is accepted. Postgres does not raise. The playbook screen shows the word `forbidden`.
+5. Table default privileges grant every privilege to `anon`, `authenticated`, and `service_role`. The migration revokes those from `public`, `anon`, and `authenticated`, then grants back the subset for each table. `anon` gets nothing. New `app` functions get an explicit `grant execute` to `authenticated` and `service_role`.
+
+`plays_select` is `can_view_play(id) or is_staff(team_id)`, so staff still see an archived play and can clear `archived_at`. `can_view_play` itself still requires `archived_at is null`, so an assigned player does not see the archived play.
+
+Tests: pgTAP `supabase/tests/plays.test.sql` in the style of `team.test.sql`. `scripts/check-rls.sql` fails when a new public table has RLS off, and when a public view other than `roster_public` lacks `security_invoker=true`.
 
 ## 3. Routes and screens
 
@@ -202,13 +225,14 @@ Interaction rules:
 |---|---|---|---|
 | **C1** Cap 12 | `MAX_WAYPOINTS=12`; update `schema.json`, `validate.py` parity, the stale `routeRibbon` comment, plus a budget test case for 22×12 | `scenarios/waypoint-cap.md` (12 OK, 13 rejected with a path error, long routes thin without growing triangles) | Schema and parity tests pass. Ribbon ≤258 triangles; ≤10 meshes. The Celeron frame-time check is NOT RUN. QA's headless proxy measured 16.7 ms median and p95, capped at 60 Hz. |
 | **C2** Browser compile and viewer seam | Move the `node:crypto` checksum out of `compileSource`. Add `compileChart` and WebCrypto `checksumSource`. Add `usePlayInput` and make `/watch/:playId` honor the id (via a fixture map until C3). Add `/watch/draft/:key`. | Append to `play-compile.md`; `play-loading.md` (load by id, draft, bad key) | `scan-bundle` finds no `node:` imports. The browser checksum equals the node checksum on all fixtures. Existing `?play=` URLs still work. |
-| **C3** Plays schema and RLS | The §2 migration, down migration, pgTAP and check-rls | `scenarios/playbook-data.md` (coach writes; player write denied; other team invisible; 409 on a stale version; archive hides the play) | pgTAP is green in CI. A player JWT `insert`/`update` fails with 42501. Two saves with the same `expected` produce one success and one P0409. |
-| **C4** Data access and Playbook screen | `src/data/plays.ts`, `/playbook` list, rename, delete (archive), playbook filter | `scenarios/playbook.md` | List, rename and delete round-trip on a seeded team. Player view has no write controls. 44px rows on 360px wide. |
+| **C3** Plays schema and RLS | The §2 migration, down migration, pgTAP and check-rls | `scenarios/playbook-data.md` (coach writes; player write denied; other team invisible; 409 on a stale version; staff still sees an archived play) | pgTAP is green in CI. A player insert fails with 42501. A player update changes 0 rows. Two saves with the same `expected` produce one success and one P0409. |
+| **C3b** Scout packages | `scout_packages`, `scout_package_looks`, `player_slots`, `assignments.package_id`, `assignment_targets.package_id`, and the package path on `looks_select`. Stacked on C3. | `scenarios/scout-packages.md` | A player reads looks in an assigned package and nothing from an unassigned package or another team. |
+| **C4** Data access and Playbook screen | `src/data/plays.ts`, `/playbook` list, rename, delete (archive), playbook filter. Stacked on C3, not on C3b. | `scenarios/playbook.md` | List, rename and delete round-trip on a seeded team. Player view has no write controls. A rejected player write shows `forbidden`. 44px rows on 360px wide. |
 | **C5** Editor core (pure) | `state.ts`, `actions.ts`, `hitTest.ts`, a read-only `EditorCanvas.tsx` that renders all 22 players plus routes | `scenarios/editor.md` (1–N: render, select, undo) | Reducer unit tests cover every action. `MAX_LEGS` is enforced. `hitTest` honors the 44px radius at every zoom. Snapshot render of the fixture. |
 | **C6** Editor interaction | Pointer drag, snap, add/move/delete waypoints, long-press menu, leg timing panel, formation presets, portrait rotation | Append to `editor.md`; `touch.md` (tablet drag, pinch, no page scroll) | All edits work with touch only on an iPad-size viewport and a Chromebook. Snapping lands on whole and half yards. Drags hold 60fps (SVG). |
 | **C7** Save, preview and Edit play entry | Save via RPC (with a 409 → "Reload / Save as copy" dialog), Preview 3D through `compileChart` into `/watch/draft`, the **Edit play** button in the viewer HUD and the list, plus role gating | `scenarios/edit-play.md` | From any play the coach reaches the editor in 1 tap, both from the viewer and from the list. Chart → Save → Watch shows the same tracks (checksum match). Players never see Edit play, and the URL redirects them. |
 
-Order: C1 → C2 → C3 → C4 and C5 in parallel → C6 → C7. Each PR is independently revertable.
+Order: C1 → C2 → C3 → C3b and C4 in parallel, both on C3 → C5 → C6 → C7. Each PR is independently revertable.
 
 ## 5. Risks and open questions (5)
 

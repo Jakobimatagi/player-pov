@@ -1,5 +1,5 @@
 begin;
-select plan(36);
+select plan(38);
 set local search_path = public, extensions, auth;
 
 create function pg_temp.make_user(uid uuid, email text)
@@ -255,7 +255,7 @@ select lives_ok(
   $$update public.plays set archived_at = now() where name = 'Flood'$$,
   'coach archives a play'
 );
-select is((select count(*)::int from public.plays where name = 'Flood'), 0, 'archive hides the play from staff');
+select is((select count(*)::int from public.plays where name = 'Flood'), 1, 'staff still sees an archived play');
 
 reset role;
 set local search_path = public, extensions, auth;
@@ -264,7 +264,28 @@ select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaa
 set local role authenticated;
 set local search_path = public, extensions, auth;
 
-select is((select count(*)::int from public.plays where name = 'Flood'), 0, 'archive hides the play from the assigned player');
+select is((select count(*)::int from public.plays where name = 'Flood'), 0, 'an assigned player cannot see an archived play');
+
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select lives_ok(
+  $$update public.plays set archived_at = null where name = 'Flood'$$,
+  'coach restores an archived play'
+);
+
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is((select count(*)::int from public.plays where name = 'Flood'), 1, 'quarterback sees the play after restore');
 
 reset role;
 set local role anon;

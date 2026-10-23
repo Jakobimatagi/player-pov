@@ -35,7 +35,7 @@ Do not point this at the hosted project, and do not run `seed.sql` anywhere but 
 **Expected:**
 
 - The insert fails with `42501`.
-- The update changes no rows. Postgres does not raise for an update hidden by row level security.
+- The update changes no rows. Postgres does not raise for an update hidden by row level security. The playbook screen shows the word `forbidden`.
 - `save_play_version` fails with `42501` and the message `forbidden`.
 
 ## Scenario 3 — Another team sees nothing
@@ -63,7 +63,7 @@ Do not point this at the hosted project, and do not run `seed.sql` anywhere but 
 - The call fails with `P0409` and the message `version conflict`.
 - The play still has two versions.
 
-## Scenario 5 — Archive hides the play
+## Scenario 5 — Archive hides the play from the player
 
 **Preconditions:** The quarterback can see the play. The coach can see it too.
 
@@ -71,7 +71,9 @@ Do not point this at the hosted project, and do not run `seed.sql` anywhere but 
 
 1. As the coach, set `archived_at` to now.
 2. Read the play as the coach and as the quarterback.
+3. As the coach, set `archived_at` back to null.
 
 **Expected:**
 
-- Neither role sees the play.
+- The coach still sees the archived play and can restore it.
+- The assigned player does not see it until it is restored.
