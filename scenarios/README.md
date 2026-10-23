@@ -43,7 +43,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | File                           | Covers                                    |
 | ------------------------------ | ----------------------------------------- |
 | `webgl-fallback-and-errors.md` | No WebGL, context loss, DPR cap, resize   |
-| `play-loading.md`              | Fetch, schema, semantic checks, LoadError |
+| `play-loading.md`              | Fetch, schema, watch id, draft, LoadError |
 | `sampling.md`                  | Compile, Hermite motion, facing, clamp    |
 | `scene-3d.md`                  | Field, players, ball                      |
 | `responsive.md`                | Viewer widths and touch targets (1–4)     |
