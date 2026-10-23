@@ -25,6 +25,9 @@ as $$
   select extensions.digest(pg_catalog.decode(token, 'hex'), 'sha256')
 $$;
 
+-- postgres no longer grants execute to public on new functions.
+grant execute on function pg_temp.token_hash(text) to authenticated;
+
 create function pg_temp.make_user(uid uuid, email text)
 returns void
 language plpgsql
@@ -105,6 +108,8 @@ begin
   return true;
 end;
 $$;
+
+grant execute on function pg_temp.team_a_hidden(uuid, uuid[]) to authenticated;
 
 select has_table('public', 'teams', 'teams exists');
 select has_table('public', 'profiles', 'profiles exists');
