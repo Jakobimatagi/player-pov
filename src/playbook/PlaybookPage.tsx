@@ -239,7 +239,11 @@ export function PlaybookPage() {
             </li>
           ))}
         </ul>
-        {notice ? <p className="auth-note">{notice}</p> : null}
+        {notice ? (
+          <p className="auth-error" role="alert">
+            {notice}
+          </p>
+        ) : null}
       </div>
       {playerView ? null : (
         <nav className="tab-bar" aria-label="Coach">

@@ -45,6 +45,7 @@ The play list is `/playbook`. Staff can search, filter by playbook, rename, and 
 
 - Watch is on the row.
 - Edit play, Rename, Delete, and New play are absent.
+- A rename or delete the database rejects shows the word forbidden.
 
 ## Scenario 4 — Narrow width
 
