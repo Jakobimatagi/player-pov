@@ -5,9 +5,10 @@ import { compilePlay } from '../src/play/compile'
 import { validatePlay } from '../src/play/load'
 import { MAX_WAYPOINTS } from '../src/play/schema'
 import type { PlayFile, Waypoint } from '../src/play/types'
-import { buildFieldMarkings, buildGrass, triangleCount } from '../src/scene/fieldMarkings'
+import { buildBallGeometry } from '../src/scene/ballGeometry'
 import { blockyVisual } from '../src/scene/blockyVisual'
-import { boxVisual, createNumberGeometry } from '../src/scene/playerVisual'
+import { buildFieldMarkings, buildGrass, triangleCount } from '../src/scene/fieldMarkings'
+import { createNumberGeometry } from '../src/scene/playerVisual'
 import {
   ROUTE_CSS_PX,
   ROUTE_SEGMENT_CAP,
@@ -55,13 +56,13 @@ describe('route ribbons', () => {
     const scene =
       triangleCount(buildGrass()) +
       triangleCount(buildFieldMarkings(fieldConfig())) +
-      triangleCount(boxVisual.geometry) * 22 +
-      triangleCount(createNumberGeometry(boxVisual.numberAnchor)) * 22 +
-      80
+      triangleCount(blockyVisual.geometry) * 22 +
+      triangleCount(createNumberGeometry(blockyVisual.numberAnchor)) * 22 +
+      triangleCount(buildBallGeometry())
     expect(routes).toBe(180)
-    expect(scene).toBeLessThanOrEqual(2000)
-    expect(scene + routes).toBeLessThanOrEqual(2000)
-    expect(scene + ROUTE_SEGMENT_CAP * 2).toBeLessThanOrEqual(2000)
+    expect(scene).toBeLessThanOrEqual(6000)
+    expect(scene + routes).toBeLessThanOrEqual(6000)
+    expect(scene + ROUTE_SEGMENT_CAP * 2).toBeLessThanOrEqual(6000)
   })
 
   it('keeps a schema-valid play at the waypoint cap within 6000 triangles', () => {
@@ -91,7 +92,7 @@ describe('route ribbons', () => {
       triangleCount(buildFieldMarkings(fieldConfig())) +
       triangleCount(blockyVisual.geometry) * 22 +
       triangleCount(createNumberGeometry(blockyVisual.numberAnchor)) * 22 +
-      80
+      triangleCount(buildBallGeometry())
     const rawChords = 22 * (MAX_WAYPOINTS - 1)
     expect(rawChords).toBeGreaterThan(ROUTE_SEGMENT_CAP)
     expect(routes).toBeLessThanOrEqual(ROUTE_SEGMENT_CAP * 2)

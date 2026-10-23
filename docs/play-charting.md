@@ -214,4 +214,4 @@ Order: C1 → C2 → C3 → C4 and C5 in parallel → C6 → C7. Each PR is inde
 
 R1 is decided: the budget is at most 6,000 triangles and 10 meshes. The Celeron frame-time check is NOT RUN. QA's headless proxy measured 16.7 ms median and p95, capped at 60 Hz.
 
-All five are resolved by Dev Lead's decisions above: R1 option A (≤6,000 triangles, ≤10 meshes), R2 assigned plays only, R3 linked scout look, R4 per-position default speed plus a simple ball step, R5 Reload or Save as copy.
+R1 decided: Option A (≤6,000 triangles, ≤10 meshes), conditional on a real Celeron frame-time measurement, still open before release.
