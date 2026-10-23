@@ -54,11 +54,19 @@ select is(
   'act as confirmed coach'
 );
 
+-- create_team() has to run as its own statement. Inside the memberships
+-- WHERE clause, memberships_user_id_idx finds no row for this user, so
+-- Postgres never calls the function and no team is created.
+do $$
+begin
+  perform public.create_team('Knights', 'Demo High', '2026', 'NFHS', '2026-11-30');
+end $$;
+
 select is(
   (
     select role from public.memberships
     where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01'
-      and team_id = public.create_team('Knights', 'Demo High', '2026', 'NFHS', '2026-11-30')
+      and team_id = (select id from public.teams where name = 'Knights')
   ),
   'head_coach'::public.team_role,
   'create_team makes the caller head coach'

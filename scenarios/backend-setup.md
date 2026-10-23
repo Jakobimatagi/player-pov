@@ -84,3 +84,19 @@ Replace `ANON_KEY` with the anon key from `npx supabase status`.
 
 - The field, players, and playback load.
 - There is no sign-in screen.
+
+## Scenario 5 — Team RPCs in pgTAP
+
+**Preconditions:** Scenario 1 has finished. Local migrations through `supabase/migrations/20261015140200_team.sql` are applied. Do not run this against the hosted project.
+
+**Steps:**
+
+1. `npx supabase test db`
+2. Read `supabase/tests/team.test.sql`.
+
+**Expected:**
+
+- The file runs 25 of 25 assertions, and the file passes.
+- `create_team` is called as its own statement, then the test reads `memberships.role`. The caller is `head_coach` of `Knights`. A fourth team for that user raises `a fourth team is rejected`.
+- A player invite with consent stores a `consent_records` row at `consent-v0-provisional`. An assistant coach's invite raises `not allowed`.
+- An assistant coach cannot insert into `memberships`. Joining is only through `accept_invite`. The direct insert raises insufficient privilege, and the file continues through the rest of the assertions.
