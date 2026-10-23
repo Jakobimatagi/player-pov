@@ -85,7 +85,7 @@ Replace `ANON_KEY` with the anon key from `npx supabase status`.
 - The field, players, and playback load.
 - There is no sign-in screen.
 
-## Scenario 5 — Anon cannot execute security definer functions
+## Scenario 6 — Anon cannot execute security definer functions
 
 **Preconditions:** Scenario 1 has finished, so `supabase/migrations/20261023000000_revoke_anon_rpc.sql` is applied on the local database. Do not run this against the hosted project.
 
@@ -100,7 +100,7 @@ Replace `ANON_KEY` with the anon key from `npx supabase status`.
 - That covers the nine functions from `supabase/migrations/20261015140200_team.sql`: `create_team(text, text, text, text, date)`, `create_player_invite(uuid, text, text, public.team_role, public.position_code, boolean, text)`, `accept_invite(uuid)`, `delete_member_data(uuid, uuid)`, `update_member(uuid, uuid, public.team_role, public.position_code)`, `remove_member(uuid, uuid)`, `revoke_invite(uuid)`, `resend_invite(uuid)`, and `invite_status(uuid)`. Each one is still executable by `authenticated`.
 - It also covers the `app` security definer functions: `my_role`, `is_member`, `is_staff`, `is_head_coach`, `is_owner`, `guard_last_head_coach`, `transfer_team_owner`, `guard_team_owner`, `cap_invite_expiry`, `stamp_attested_email`, and `accept_invite`.
 - As `anon`, `select public.invite_status(gen_random_uuid())` raises `42501`.
-- A function created afterward in `public` by `postgres` is not executable by `anon`. The migration revokes the hard-wired public default and the schema defaults for `anon`. Every new function in `app` needs an explicit `grant execute ... to authenticated`. In `public`, `authenticated` still has a schema default execute grant; write the explicit grant anyway so the function does not depend on that default. `anon` does not receive either grant.
+- A function created afterward in `public` by `postgres` is not executable by `anon`. The migration revokes the hard-wired public default and the schema defaults for `anon`. In `public`, `authenticated` and `service_role` still have a schema default execute grant; write an explicit grant anyway so the function does not depend on that default. Every new extension function, and every function outside `public`, needs an explicit `grant execute` to `authenticated` and to `service_role`. `anon` does not receive those grants.
 - `public.health()` is `security invoker` in `supabase/migrations/20261015130100_health.sql`, and `public.position_group_of` is not security definer in `supabase/migrations/20261015120000_identity.sql`. This assertion does not change their anon grants. Anon can still call `health`.
 - `public.roster_public` is a security definer view by design. Select is granted only to `authenticated`. `anon` and `public` are revoked. Advisor lint 0010 on that view is expected.
-- `supabase/down/20261023000000_revoke_anon_rpc.sql` re-grants execute on those nine functions to `anon`, and restores the default privileges. It is not in `supabase/migrations`, so `supabase db push` does not apply it.
+- `supabase/down/20261023000000_revoke_anon_rpc.sql` re-grants execute on those nine functions to `anon`. It restores the global default with `grant execute on functions to public`, and the `public` schema default with `grant execute on functions to anon`. It does not add a default grant in schema `app`. It is not in `supabase/migrations`, so `supabase db push` does not apply it.

@@ -13,8 +13,7 @@ grant execute on function public.revoke_invite(uuid) to anon;
 grant execute on function public.resend_invite(uuid) to anon;
 grant execute on function public.invite_status(uuid) to anon;
 
-alter default privileges for role postgres grant execute on functions to anon, public;
-alter default privileges for role postgres in schema public grant execute on functions to anon, public;
-alter default privileges for role postgres in schema app grant execute on functions to anon, public;
+alter default privileges for role postgres grant execute on functions to public;
+alter default privileges for role postgres in schema public grant execute on functions to anon;
 
 commit;
