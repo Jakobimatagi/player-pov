@@ -1,5 +1,5 @@
 begin;
-select plan(53);
+select plan(55);
 set local search_path = public, extensions, auth;
 
 create function pg_temp.make_user(uid uuid, email text)
@@ -156,6 +156,12 @@ select is(
   'quarterback sees the look in the assigned package'
 );
 select is(
+  (select count(*)::int from public.scout_look_versions
+    where look_id = (select look_id from look_ids where play_name = 'Flood')),
+  1,
+  'an assigned player can read look versions through a package'
+);
+select is(
   (select count(*)::int from public.scout_looks where name = 'Cover B'),
   0,
   'quarterback does not see the look in the unassigned package'
@@ -188,6 +194,12 @@ set local search_path = public, extensions, auth;
 
 select is((select count(*)::int from public.scout_packages), 0, 'safety sees no packages');
 select is((select count(*)::int from public.scout_looks), 0, 'safety sees no looks');
+select is(
+  (select count(*)::int from public.scout_look_versions
+    where look_id = (select look_id from look_ids where play_name = 'Flood')),
+  0,
+  'an unassigned player cannot read look versions through a package'
+);
 select is((select count(*)::int from public.player_slots), 0, 'safety sees no slots');
 
 reset role;

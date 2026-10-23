@@ -68,6 +68,7 @@ as $$
           select 1
           from public.assignment_targets at
           join public.playbook_plays pp on pp.playbook_id = at.playbook_id
+          join public.playbooks pb on pb.id = at.playbook_id and pb.archived_at is null
           where at.user_id = auth.uid()
             and pp.play_id = p
             and at.team_id = pl.team_id

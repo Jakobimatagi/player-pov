@@ -30,12 +30,13 @@ Do not point this at the hosted project, and do not run `seed.sql` anywhere but 
 
 **Steps:**
 
-1. As the quarterback, read packages, looks, and package looks.
+1. As the quarterback, read packages, looks, package looks, and look versions.
 
 **Expected:**
 
-- The quarterback sees PK1 and its look.
+- The quarterback sees PK1, its look, and that look's version.
 - The quarterback does not see PK2 or its look.
+- Edited in place: the version read is part of this scenario.
 
 ## Scenario 3 — Another team and an unassigned player see nothing
 
@@ -43,12 +44,13 @@ Do not point this at the hosted project, and do not run `seed.sql` anywhere but 
 
 **Steps:**
 
-1. As the safety, count packages, looks, and slots.
+1. As the safety, count packages, looks, look versions, and slots.
 2. As Team B's coach, count Team A packages, looks, package looks, slots, and assignments.
 
 **Expected:**
 
-- Every count is 0.
+- Every count is 0, including look versions for the look in PK1.
+- Edited in place: the safety's look-version count is part of this scenario.
 
 ## Scenario 4 — A player slot is the player's own row
 
