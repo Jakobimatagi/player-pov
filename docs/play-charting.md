@@ -13,7 +13,7 @@ Status: design, no code. Grounded on `main` after #24 and #25 (read 2026-10-15).
 | Viewer | `/watch/:playId` → `WatchPage` → `<App/>`. **`App` ignores `playId`** and loads `usePlay(playUrlFromSearch(?play=))`. | It needs a source seam (C2). |
 | Router | `src/app/router.tsx` (`createBrowserRouter`, react-router): `/`, auth pages, `/watch/:playId`, `/team` | Add routes in §3. |
 | DB | `teams`, `profiles`, `memberships(team_id,user_id,role team_role,position)`, `invites`, `consent_records`. Helpers `app.my_role/is_member/is_staff/is_head_coach/is_owner`. **No plays/playbooks tables yet.** | C3 creates the v2 tables exactly as v2 §3 defines them. Nothing is reinvented. |
-| Gfx budget | `tests/budget.test.ts`: total **3,854 triangles** (ceiling 6,000; blocky 160/body). `routeRibbon.ts` comment: "1,742 tris… 129 chords keep any play ≤2,000" (stale). | Conflicts with the ≤2,000 target. See R1. |
+| Gfx budget | `tests/budget.test.ts`: total **3,854 triangles** (ceiling 6,000; blocky 160/body). `routeRibbon.ts` comment: "1,742 tris… 129 chords keep any play ≤2,000" (stale). | R1 is decided: at most 6,000 triangles and 10 meshes. |
 | Route lines | `RouteLines`: one draw, debug toggle plus `QUALITY_LADDER` `routes` feature. `ROUTE_SEGMENT_CAP = 129` chords (258 triangles), stride-thinned above that. | See §0.1. |
 
 ### 0.1 Do longer routes affect the 3D budget?
@@ -200,7 +200,7 @@ Interaction rules:
 
 | PR | Scope | Scenarios | Acceptance |
 |---|---|---|---|
-| **C1** Cap 12 | `MAX_WAYPOINTS=12`; update `schema.json`, `validate.py` parity, the stale `routeRibbon` comment, plus a budget test case for 22×12 | `scenarios/waypoint-cap.md` (12 OK, 13 rejected with a path error, long routes thin without growing triangles) | Schema and parity tests pass. Ribbon ≤258 triangles; ≤10 meshes. Frame time on the Celeron fixture `trips-12wp.source.json` is unchanged within 5%. |
+| **C1** Cap 12 | `MAX_WAYPOINTS=12`; update `schema.json`, `validate.py` parity, the stale `routeRibbon` comment, plus a budget test case for 22×12 | `scenarios/waypoint-cap.md` (12 OK, 13 rejected with a path error, long routes thin without growing triangles) | Schema and parity tests pass. Ribbon ≤258 triangles; ≤10 meshes. The Celeron frame-time check is NOT RUN. QA's headless proxy measured 16.7 ms median and p95, capped at 60 Hz. |
 | **C2** Browser compile and viewer seam | Move the `node:crypto` checksum out of `compileSource`. Add `compileChart` and WebCrypto `checksumSource`. Add `usePlayInput` and make `/watch/:playId` honor the id (via a fixture map until C3). Add `/watch/draft/:key`. | Append to `play-compile.md`; `play-loading.md` (load by id, draft, bad key) | `scan-bundle` finds no `node:` imports. The browser checksum equals the node checksum on all fixtures. Existing `?play=` URLs still work. |
 | **C3** Plays schema and RLS | The §2 migration, down migration, pgTAP and check-rls | `scenarios/playbook-data.md` (coach writes; player write denied; other team invisible; 409 on a stale version; archive hides the play) | pgTAP is green in CI. A player JWT `insert`/`update` fails with 42501. Two saves with the same `expected` produce one success and one P0409. |
 | **C4** Data access and Playbook screen | `src/data/plays.ts`, `/playbook` list, rename, delete (archive), playbook filter | `scenarios/playbook.md` | List, rename and delete round-trip on a seeded team. Player view has no write controls. 44px rows on 360px wide. |
@@ -211,5 +211,7 @@ Interaction rules:
 Order: C1 → C2 → C3 → C4 and C5 in parallel → C6 → C7. Each PR is independently revertable.
 
 ## 5. Risks and open questions (5)
+
+R1 is decided: the budget is at most 6,000 triangles and 10 meshes. The Celeron frame-time check is NOT RUN. QA's headless proxy measured 16.7 ms median and p95, capped at 60 Hz.
 
 All five are resolved by Dev Lead's decisions above: R1 option A (≤6,000 triangles, ≤10 meshes), R2 assigned plays only, R3 linked scout look, R4 per-position default speed plus a simple ball step, R5 Reload or Save as copy.

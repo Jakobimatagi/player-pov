@@ -64,8 +64,8 @@ export interface RouteWaypoints {
 
 /**
  * Chords the ribbon will draw. Each chord is two triangles, so this cap is
- * 258 triangles. A longer chart thins until it fits. The play budget is at
- * most 6,000 triangles and 10 meshes; the ribbon does not grow past this cap.
+ * 258 triangles. A longer chart thins until it fits. R1 is decided: the play
+ * budget is at most 6,000 triangles and 10 meshes. The ribbon stays inside this cap.
  */
 export const ROUTE_SEGMENT_CAP = 129
 

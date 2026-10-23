@@ -41,8 +41,15 @@ describe('phase 2 budget', () => {
     }
     wpStart[count] = count * waypoints
     const ribbon = triangleCount(buildRouteRibbon({ count, wpStart, wpX, wpY }))
+    const fieldPlayersBall =
+      triangleCount(buildGrass()) +
+      triangleCount(buildFieldMarkings(fieldConfig())) +
+      triangleCount(blockyVisual.geometry) * count +
+      triangleCount(createNumberGeometry(blockyVisual.numberAnchor)) * count +
+      triangleCount(buildBallGeometry())
     expect(ribbon).toBeLessThanOrEqual(258)
     expect(ribbon).toBeGreaterThan(0)
+    expect(fieldPlayersBall + ribbon).toBeLessThanOrEqual(6000)
 
     const tags = (file: string) =>
       readFileSync(file, 'utf8').match(/<(mesh|instancedMesh)\b/g)?.length ?? 0

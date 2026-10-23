@@ -47,5 +47,5 @@ A compiled track allows 12 waypoints. One more is a schema error on that player'
 - Ribbon triangles are at most 258.
 - Mesh tags across the field, players, ball, and route ribbon are at most 10.
 - A route past the chord cap thins. The triangle count does not grow with the extra waypoints.
-
-Frame time on `fixtures/trips-12wp.source.json` stays within 5% of the short chart. The Celeron measurement is recorded in the pull request. This environment may have to use the closest proxy.
+- The Celeron frame-time check is NOT RUN.
+- QA's headless proxy measured 16.7 ms median and p95, capped at 60 Hz.
