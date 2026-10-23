@@ -13,7 +13,14 @@ import {
   restorePlay,
 } from '../data/plays'
 import { supabase } from '../data/supabase'
-import { afterRestore, DEMO_ARCHIVED, DEMO_PLAYS, visiblePlays } from './archive'
+import {
+  afterRestore,
+  DEMO_ARCHIVED,
+  DEMO_PLAYS,
+  honorDemoRoster,
+  listStatus,
+  visiblePlays,
+} from './archive'
 
 const TABS = ['Team', 'Playbooks', 'Plays', 'Scout', 'Homework'] as const
 
@@ -32,7 +39,8 @@ function tabHref(tab: (typeof TABS)[number]): string {
 export function PlaybookPage() {
   const snap = useAuth()
   const [params] = useSearchParams()
-  const fixture = supabase == null || params.get('roster') === 'demo'
+  const fixture =
+    supabase == null || honorDemoRoster(params.get('roster'), supabase != null, import.meta.env.DEV)
   const playerView =
     params.get('roster') === 'player' || (supabase != null && snap.role === 'player')
   const staff = !playerView && (fixture || snap.role === 'head_coach' || snap.role === 'coach')
@@ -49,16 +57,23 @@ export function PlaybookPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [settledKey, setSettledKey] = useState<string | null>(null)
   const viewingArchived = staff && list === 'archived'
+  const fetchKey =
+    fixture || supabase == null || snap.session == null || snap.teamId == null
+      ? null
+      : `${snap.teamId}\0${bookId ?? ''}\0${staff ? '1' : '0'}`
+  const loading = !fixture && (fetchKey == null || fetchKey !== settledKey)
 
   useEffect(() => {
     startAuth()
   }, [])
 
   useEffect(() => {
-    if (fixture || supabase == null || snap.session == null || snap.teamId == null) return
+    if (fetchKey == null || supabase == null || snap.teamId == null) return
     let dead = false
     const teamId = snap.teamId
+    const key = fetchKey
     void (async () => {
       try {
         const [nextPlays, nextBooks, nextArchived] = await Promise.all([
@@ -72,12 +87,14 @@ export function PlaybookPage() {
         setArchived(nextArchived)
       } catch (error) {
         if (!dead) setNotice(error instanceof Error ? error.message : 'Could not load plays')
+      } finally {
+        if (!dead) setSettledKey(key)
       }
     })()
     return () => {
       dead = true
     }
-  }, [bookId, fixture, snap.session, snap.teamId, staff])
+  }, [bookId, fetchKey, snap.teamId, staff])
 
   if (!fixture && snap.ready && snap.session == null) {
     return <Navigate to="/login?next=/playbook" replace />
@@ -90,6 +107,7 @@ export function PlaybookPage() {
     archived,
     search,
   })
+  const status = listStatus({ loading, count: shown.length, archived: viewingArchived })
 
   async function commitRename(playId: string) {
     const name = draftName.trim()
@@ -190,7 +208,7 @@ export function PlaybookPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <div className="roster-filters" role="tablist" aria-label="Playbook">
+        <div className="roster-filters" role="group" aria-label="Playbook">
           <button
             type="button"
             aria-pressed={!viewingArchived && bookId == null}
@@ -232,7 +250,7 @@ export function PlaybookPage() {
             {notice}
           </p>
         ) : null}
-        {shown.length === 0 ? <p>{viewingArchived ? 'No archived plays' : 'No plays'}</p> : null}
+        {status ? <p className={loading ? 'loading-line' : undefined}>{status}</p> : null}
         <ul className="playbook-list">
           {shown.map((play) => (
             <li key={play.id} className="playbook-row">
@@ -256,9 +274,6 @@ export function PlaybookPage() {
                 </form>
               ) : (
                 <span className="playbook-actions">
-                  <Link className="playbook-action" to={`/watch/${play.id}`}>
-                    Watch
-                  </Link>
                   {staff && viewingArchived ? (
                     <button
                       type="button"
@@ -267,11 +282,6 @@ export function PlaybookPage() {
                     >
                       Restore
                     </button>
-                  ) : null}
-                  {staff && !viewingArchived ? (
-                    <Link className="playbook-action" to={`/plays/${play.id}/edit`}>
-                      Edit play
-                    </Link>
                   ) : null}
                   {staff && !viewingArchived ? (
                     <button
@@ -320,11 +330,6 @@ export function PlaybookPage() {
             </Link>
           ))}
         </div>
-      ) : null}
-      {staff && !viewingArchived ? (
-        <Link className="playbook-fab" to="/plays/new">
-          New play
-        </Link>
       ) : null}
     </div>
   )

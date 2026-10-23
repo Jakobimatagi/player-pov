@@ -1,10 +1,10 @@
 # Playbook
 
-The play list is `/playbook`. Staff can search, filter by playbook, rename, and delete. Players get Watch only. Edit play and New play go to editor routes that are built in a later step. These checks use the anon key and row level security. The service role never ships.
+The play list is `/playbook`. Staff can search, filter by playbook, rename, and delete. Edit play, New play, and Watch stay hidden until C5–C7. Watch is hidden because the viewer still only loads fixture ids, and a saved play's compiled jsonb is not the viewer's compiled scene. These checks use the anon key and row level security. The service role never ships. Edited in place: the opening line used to say players get Watch only.
 
 ## Scenario 1 — Staff list
 
-**Preconditions:** A coach is signed in on a team that has plays. Local demo without Supabase shows Flood and Iso.
+**Preconditions:** A coach is signed in on a team that has plays. Local demo without Supabase shows Flood and Iso. `?roster=demo` is honored only when Supabase is not configured, or when the app is running in dev.
 
 **Steps:**
 
@@ -14,8 +14,9 @@ The play list is `/playbook`. Staff can search, filter by playbook, rename, and 
 
 **Expected:**
 
-- Each row has Watch, Edit play, Rename, and Delete.
-- New play is on the page.
+- Each row has Rename and Delete. Edited in place: Watch, Edit play, and New play are hidden until C5–C7.
+- While the list is still loading, the page says Loading… instead of No plays.
+- The filter row is a group, not a tab list.
 - The search leaves Iso.
 - PB1 leaves the plays in that playbook.
 
@@ -43,8 +44,7 @@ The play list is `/playbook`. Staff can search, filter by playbook, rename, and 
 
 **Expected:**
 
-- Watch is on the row.
-- Edit play, Rename, Delete, and New play are absent.
+- The row shows the play name. Edited in place: Watch is hidden until C5–C7, along with Edit play, Rename, Delete, and New play.
 - A rename or delete the database rejects shows the word forbidden.
 
 ## Scenario 4 — Narrow width

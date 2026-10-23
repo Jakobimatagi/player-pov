@@ -2,7 +2,14 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
-import { afterRestore, DEMO_ARCHIVED, DEMO_PLAYS, visiblePlays } from '../src/playbook/archive'
+import {
+  afterRestore,
+  DEMO_ARCHIVED,
+  DEMO_PLAYS,
+  honorDemoRoster,
+  listStatus,
+  visiblePlays,
+} from '../src/playbook/archive'
 import { PlaybookPage } from '../src/playbook/PlaybookPage'
 
 function page(path: string): string {
@@ -12,6 +19,7 @@ function page(path: string): string {
 }
 
 const mesh = DEMO_ARCHIVED[0]
+if (mesh == null) throw new Error('missing archived demo play')
 
 describe('archived plays', () => {
   it('lets staff see an archived play and puts a restored play back on the active list', () => {
@@ -75,5 +83,30 @@ describe('archived plays', () => {
     expect(player).not.toContain('Archived')
     expect(player).not.toContain('Mesh')
     expect(player).not.toContain('Restore')
+  })
+
+  it('uses a group for the filters and hides editor links', () => {
+    const staff = page('/playbook')
+    expect(staff).toContain('role="group"')
+    expect(staff).not.toContain('tablist')
+    expect(staff).not.toContain('Edit play')
+    expect(staff).not.toContain('New play')
+    expect(staff).not.toContain('Watch')
+    expect(staff).toContain('Rename')
+    expect(staff).toContain('Delete')
+  })
+
+  it('shows Loading while the list is empty and still loading', () => {
+    expect(listStatus({ loading: true, count: 0, archived: false })).toBe('Loading…')
+    expect(listStatus({ loading: false, count: 0, archived: false })).toBe('No plays')
+    expect(listStatus({ loading: false, count: 0, archived: true })).toBe('No archived plays')
+    expect(listStatus({ loading: false, count: 2, archived: false })).toBeNull()
+  })
+
+  it('honors ?roster=demo only when Supabase is unset or the app is in dev', () => {
+    expect(honorDemoRoster('demo', true, false)).toBe(false)
+    expect(honorDemoRoster('demo', false, false)).toBe(true)
+    expect(honorDemoRoster('demo', true, true)).toBe(true)
+    expect(honorDemoRoster('player', true, true)).toBe(false)
   })
 })

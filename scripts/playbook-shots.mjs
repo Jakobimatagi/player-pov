@@ -120,6 +120,7 @@ async function install(page, role) {
       return
     }
     if (parsed.pathname.endsWith('/playbooks')) {
+      await listsReady
       await route.fulfill({ status: 200, headers, body: JSON.stringify(books) })
       return
     }
@@ -132,6 +133,7 @@ async function install(page, role) {
       return
     }
     if (parsed.pathname.endsWith('/plays') && request.method() === 'GET') {
+      await listsReady
       await route.fulfill({
         status: 200,
         headers,
@@ -159,6 +161,11 @@ async function install(page, role) {
   })
 }
 
+let releaseLists = () => {}
+const listsReady = new Promise((resolve) => {
+  releaseLists = resolve
+})
+
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH ?? '/usr/local/bin/google-chrome',
   args: ['--headless=new', '--use-gl=angle', '--use-angle=swiftshader'],
@@ -169,10 +176,21 @@ await install(coach, 'head_coach')
 await coach.setViewportSize({ width: 360, height: 800 })
 await coach.goto(`${url}/playbook`, { waitUntil: 'domcontentloaded' })
 await coach.getByRole('heading', { name: 'Playbook' }).waitFor()
-await coach.getByRole('link', { name: 'Edit play' }).first().waitFor()
+await coach.getByText('Loading…').waitFor()
+const loadingText = await coach.locator('body').innerText()
+if (loadingText.includes('No plays')) {
+  throw new Error(`loading state showed No plays: ${loadingText}`)
+}
+await coach.screenshot({ path: `${out}/playbook-loading.png`, fullPage: true })
+releaseLists()
+await coach.getByText('Flood', { exact: true }).waitFor()
+await coach.getByText('Loading…').waitFor({ state: 'hidden' })
 const coachText = await coach.locator('body').innerText()
-if (!coachText.includes('Flood') || !coachText.includes('New play')) {
-  throw new Error(`coach list missing plays: ${coachText}`)
+for (const word of ['Edit play', 'New play', 'Watch']) {
+  if (coachText.includes(word)) throw new Error(`coach list shows ${word}`)
+}
+if (!coachText.includes('Rename') || !coachText.includes('Delete')) {
+  throw new Error(`coach list missing rename or delete: ${coachText}`)
 }
 
 const measures = []
@@ -221,9 +239,9 @@ const player = await browser.newPage()
 await install(player, 'player')
 await player.setViewportSize({ width: 360, height: 800 })
 await player.goto(`${url}/playbook`, { waitUntil: 'domcontentloaded' })
-await player.getByRole('link', { name: 'Watch' }).first().waitFor()
+await player.getByText('Flood', { exact: true }).waitFor()
 const playerText = await player.locator('body').innerText()
-for (const word of ['Edit play', 'Rename', 'Delete', 'New play']) {
+for (const word of ['Watch', 'Edit play', 'Rename', 'Delete', 'New play']) {
   if (playerText.includes(word)) throw new Error(`player view shows ${word}`)
 }
 await player.screenshot({ path: `${out}/playbook-player-360.png`, fullPage: true })

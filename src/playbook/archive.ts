@@ -83,3 +83,22 @@ export function afterRestore(
     success: `${play.name} restored`,
   }
 }
+
+export function listStatus(input: {
+  loading: boolean
+  count: number
+  archived: boolean
+}): string | null {
+  if (input.loading) return 'Loading…'
+  if (input.count === 0) return input.archived ? 'No archived plays' : 'No plays'
+  return null
+}
+
+/** `?roster=demo` is a fixture only when Supabase is unset, or when the app is in dev. */
+export function honorDemoRoster(
+  roster: string | null,
+  supabaseConfigured: boolean,
+  dev: boolean,
+): boolean {
+  return roster === 'demo' && (!supabaseConfigured || dev)
+}
