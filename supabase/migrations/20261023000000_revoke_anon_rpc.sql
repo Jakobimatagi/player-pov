@@ -18,3 +18,15 @@ revoke execute on function public.remove_member(uuid, uuid) from anon;
 revoke execute on function public.revoke_invite(uuid) from anon;
 revoke execute on function public.resend_invite(uuid) from anon;
 revoke execute on function public.invite_status(uuid) from anon;
+
+-- Hard-wired function defaults grant execute to public. A schema-level
+-- default privilege is added on top of that, so revoking inside the schema
+-- cannot take the public grant away. The global revoke replaces the
+-- hard-wired default for functions created by postgres. The in-schema
+-- revokes remove the extra anon grant Supabase stores on public and app.
+-- Authenticated still has a default execute grant in schema public.
+-- Schema app does not, so a new app function needs an explicit
+-- grant execute ... to authenticated.
+alter default privileges for role postgres revoke execute on functions from anon, public;
+alter default privileges for role postgres in schema public revoke execute on functions from anon, public;
+alter default privileges for role postgres in schema app revoke execute on functions from anon, public;

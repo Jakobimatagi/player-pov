@@ -1,19 +1,107 @@
 begin;
-select plan(1);
+select plan(12);
 set local search_path = public, extensions;
 
+-- Supabase internals stay out of this check. public and app are in it,
+-- including every security definer function in app.
 select is_empty(
   $$
     select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public'
+    where n.nspname not in (
+      'pg_catalog',
+      'information_schema',
+      'pg_toast',
+      'auth',
+      'storage',
+      'extensions',
+      'graphql',
+      'graphql_public',
+      'realtime',
+      'vault',
+      'net',
+      'supabase_functions',
+      'pgsodium',
+      'pgsodium_masks'
+    )
+      and n.nspname not like 'pg\_%'
       and p.prosecdef
       and has_function_privilege('anon', p.oid, 'EXECUTE')
     order by 1
   $$,
-  'no security definer function in public is executable by anon'
+  'no security definer function outside system schemas is executable by anon'
 );
+
+select ok(
+  has_function_privilege('authenticated', 'public.create_team(text, text, text, text, date)', 'EXECUTE'),
+  'authenticated can execute create_team'
+);
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.create_player_invite(uuid, text, text, public.team_role, public.position_code, boolean, text)',
+    'EXECUTE'
+  ),
+  'authenticated can execute create_player_invite'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.accept_invite(uuid)', 'EXECUTE'),
+  'authenticated can execute accept_invite(uuid)'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.delete_member_data(uuid, uuid)', 'EXECUTE'),
+  'authenticated can execute delete_member_data'
+);
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.update_member(uuid, uuid, public.team_role, public.position_code)',
+    'EXECUTE'
+  ),
+  'authenticated can execute update_member'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.remove_member(uuid, uuid)', 'EXECUTE'),
+  'authenticated can execute remove_member'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.revoke_invite(uuid)', 'EXECUTE'),
+  'authenticated can execute revoke_invite'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.resend_invite(uuid)', 'EXECUTE'),
+  'authenticated can execute resend_invite'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.invite_status(uuid)', 'EXECUTE'),
+  'authenticated can execute invite_status'
+);
+
+set local role anon;
+select throws_ok(
+  $$select public.invite_status(gen_random_uuid())$$,
+  '42501',
+  'permission denied for function invite_status',
+  'anon cannot call invite_status'
+);
+reset role;
+
+-- Default privileges for postgres no longer grant execute to anon.
+create function public.anon_exec_probe()
+returns integer
+language sql
+as $$ select 1 $$;
+
+set local role anon;
+select throws_ok(
+  $$select public.anon_exec_probe()$$,
+  '42501',
+  'permission denied for function anon_exec_probe',
+  'anon cannot execute a new public function'
+);
+reset role;
+drop function public.anon_exec_probe();
 
 select * from finish();
 rollback;
