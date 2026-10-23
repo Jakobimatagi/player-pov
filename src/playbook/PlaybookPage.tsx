@@ -4,35 +4,20 @@ import { Link, Navigate, useSearchParams } from 'react-router'
 import { AccountMenu } from '../app/AccountMenu'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import type { PlaybookRow, PlayRow } from '../data/plays'
-import { deletePlay, listPlaybooks, listPlays, renamePlay } from '../data/plays'
+import {
+  deletePlay,
+  listArchivedPlays,
+  listPlaybooks,
+  listPlays,
+  renamePlay,
+  restorePlay,
+} from '../data/plays'
 import { supabase } from '../data/supabase'
+import { afterRestore, DEMO_ARCHIVED, DEMO_PLAYS, visiblePlays } from './archive'
 
 const TABS = ['Team', 'Playbooks', 'Plays', 'Scout', 'Homework'] as const
 
 const DEMO_BOOKS: PlaybookRow[] = [{ id: 'pb1', name: 'PB1', playCount: 1 }]
-
-const DEMO_PLAYS: (PlayRow & { playbookId: string | null })[] = [
-  {
-    id: 'flood',
-    team_id: 'demo',
-    name: 'Flood',
-    side: 'offense',
-    current_version: 1,
-    default_look_id: null,
-    updated_at: '2026-10-23T00:00:00.000Z',
-    playbookId: 'pb1',
-  },
-  {
-    id: 'iso',
-    team_id: 'demo',
-    name: 'Iso',
-    side: 'offense',
-    current_version: 1,
-    default_look_id: null,
-    updated_at: '2026-10-23T00:00:00.000Z',
-    playbookId: null,
-  },
-]
 
 function useAuth() {
   return useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
@@ -54,13 +39,17 @@ export function PlaybookPage() {
   const [plays, setPlays] = useState<PlayRow[]>(() =>
     fixture ? DEMO_PLAYS.filter((play) => (playerView ? play.playbookId != null : true)) : [],
   )
+  const [archived, setArchived] = useState<PlayRow[]>(() => (fixture && staff ? DEMO_ARCHIVED : []))
   const [books, setBooks] = useState<PlaybookRow[]>(fixture ? DEMO_BOOKS : [])
   const [bookId, setBookId] = useState<string | null>(null)
+  const [list, setList] = useState<'active' | 'archived'>('active')
   const [search, setSearch] = useState('')
   const [renaming, setRenaming] = useState<string | null>(null)
   const [draftName, setDraftName] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const viewingArchived = staff && list === 'archived'
 
   useEffect(() => {
     startAuth()
@@ -72,13 +61,15 @@ export function PlaybookPage() {
     const teamId = snap.teamId
     void (async () => {
       try {
-        const [nextPlays, nextBooks] = await Promise.all([
+        const [nextPlays, nextBooks, nextArchived] = await Promise.all([
           listPlays(teamId, bookId ?? undefined),
           listPlaybooks(teamId),
+          staff ? listArchivedPlays(teamId) : Promise.resolve([] as PlayRow[]),
         ])
         if (dead) return
         setPlays(nextPlays)
         setBooks(nextBooks)
+        setArchived(nextArchived)
       } catch (error) {
         if (!dead) setNotice(error instanceof Error ? error.message : 'Could not load plays')
       }
@@ -86,15 +77,19 @@ export function PlaybookPage() {
     return () => {
       dead = true
     }
-  }, [bookId, fixture, snap.session, snap.teamId])
+  }, [bookId, fixture, snap.session, snap.teamId, staff])
 
   if (!fixture && snap.ready && snap.session == null) {
     return <Navigate to="/login?next=/playbook" replace />
   }
 
-  const shown = plays.filter((play) =>
-    play.name.toLowerCase().includes(search.trim().toLowerCase()),
-  )
+  const shown = visiblePlays({
+    staff,
+    list,
+    active: plays,
+    archived,
+    search,
+  })
 
   async function commitRename(playId: string) {
     const name = draftName.trim()
@@ -103,6 +98,7 @@ export function PlaybookPage() {
       try {
         await renamePlay(playId, name)
       } catch (error) {
+        setSuccess(null)
         setNotice(error instanceof Error ? error.message : 'Rename failed')
         return
       }
@@ -110,6 +106,7 @@ export function PlaybookPage() {
     setPlays((current) => current.map((play) => (play.id === playId ? { ...play, name } : play)))
     setRenaming(null)
     setNotice(null)
+    setSuccess(null)
   }
 
   async function commitDelete(playId: string) {
@@ -117,16 +114,43 @@ export function PlaybookPage() {
       try {
         await deletePlay(playId)
       } catch (error) {
+        setSuccess(null)
         setNotice(error instanceof Error ? error.message : 'Delete failed')
         return
       }
     }
+    const removed = plays.find((play) => play.id === playId)
     setPlays((current) => current.filter((play) => play.id !== playId))
+    if (removed != null && staff) {
+      setArchived((current) => [...current, removed].sort((a, b) => a.name.localeCompare(b.name)))
+    }
     setNotice(null)
+    setSuccess(null)
+  }
+
+  async function commitRestore(playId: string) {
+    const view = { list, active: plays, archived, notice, success }
+    if (!fixture) {
+      try {
+        await restorePlay(playId)
+      } catch (error) {
+        const next = afterRestore(view, playId, error)
+        setNotice(next.notice)
+        setSuccess(next.success)
+        return
+      }
+    }
+    const next = afterRestore(view, playId, null)
+    setPlays(next.active)
+    setArchived(next.archived)
+    setList(next.list)
+    setNotice(next.notice)
+    setSuccess(next.success)
   }
 
   function selectBook(next: string | null) {
     setBookId(next)
+    setList('active')
     if (!fixture) return
     const pool = DEMO_PLAYS.filter((play) => (playerView ? play.playbookId != null : true))
     setPlays(next == null ? pool : pool.filter((play) => play.playbookId === next))
@@ -167,21 +191,48 @@ export function PlaybookPage() {
           onChange={(event) => setSearch(event.target.value)}
         />
         <div className="roster-filters" role="tablist" aria-label="Playbook">
-          <button type="button" aria-pressed={bookId == null} onClick={() => selectBook(null)}>
+          <button
+            type="button"
+            aria-pressed={!viewingArchived && bookId == null}
+            onClick={() => selectBook(null)}
+          >
             All
           </button>
           {books.map((book) => (
             <button
               key={book.id}
               type="button"
-              aria-pressed={bookId === book.id}
+              aria-pressed={!viewingArchived && bookId === book.id}
               onClick={() => selectBook(book.id)}
             >
               {book.name}
             </button>
           ))}
+          {staff ? (
+            <button
+              type="button"
+              aria-pressed={viewingArchived}
+              onClick={() => {
+                setList('archived')
+                setBookId(null)
+                setRenaming(null)
+              }}
+            >
+              Archived
+            </button>
+          ) : null}
         </div>
-        {shown.length === 0 ? <p>No plays</p> : null}
+        {success ? (
+          <p className="playbook-success" role="status">
+            {success}
+          </p>
+        ) : null}
+        {notice ? (
+          <p className="auth-error" role="alert">
+            {notice}
+          </p>
+        ) : null}
+        {shown.length === 0 ? <p>{viewingArchived ? 'No archived plays' : 'No plays'}</p> : null}
         <ul className="playbook-list">
           {shown.map((play) => (
             <li key={play.id} className="playbook-row">
@@ -208,12 +259,21 @@ export function PlaybookPage() {
                   <Link className="playbook-action" to={`/watch/${play.id}`}>
                     Watch
                   </Link>
-                  {staff ? (
+                  {staff && viewingArchived ? (
+                    <button
+                      type="button"
+                      className="playbook-action"
+                      onClick={() => void commitRestore(play.id)}
+                    >
+                      Restore
+                    </button>
+                  ) : null}
+                  {staff && !viewingArchived ? (
                     <Link className="playbook-action" to={`/plays/${play.id}/edit`}>
                       Edit play
                     </Link>
                   ) : null}
-                  {staff ? (
+                  {staff && !viewingArchived ? (
                     <button
                       type="button"
                       className="playbook-action"
@@ -225,7 +285,7 @@ export function PlaybookPage() {
                       Rename
                     </button>
                   ) : null}
-                  {staff ? (
+                  {staff && !viewingArchived ? (
                     <button
                       type="button"
                       className="playbook-action"
@@ -239,11 +299,6 @@ export function PlaybookPage() {
             </li>
           ))}
         </ul>
-        {notice ? (
-          <p className="auth-error" role="alert">
-            {notice}
-          </p>
-        ) : null}
       </div>
       {playerView ? null : (
         <nav className="tab-bar" aria-label="Coach">
@@ -266,7 +321,7 @@ export function PlaybookPage() {
           ))}
         </div>
       ) : null}
-      {staff ? (
+      {staff && !viewingArchived ? (
         <Link className="playbook-fab" to="/plays/new">
           New play
         </Link>

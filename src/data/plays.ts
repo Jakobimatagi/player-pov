@@ -35,7 +35,7 @@ export class StaleVersionError extends Error {
 export function isVersionConflict(error: { code?: string; message?: string }): boolean {
   const code = error.code ?? ''
   const message = error.message ?? ''
-  return code === 'P0409' || code === '409' || message.toLowerCase().includes('version conflict')
+  return code === 'PT409' || code === '409' || message.toLowerCase().includes('version conflict')
 }
 
 function client() {
@@ -91,6 +91,18 @@ export async function listPlays(teamId: string, playbookId?: string): Promise<Pl
     .order('name')
   if (ids != null) query = query.in('id', ids)
   const { data, error } = await query
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((row) => asPlay(row))
+}
+
+export async function listArchivedPlays(teamId: string): Promise<PlayRow[]> {
+  const db = client()
+  const { data, error } = await db
+    .from('plays')
+    .select(PLAY_COLUMNS)
+    .eq('team_id', teamId)
+    .not('archived_at', 'is', null)
+    .order('name')
   if (error) throw new Error(error.message)
   return (data ?? []).map((row) => asPlay(row))
 }
@@ -212,25 +224,31 @@ export async function savePlay(input: {
 
 export async function renamePlay(playId: string, name: string): Promise<void> {
   const db = client()
-  const { data, error } = await db
-    .from('plays')
-    .update({ name, updated_at: new Date().toISOString() })
-    .eq('id', playId)
-    .select('id')
+  const { data, error } = await db.from('plays').update({ name }).eq('id', playId).select('id')
   if (error) throw new Error(error.message)
   if (data == null || data.length === 0) throw new Error('forbidden')
 }
 
 export async function deletePlay(playId: string): Promise<void> {
   const db = client()
-  const now = new Date().toISOString()
   const { data, error } = await db
     .from('plays')
-    .update({ archived_at: now, updated_at: now })
+    .update({ archived_at: new Date().toISOString() })
     .eq('id', playId)
     .select('id')
   if (error) throw new Error(error.message)
   if (data == null || data.length === 0) throw new Error('forbidden')
+}
+
+export async function restorePlay(playId: string): Promise<void> {
+  const db = client()
+  const { data, error } = await db
+    .from('plays')
+    .update({ archived_at: null })
+    .eq('id', playId)
+    .select('id')
+  if (error) throw new Error(error.message)
+  if (data == null || data.length === 0) throw new Error('Could not restore this play')
 }
 
 export async function listPlaybooks(teamId: string): Promise<PlaybookRow[]> {

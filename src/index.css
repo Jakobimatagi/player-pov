@@ -1073,6 +1073,12 @@ body {
   font-size: 1rem;
 }
 
+.playbook-success {
+  margin: 0 0 12px;
+  color: #b6f0c2;
+  font-size: 1rem;
+}
+
 .playbook-action {
   display: inline-flex;
   align-items: center;

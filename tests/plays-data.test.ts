@@ -15,8 +15,10 @@ vi.mock('../src/data/supabase', () => ({
 import {
   deletePlay,
   isVersionConflict,
+  listArchivedPlays,
   listPlays,
   renamePlay,
+  restorePlay,
   savePlay,
   StaleVersionError,
 } from '../src/data/plays'
@@ -38,6 +40,7 @@ function table(result: { data: unknown; error: { message: string; code?: string 
     insert: () => builder,
     eq: () => builder,
     is: () => builder,
+    not: () => builder,
     in: () => builder,
     order: () => builder,
     maybeSingle: () => Promise.resolve(result),
@@ -55,8 +58,8 @@ describe('play data', () => {
     mocks.from.mockReset()
   })
 
-  it('treats P0409 and 409 as a version conflict', () => {
-    expect(isVersionConflict({ code: 'P0409', message: 'version conflict' })).toBe(true)
+  it('treats PT409 and HTTP 409 as a version conflict', () => {
+    expect(isVersionConflict({ code: 'PT409', message: 'version conflict' })).toBe(true)
     expect(isVersionConflict({ code: '409', message: '' })).toBe(true)
     expect(isVersionConflict({ message: 'version conflict' })).toBe(true)
     expect(isVersionConflict({ code: '42501', message: 'forbidden' })).toBe(false)
@@ -69,6 +72,17 @@ describe('play data', () => {
     })
     const rows = await listPlays('team-a', 'pb1')
     expect(rows.map((row) => row.name)).toEqual(['Flood'])
+  })
+
+  it('lists archived plays and restores one', async () => {
+    const archived = { ...flood, name: 'Mesh' }
+    mocks.from.mockImplementation(() => table({ data: [archived], error: null }))
+    const rows = await listArchivedPlays('team-a')
+    expect(rows.map((row) => row.name)).toEqual(['Mesh'])
+    mocks.from.mockImplementation(() => table({ data: [{ id: 'flood' }], error: null }))
+    await restorePlay('flood')
+    mocks.from.mockImplementation(() => table({ data: [], error: null }))
+    await expect(restorePlay('flood')).rejects.toThrow('Could not restore this play')
   })
 
   it('renames and archives through the anon client', async () => {

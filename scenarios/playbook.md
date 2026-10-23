@@ -57,3 +57,22 @@ The play list is `/playbook`. Staff can search, filter by playbook, rename, and 
 
 - The page does not scroll sideways.
 - Each row and each action is at least 44px tall.
+
+## Scenario 5 — Restore an archived play
+
+**Preconditions:** A coach is signed in and one play is archived. On the local demo, open `/playbook`. Mesh is the archived play. A player opens `/playbook?roster=player`.
+
+**Steps:**
+
+1. As staff, choose Archived.
+2. Restore Mesh.
+3. Open Archived again at 360 pixels wide and at 1920 pixels wide.
+4. As a player, look for Archived.
+
+**Expected:**
+
+- Staff see Archived. The player view has no Archived tab.
+- Restore puts Mesh back on the active list and shows Mesh restored.
+- A restore the database rejects shows an error.
+- Restore is at least 44px tall.
+- The page does not scroll sideways at 360 or 1920.
