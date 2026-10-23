@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { fieldConfig, type FieldConfig } from '../field/fieldConfig'
 import type { PlayFile, PlayLoadError, PlayerTrack, Position, Waypoint } from './types'
 import type {
@@ -25,20 +24,6 @@ export function yToHash(y: number, config: FieldConfig = fieldConfig()): HashMar
   if (Math.abs(y - MIDDLE_Y) <= 0.05) return 'M'
   const [right, left] = config.hashY
   return Math.abs(y - left) < Math.abs(y - right) ? 'L' : 'R'
-}
-
-export function playChecksum(play: PlayFile): string {
-  return createHash('sha256').update(canonical(play)).digest('hex')
-}
-
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map((item) => canonical(item)).join(',')}]`
-  if (value != null && typeof value === 'object') {
-    const record = value as Record<string, unknown>
-    const keys = Object.keys(record).sort()
-    return `{${keys.map((key) => `${JSON.stringify(key)}:${canonical(record[key])}`).join(',')}}`
-  }
-  return JSON.stringify(value)
 }
 
 interface SnapPoint {
@@ -164,7 +149,6 @@ function lookOrigin(
 export interface CompileResult {
   play: PlayFile
   sourceMap: SourceMapEntry[]
-  checksum: string
   errors: PlayLoadError[]
 }
 
@@ -252,5 +236,5 @@ export function compileSource(
     players: [...ours, ...theirs],
     ball: { segments: source.ball.segments.map((segment) => ({ ...segment })) },
   }
-  return { play, sourceMap, checksum: playChecksum(play), errors }
+  return { play, sourceMap, errors }
 }

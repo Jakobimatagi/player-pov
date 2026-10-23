@@ -106,3 +106,43 @@ The engine loads one fixture, `/plays/trips-right-vs-cover2.json`. There is no p
 - The panel lists 50 lines.
 - The text `…and 10 more` is visible.
 - Lines for the first player appear before lines for the second.
+
+## Scenario 9 — A watch id loads the fixture
+
+**Preconditions:** Dev server running. No Supabase env, so `/watch/:playId` opens the viewer. `version` is ignored until plays are stored.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/watch/trips-right-flood-vs-cover2 .
+2. Open http://127.0.0.1:5173/?play=/plays/trips-right-vs-cover2.json .
+
+**Expected:**
+
+- Both leave `Loading play…` and show the canvas.
+- The id loads `/plays/trips-right-vs-cover2.json`.
+- An unknown id, such as http://127.0.0.1:5173/watch/missing-play , shows `not found` for `/watch/missing-play`.
+- `?play=` on the home page still selects a `/plays/<name>.json` fixture.
+
+## Scenario 10 — A draft key compiles in the viewer
+
+**Preconditions:** Dev server running. In the console, `sessionStorage['draft:chart-1']` is JSON `{ source, look }` for Trips Flood and Cover 2.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/watch/draft/chart-1 .
+
+**Expected:**
+
+- The canvas shows the compiled chart.
+- A **Back to editor** button is on the viewer.
+
+## Scenario 11 — A bad draft key is not found
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/watch/draft/nope with nothing stored at `draft:nope`.
+
+**Expected:**
+
+- The load-error panel shows `/watch/draft/nope`.
+- The message is `not found`.
