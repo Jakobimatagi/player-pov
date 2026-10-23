@@ -3,3 +3,5 @@ node_modules
 coverage
 package-lock.json
 public
+docs/play-charting.md
+docs/v2-data-model.md

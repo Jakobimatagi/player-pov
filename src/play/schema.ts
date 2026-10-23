@@ -28,11 +28,8 @@ const waypointSchema = z.strictObject({
   interp: z.enum(['smooth', 'linear']).optional(),
 })
 
-/**
- * Six is the longest route that still fits the triangle budget for every player.
- * Twenty-two players at this cap are 110 chords, 220 ribbon triangles.
- */
-export const MAX_WAYPOINTS = 6
+/** Snap plus at most eleven legs. Longer routes thin to the ribbon chord cap. */
+export const MAX_WAYPOINTS = 12
 
 const playerSchema = z.strictObject({
   id: z.string().regex(/^[a-z0-9_]+$/),

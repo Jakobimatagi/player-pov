@@ -91,7 +91,10 @@ describe('route ribbons', () => {
       triangleCount(boxVisual.geometry) * 22 +
       triangleCount(createNumberGeometry(boxVisual.numberAnchor)) * 22 +
       80
-    expect(routes).toBe(22 * (MAX_WAYPOINTS - 1) * 2)
+    const rawChords = 22 * (MAX_WAYPOINTS - 1)
+    expect(rawChords).toBeGreaterThan(ROUTE_SEGMENT_CAP)
+    expect(routes).toBeLessThanOrEqual(ROUTE_SEGMENT_CAP * 2)
+    expect(routes).toBeLessThan(rawChords * 2)
     expect(scene + routes).toBeLessThanOrEqual(2000)
 
     const over = structuredClone(sample)
@@ -105,7 +108,11 @@ describe('route ribbons', () => {
       x: (prev.x + tail.x) / 2,
       y: (prev.y + tail.y) / 2,
     })
-    expect(validatePlay(over).ok).toBe(false)
+    const rejected = validatePlay(over)
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok) {
+      expect(rejected.errors.some((error) => error.path.includes('waypoints'))).toBe(true)
+    }
 
     const dense = buildRouteRibbon({
       count: 1,
