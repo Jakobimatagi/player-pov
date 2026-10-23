@@ -1,5 +1,5 @@
 begin;
-select plan(55);
+select plan(58);
 set local search_path = public, extensions, auth;
 
 create function pg_temp.make_user(uid uuid, email text)
@@ -140,6 +140,37 @@ select is(
 );
 select is((select count(*)::int from public.scout_looks), 2, 'coach sees both looks');
 select is((select count(*)::int from public.player_slots), 1, 'coach sees the slot');
+select is(
+  (select created_by from public.scout_packages where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd01'),
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'::uuid,
+  'a package created_by defaults to the creating coach'
+);
+
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select lives_ok(
+  $$update public.scout_packages
+    set opponent = 'Rival High'
+    where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd01'$$,
+  'another staff member can update a package'
+);
+select throws_ok(
+  $$insert into public.scout_packages (id, team_id, name, created_by)
+    values (
+      'dddddddd-dddd-4ddd-8ddd-dddddddddd99',
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      'Spoof package',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21'
+    )$$,
+  '42501',
+  'new row violates row-level security policy for table "scout_packages"',
+  'a spoofed package created_by is rejected'
+);
 
 reset role;
 set local search_path = public, extensions, auth;

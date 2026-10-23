@@ -9,7 +9,7 @@ create table public.scout_packages (
   name text not null,
   opponent text,
   week_of date,
-  created_by uuid references auth.users,
+  created_by uuid default auth.uid() references auth.users on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -225,10 +225,16 @@ create policy pkg_select on public.scout_packages
         and at.user_id = auth.uid()
     )
   );
-create policy pkg_write on public.scout_packages
-  for all to authenticated
+create policy pkg_insert on public.scout_packages
+  for insert to authenticated
+  with check (app.is_staff(team_id) and created_by = auth.uid());
+create policy pkg_update on public.scout_packages
+  for update to authenticated
   using (app.is_staff(team_id))
   with check (app.is_staff(team_id));
+create policy pkg_delete on public.scout_packages
+  for delete to authenticated
+  using (app.is_staff(team_id));
 
 create policy spl_select on public.scout_package_looks
   for select to authenticated
