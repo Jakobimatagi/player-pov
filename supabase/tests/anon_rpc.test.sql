@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(21);
 set local search_path = public, extensions;
 
 -- Supabase internals stay out of this check. public and app are in it,
@@ -76,6 +76,55 @@ select ok(
 select ok(
   has_function_privilege('authenticated', 'public.invite_status(uuid)', 'EXECUTE'),
   'authenticated can execute invite_status'
+);
+
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.save_play_version(uuid, uuid, integer, text, jsonb, jsonb, text, text, uuid, integer, jsonb, text)',
+    'EXECUTE'
+  ),
+  'anon cannot execute save_play_version'
+);
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.save_play_version(uuid, uuid, integer, text, jsonb, jsonb, text, text, uuid, integer, jsonb, text)',
+    'EXECUTE'
+  ),
+  'authenticated can execute save_play_version'
+);
+select ok(
+  not has_function_privilege(
+    'service_role',
+    'public.save_play_version(uuid, uuid, integer, text, jsonb, jsonb, text, text, uuid, integer, jsonb, text)',
+    'EXECUTE'
+  ),
+  'service_role cannot execute save_play_version'
+);
+select ok(
+  not has_function_privilege('anon', 'app.can_view_play(uuid)', 'EXECUTE'),
+  'anon cannot execute can_view_play'
+);
+select ok(
+  has_function_privilege('authenticated', 'app.can_view_play(uuid)', 'EXECUTE'),
+  'authenticated can execute can_view_play'
+);
+select ok(
+  has_function_privilege('service_role', 'app.can_view_play(uuid)', 'EXECUTE'),
+  'service_role can execute can_view_play'
+);
+select ok(
+  not has_function_privilege('anon', 'app.guard_assignment()', 'EXECUTE'),
+  'anon cannot execute guard_assignment'
+);
+select ok(
+  has_function_privilege('authenticated', 'app.guard_assignment()', 'EXECUTE'),
+  'authenticated can execute guard_assignment'
+);
+select ok(
+  has_function_privilege('service_role', 'app.guard_assignment()', 'EXECUTE'),
+  'service_role can execute guard_assignment'
 );
 
 set local role anon;
