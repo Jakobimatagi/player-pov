@@ -5,8 +5,10 @@ import { compilePlay } from '../src/play/compile'
 import { validatePlay } from '../src/play/load'
 import { MAX_WAYPOINTS } from '../src/play/schema'
 import type { PlayFile, Waypoint } from '../src/play/types'
+import { buildBallGeometry } from '../src/scene/ballGeometry'
+import { blockyVisual } from '../src/scene/blockyVisual'
 import { buildFieldMarkings, buildGrass, triangleCount } from '../src/scene/fieldMarkings'
-import { boxVisual, createNumberGeometry } from '../src/scene/playerVisual'
+import { createNumberGeometry } from '../src/scene/playerVisual'
 import {
   ROUTE_CSS_PX,
   ROUTE_SEGMENT_CAP,
@@ -54,16 +56,16 @@ describe('route ribbons', () => {
     const scene =
       triangleCount(buildGrass()) +
       triangleCount(buildFieldMarkings(fieldConfig())) +
-      triangleCount(boxVisual.geometry) * 22 +
-      triangleCount(createNumberGeometry(boxVisual.numberAnchor)) * 22 +
-      80
+      triangleCount(blockyVisual.geometry) * 22 +
+      triangleCount(createNumberGeometry(blockyVisual.numberAnchor)) * 22 +
+      triangleCount(buildBallGeometry())
     expect(routes).toBe(180)
-    expect(scene).toBeLessThanOrEqual(2000)
-    expect(scene + routes).toBeLessThanOrEqual(2000)
-    expect(scene + ROUTE_SEGMENT_CAP * 2).toBeLessThanOrEqual(2000)
+    expect(scene).toBeLessThanOrEqual(6000)
+    expect(scene + routes).toBeLessThanOrEqual(6000)
+    expect(scene + ROUTE_SEGMENT_CAP * 2).toBeLessThanOrEqual(6000)
   })
 
-  it('keeps a schema-valid play at the waypoint cap under 2000 triangles', () => {
+  it('keeps a schema-valid play at the waypoint cap within 6000 triangles', () => {
     const sample = JSON.parse(
       readFileSync('public/plays/trips-right-vs-cover2.json', 'utf8'),
     ) as PlayFile
@@ -88,11 +90,14 @@ describe('route ribbons', () => {
     const scene =
       triangleCount(buildGrass()) +
       triangleCount(buildFieldMarkings(fieldConfig())) +
-      triangleCount(boxVisual.geometry) * 22 +
-      triangleCount(createNumberGeometry(boxVisual.numberAnchor)) * 22 +
-      80
-    expect(routes).toBe(22 * (MAX_WAYPOINTS - 1) * 2)
-    expect(scene + routes).toBeLessThanOrEqual(2000)
+      triangleCount(blockyVisual.geometry) * 22 +
+      triangleCount(createNumberGeometry(blockyVisual.numberAnchor)) * 22 +
+      triangleCount(buildBallGeometry())
+    const rawChords = 22 * (MAX_WAYPOINTS - 1)
+    expect(rawChords).toBeGreaterThan(ROUTE_SEGMENT_CAP)
+    expect(routes).toBeLessThanOrEqual(ROUTE_SEGMENT_CAP * 2)
+    expect(routes).toBeLessThan(rawChords * 2)
+    expect(scene + routes).toBeLessThanOrEqual(6000)
 
     const over = structuredClone(sample)
     const first = over.players[0]
@@ -105,7 +110,11 @@ describe('route ribbons', () => {
       x: (prev.x + tail.x) / 2,
       y: (prev.y + tail.y) / 2,
     })
-    expect(validatePlay(over).ok).toBe(false)
+    const rejected = validatePlay(over)
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok) {
+      expect(rejected.errors.some((error) => error.path.includes('waypoints'))).toBe(true)
+    }
 
     const dense = buildRouteRibbon({
       count: 1,

@@ -221,6 +221,54 @@ describe('rejected plays', () => {
   })
 })
 
+function extendToCap(play: PlayFile, cap: number): void {
+  for (const player of play.players) {
+    const wps = player.waypoints
+    while (wps.length < cap) {
+      const prev = wps[wps.length - 2]
+      const last = wps[wps.length - 1]
+      if (prev == null || last == null) break
+      wps.splice(wps.length - 1, 0, {
+        t: (prev.t + last.t) / 2,
+        x: (prev.x + last.x) / 2,
+        y: (prev.y + last.y) / 2,
+      })
+    }
+  }
+}
+
+describe('waypoint cap', () => {
+  it('accepts 12 waypoints and matches validate.py', () => {
+    const play = clone()
+    extendToCap(play, 12)
+    for (const player of play.players) expect(player.waypoints).toHaveLength(12)
+    const result = validatePlay(play)
+    expect(result.ok).toBe(true)
+    expectSameVerdict(play)
+  })
+
+  it('rejects 13 waypoints on the waypoints path and matches validate.py', () => {
+    const play = clone()
+    extendToCap(play, 12)
+    const first = play.players[0]
+    if (first == null) throw new Error('missing player')
+    const prev = first.waypoints[first.waypoints.length - 2]
+    const tail = first.waypoints[first.waypoints.length - 1]
+    if (prev == null || tail == null) throw new Error('missing waypoint')
+    first.waypoints.splice(first.waypoints.length - 1, 0, {
+      t: (prev.t + tail.t) / 2,
+      x: (prev.x + tail.x) / 2,
+      y: (prev.y + tail.y) / 2,
+    })
+    const result = validatePlay(play)
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.errors.some((error) => error.path === 'players[0].waypoints')).toBe(true)
+    }
+    expectSameVerdict(play)
+  })
+})
+
 describe('warnings', () => {
   it('warns, and still loads, when two players are 0.3 yd apart at the snap', () => {
     const play = clone()
@@ -324,7 +372,7 @@ describe('LoadError screen', () => {
       const x = player.team === 'offense' ? 30 : 40
       const points = []
       // `pairs` strictly decreasing steps (all t >= -10), then a legal finish at duration.
-      // Six waypoints is the schema cap, so four decreasing steps fit with that finish.
+      // Four decreasing steps plus that finish stay inside the waypoint cap.
       for (let i = 0; i <= pairs; i += 1) {
         points.push({ t: -i * 0.2, x, y: 26, face: 0 })
       }

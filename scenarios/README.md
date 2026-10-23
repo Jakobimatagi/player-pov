@@ -66,6 +66,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `auth.md`                      | Sign in, reset, invite, sign out          |
 | `team-management.md`           | Create team, roster, invites              |
 | `play-compile.md`              | Source compile, looks, validator parity   |
+| `waypoint-cap.md`              | 12-waypoint cap and route thinning        |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 

@@ -68,7 +68,7 @@ The scrubber sits on the viewer. `window.__pov` is available in `npm run dev`.
 - Pale ribbons trace each player's waypoints while shown. They are much thicker than a 1px hairline, about 6 CSS pixels, in POV, Broadcast, and Top-down.
 - On a 360px-wide phone the ribbons stay readable in each camera. Compare `docs/routes-360-pov.png`, `docs/routes-360-broadcast.png`, and `docs/routes-360-topdown.png`.
 - They disappear when hidden. The play clock is unchanged.
-- Routes are one draw. With the sample play they are 180 triangles, and the scene including them stays within the 2,000 triangle budget.
+- Routes are one draw. With the sample play they are 180 triangles. The play stays within 6,000 triangles and 10 meshes.
 
 ## Scenario 6 — Controls fit a 360px phone
 

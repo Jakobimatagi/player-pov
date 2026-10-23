@@ -63,8 +63,9 @@ export interface RouteWaypoints {
 }
 
 /**
- * Chords the ribbon will draw. The field, players, and ball use 1,742 triangles,
- * so 129 chords (258 triangles) keep any play at or under 2,000.
+ * Chords the ribbon will draw. Each chord is two triangles, so this cap is
+ * 258 triangles. A longer chart thins until it fits. R1 is decided: the play
+ * budget is at most 6,000 triangles and 10 meshes. The ribbon stays inside this cap.
  */
 export const ROUTE_SEGMENT_CAP = 129
 
@@ -91,10 +92,38 @@ function chordCount(waypointCount: number, stride: number): number {
   return chords
 }
 
+function chordsAtStride(play: RouteWaypoints, stride: number): number {
+  let segments = 0
+  for (let i = 0; i < play.count; i += 1) {
+    const start = play.wpStart[i] ?? 0
+    const end = play.wpStart[i + 1] ?? start
+    segments += chordCount(end - start, stride)
+  }
+  return segments
+}
+
+/**
+ * Stride that stays at the chord cap. `ceil(raw / cap)` can still overshoot,
+ * because each route keeps its last point, so the stride steps up until the
+ * drawn chords fit.
+ */
+function routeStride(play: RouteWaypoints): number {
+  const total = rawSegments(play)
+  if (total <= ROUTE_SEGMENT_CAP) return 1
+  let stride = Math.ceil(total / ROUTE_SEGMENT_CAP)
+  let longest = 2
+  for (let i = 0; i < play.count; i += 1) {
+    const start = play.wpStart[i] ?? 0
+    const end = play.wpStart[i + 1] ?? start
+    if (end - start > longest) longest = end - start
+  }
+  while (stride < longest && chordsAtStride(play, stride) > ROUTE_SEGMENT_CAP) stride += 1
+  return stride
+}
+
 /** One screen-space ribbon. Two triangles per chord, thinned to the segment cap. */
 export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
-  const total = rawSegments(play)
-  const stride = total > ROUTE_SEGMENT_CAP ? Math.ceil(total / ROUTE_SEGMENT_CAP) : 1
+  const stride = routeStride(play)
   let segments = 0
   for (let i = 0; i < play.count; i += 1) {
     const start = play.wpStart[i] ?? 0
