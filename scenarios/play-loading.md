@@ -135,6 +135,7 @@ The engine loads one fixture, `/plays/trips-right-vs-cover2.json`. There is no p
 
 - The canvas shows the compiled chart.
 - A **Back to editor** button is on the viewer.
+- The button opens `/plays/trips-flood/edit`.
 
 ## Scenario 11 — A bad draft key is not found
 

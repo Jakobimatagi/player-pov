@@ -239,7 +239,11 @@ export function App() {
         </div>
       </div>
       {input.kind === 'draft' && (
-        <button type="button" className="btn back-to-editor" onClick={() => navigate(-1)}>
+        <button
+          type="button"
+          className="btn back-to-editor"
+          onClick={() => navigate(`/plays/${loaded.play.meta.id}/edit`)}
+        >
           Back to editor
         </button>
       )}

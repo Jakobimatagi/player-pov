@@ -74,8 +74,10 @@ export function compileChart(source: PlaySource, look: LookSource): ChartCompile
 
 /** WebCrypto SHA-256 of canonical JSON. Matches node playChecksum. */
 export async function checksumSource(source: PlaySource | LookSource): Promise<string> {
+  const subtle = globalThis.crypto?.subtle
+  if (subtle == null) throw new Error('needs HTTPS to checksum a play')
   const bytes = new TextEncoder().encode(canonicalJson(source))
-  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  const digest = await subtle.digest('SHA-256', bytes)
   let hex = ''
   for (const byte of new Uint8Array(digest)) hex += byte.toString(16).padStart(2, '0')
   return hex

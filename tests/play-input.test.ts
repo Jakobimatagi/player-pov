@@ -1,10 +1,11 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
-import { COVER_2_LOOK, COVER_3_LOOK } from '../src/play/cover2Look'
 import { checksumSource, compileChart } from '../src/editor/compileAdapter'
+import { canonicalJson } from '../src/play/canonical'
+import { COVER_2_LOOK, COVER_3_LOOK } from '../src/play/cover2Look'
 import { playChecksum } from '../src/play/nodeChecksum'
-import { loadPlayInput, playInputFromLocation, PLAY_FIXTURES } from '../src/play/usePlay'
 import type { LookSource, PlaySource } from '../src/play/sourceTypes'
+import { loadPlayInput, playInputFromLocation, PLAY_FIXTURES } from '../src/play/usePlay'
 
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, 'utf8')) as T
@@ -26,6 +27,28 @@ describe('browser checksum', () => {
     }
     expect(await checksumSource(COVER_2_LOOK)).toBe(playChecksum(COVER_2_LOOK))
     expect(await checksumSource(COVER_3_LOOK)).toBe(playChecksum(COVER_3_LOOK))
+  })
+
+  it('pins a known checksum and ignores key order', async () => {
+    const canonical = '{"a":0,"b":1,"n":1e+21}'
+    const vector = { b: 1, a: -0, drop: undefined, n: 1e21 }
+    const swapped = { n: 1e21, a: -0, b: 1 }
+    expect(canonicalJson(vector)).toBe(canonical)
+    expect(canonicalJson(swapped)).toBe(canonicalJson(vector))
+    expect(canonicalJson({ b: 1, a: 2 })).toBe(canonicalJson({ a: 2, b: 1 }))
+    expect(canonicalJson(-0)).toBe('0')
+    expect(canonicalJson(1e21)).toBe('1e+21')
+    const digest = 'd5354d02222a4666fd1326c81334cbf3af9c949769d7ce2b6235f8e908028f3a'
+    expect(playChecksum(vector)).toBe(digest)
+    expect(await checksumSource(vector as unknown as PlaySource)).toBe(digest)
+    expect(await checksumSource(swapped as unknown as PlaySource)).toBe(playChecksum(vector))
+  })
+
+  it('asks for HTTPS when WebCrypto is missing', async () => {
+    const subtle = crypto.subtle
+    Object.defineProperty(crypto, 'subtle', { configurable: true, value: undefined })
+    await expect(checksumSource({} as PlaySource)).rejects.toThrow(/needs HTTPS/)
+    Object.defineProperty(crypto, 'subtle', { configurable: true, value: subtle })
   })
 
   it('keeps node:crypto out of the browser compiler', () => {
@@ -135,7 +158,62 @@ describe('play input', () => {
       expect(loaded.play.count).toBe(22)
     }
     expect(readFileSync('src/App.tsx', 'utf8')).toContain('Back to editor')
+    expect(readFileSync('src/App.tsx', 'utf8')).toContain('/plays/${loaded.play.meta.id}/edit')
+    expect(readFileSync('src/App.tsx', 'utf8')).not.toContain('navigate(-1)')
     expect(readFileSync('src/app/router.tsx', 'utf8')).toContain('/watch/draft/:draftKey')
+    vi.unstubAllGlobals()
+  })
+
+  it('shows an error for a malformed draft', async () => {
+    const memory = new Map<string, string>()
+    vi.stubGlobal('sessionStorage', {
+      getItem: (key: string) => memory.get(key) ?? null,
+    })
+    memory.set(
+      'draft:bad-shape',
+      JSON.stringify({ source: { sourceVersion: 1, players: [{}] }, look: { players: [{}] } }),
+    )
+    const result = await loadPlayInput({ kind: 'draft', key: 'bad-shape' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.url).toBe('/watch/draft/bad-shape')
+      expect(result.errors.length).toBeGreaterThan(0)
+      expect(result.errors.every((error) => error.kind === 'schema')).toBe(true)
+    }
+    vi.unstubAllGlobals()
+  })
+
+  it('rejects a draft over 64KB before parsing', async () => {
+    const memory = new Map<string, string>()
+    vi.stubGlobal('sessionStorage', {
+      getItem: (key: string) => memory.get(key) ?? null,
+    })
+    memory.set('draft:huge-1', `{${'a'.repeat(64 * 1024)}`)
+    const result = await loadPlayInput({ kind: 'draft', key: 'huge-1' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.errors[0]?.message).toBe('draft is over 64KB')
+    vi.unstubAllGlobals()
+  })
+
+  it('does not read fixture or draft keys off the prototype chain', async () => {
+    const fetchMock = vi.fn()
+    const reads: string[] = []
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('sessionStorage', {
+      getItem: (key: string) => {
+        reads.push(key)
+        return null
+      },
+    })
+    const inherited = await loadPlayInput({ kind: 'id', playId: 'constructor' })
+    expect(inherited.ok).toBe(false)
+    if (!inherited.ok) expect(inherited.errors[0]?.message).toBe('not found')
+    expect(fetchMock).not.toHaveBeenCalled()
+    const draft = await loadPlayInput({ kind: 'draft', key: '__proto__' })
+    expect(draft.ok).toBe(false)
+    if (!draft.ok) expect(draft.errors[0]?.message).toBe('not found')
+    expect(reads).toEqual([])
+    expect(Object.hasOwn(PLAY_FIXTURES, 'trips-right-flood-vs-cover2')).toBe(true)
     vi.unstubAllGlobals()
   })
 })

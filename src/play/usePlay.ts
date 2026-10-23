@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { compileChart } from '../editor/compileAdapter'
 import { fetchPlay, parseJson, playUrlFromSearch, SAMPLE_PLAY_URL } from './load'
-import { collectWarnings } from './schema'
-import type { LookSource, PlaySource } from './sourceTypes'
+import { collectWarnings, zodIssuesToErrors } from './schema'
+import { LookSourceSchema, PlaySourceSchema } from './sourceSchema'
 import type { CompiledPlay, PlayLoadError, PlayWarning } from './types'
 
 /** Fixture ids until plays are stored. `version` is ignored until then. */
@@ -25,9 +25,18 @@ export function playInputFromLocation(
   return { kind: 'url', url: playUrlFromSearch(search) }
 }
 
+/** Fixture ids and draft keys. Own keys only, so the lookup cannot walk the prototype. */
+const SAFE_ID = /^[a-z0-9-]{1,64}$/
+const DRAFT_BYTE_CAP = 64 * 1024
+
+function fixtureUrl(playId: string): string | undefined {
+  if (!SAFE_ID.test(playId) || !Object.hasOwn(PLAY_FIXTURES, playId)) return undefined
+  return PLAY_FIXTURES[playId]
+}
+
 function inputUrl(input: PlayInput): string {
   if (input.kind === 'url') return input.url
-  if (input.kind === 'id') return PLAY_FIXTURES[input.playId] ?? `/watch/${input.playId}`
+  if (input.kind === 'id') return fixtureUrl(input.playId) ?? `/watch/${input.playId}`
   return `/watch/draft/${input.key}`
 }
 
@@ -35,20 +44,17 @@ type Loaded =
   | { ok: true; url: string; play: CompiledPlay; warnings: PlayWarning[] }
   | { ok: false; url: string; errors: PlayLoadError[] }
 
-function isDraft(value: unknown): value is { source: PlaySource; look: LookSource } {
-  if (typeof value !== 'object' || value == null) return false
-  const record = value as { source?: unknown; look?: unknown }
-  if (typeof record.source !== 'object' || record.source == null) return false
-  if (typeof record.look !== 'object' || record.look == null) return false
-  const source = record.source as { sourceVersion?: unknown; players?: unknown }
-  const look = record.look as { players?: unknown }
-  return source.sourceVersion === 1 && Array.isArray(source.players) && Array.isArray(look.players)
+function prefixed(errors: PlayLoadError[], prefix: string): PlayLoadError[] {
+  return errors.map((error) => ({
+    ...error,
+    path: error.path.length === 0 ? prefix : `${prefix}.${error.path}`,
+  }))
 }
 
 export async function loadPlayInput(input: PlayInput): Promise<Loaded> {
   if (input.kind === 'url') return fetchPlay(input.url)
   if (input.kind === 'id') {
-    const url = PLAY_FIXTURES[input.playId]
+    const url = fixtureUrl(input.playId)
     if (url == null) {
       const missing = `/watch/${input.playId}`
       return {
@@ -60,6 +66,13 @@ export async function loadPlayInput(input: PlayInput): Promise<Loaded> {
     return fetchPlay(url)
   }
   const url = `/watch/draft/${input.key}`
+  if (!SAFE_ID.test(input.key)) {
+    return {
+      ok: false,
+      url,
+      errors: [{ kind: 'network', path: url, message: 'not found' }],
+    }
+  }
   const raw = globalThis.sessionStorage?.getItem(`draft:${input.key}`) ?? null
   if (raw == null) {
     return {
@@ -68,22 +81,52 @@ export async function loadPlayInput(input: PlayInput): Promise<Loaded> {
       errors: [{ kind: 'network', path: url, message: 'not found' }],
     }
   }
+  if (new TextEncoder().encode(raw).byteLength > DRAFT_BYTE_CAP) {
+    return {
+      ok: false,
+      url,
+      errors: [{ kind: 'parse', path: url, message: 'draft is over 64KB' }],
+    }
+  }
   const parsed = parseJson(raw)
   if (!parsed.ok) {
     return { ok: false, url, errors: [{ kind: 'parse', path: url, message: parsed.message }] }
   }
-  if (!isDraft(parsed.value)) {
+  const record = parsed.value
+  if (typeof record !== 'object' || record == null) {
     return {
       ok: false,
       url,
       errors: [{ kind: 'schema', path: url, message: 'draft is missing source or look' }],
     }
   }
-  const chart = compileChart(parsed.value.source, parsed.value.look)
-  if (chart.compiled == null || chart.play == null) {
-    return { ok: false, url, errors: chart.errors }
+  const body = record as { source?: unknown; look?: unknown }
+  const sourceParsed = PlaySourceSchema.safeParse(body.source)
+  const lookParsed = LookSourceSchema.safeParse(body.look)
+  if (!sourceParsed.success || !lookParsed.success) {
+    return {
+      ok: false,
+      url,
+      errors: [
+        ...(sourceParsed.success
+          ? []
+          : prefixed(zodIssuesToErrors(sourceParsed.error, body.source), 'source')),
+        ...(lookParsed.success
+          ? []
+          : prefixed(zodIssuesToErrors(lookParsed.error, body.look), 'look')),
+      ],
+    }
   }
-  return { ok: true, url, play: chart.compiled, warnings: collectWarnings(chart.play) }
+  try {
+    const chart = compileChart(sourceParsed.data, lookParsed.data)
+    if (chart.compiled == null || chart.play == null) {
+      return { ok: false, url, errors: chart.errors }
+    }
+    return { ok: true, url, play: chart.compiled, warnings: collectWarnings(chart.play) }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'draft failed to compile'
+    return { ok: false, url, errors: [{ kind: 'schema', path: url, message }] }
+  }
 }
 
 export type PlayState =
@@ -109,20 +152,32 @@ export function usePlayInput(input: PlayInput): PlayState & { retry: () => void 
         : kind === 'id'
           ? { kind: 'id', playId, ...(version != null ? { version } : {}) }
           : { kind: 'draft', key: draftKey }
-    void loadPlayInput(current).then((result) => {
-      if (cancelled) return
-      if (result.ok) {
-        for (const warning of result.warnings) console.warn(`${warning.path}: ${warning.message}`)
+    void (async () => {
+      try {
+        const result = await loadPlayInput(current)
+        if (cancelled) return
+        if (result.ok) {
+          for (const warning of result.warnings) console.warn(`${warning.path}: ${warning.message}`)
+          setState({
+            status: 'ready',
+            url: result.url,
+            play: result.play,
+            warnings: result.warnings,
+          })
+        } else {
+          setState({ status: 'error', url: result.url, errors: result.errors })
+        }
+      } catch (err) {
+        if (cancelled) return
+        const failed = inputUrl(current)
+        const message = err instanceof Error ? err.message : 'load failed'
         setState({
-          status: 'ready',
-          url: result.url,
-          play: result.play,
-          warnings: result.warnings,
+          status: 'error',
+          url: failed,
+          errors: [{ kind: 'parse', path: failed, message }],
         })
-      } else {
-        setState({ status: 'error', url: result.url, errors: result.errors })
       }
-    })
+    })()
     return () => {
       cancelled = true
     }
