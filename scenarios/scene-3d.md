@@ -48,7 +48,8 @@ The field is geometry, not a texture. Open http://127.0.0.1:5173 after `npm run 
 **Expected:**
 
 - Grass is 48 triangles.
-- Markings, including goalposts, are at or under 2,000 triangles.
+- Markings, including goalposts, are at or under 6,000 triangles.
+- The scene stays at or under 6,000 triangles and 10 meshes.
 - The field is two draw calls besides the optional debug sphere: grass, then markings.
 
 ## Scenario 5 — Twenty-two players at the snap

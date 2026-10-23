@@ -295,7 +295,7 @@ export function TeamPage() {
       {playerView ? null : (
         <nav className="side-nav" aria-label="Coach">
           {TABS.map((tab) => (
-            <Link key={tab} to="/team">
+            <Link key={tab} to={tab === 'Playbooks' ? '/playbook' : '/team'}>
               {tab}
             </Link>
           ))}
@@ -395,7 +395,7 @@ export function TeamPage() {
       {playerView ? null : (
         <nav className="tab-bar" aria-label="Coach">
           {TABS.map((tab) => (
-            <Link key={tab} to="/team">
+            <Link key={tab} to={tab === 'Playbooks' ? '/playbook' : '/team'}>
               {tab}
             </Link>
           ))}
@@ -407,7 +407,11 @@ export function TeamPage() {
             Close
           </button>
           {TABS.map((tab) => (
-            <Link key={tab} to="/team" onClick={() => setMenuOpen(false)}>
+            <Link
+              key={tab}
+              to={tab === 'Playbooks' ? '/playbook' : '/team'}
+              onClick={() => setMenuOpen(false)}
+            >
               {tab}
             </Link>
           ))}
