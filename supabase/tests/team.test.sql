@@ -1,5 +1,5 @@
 begin;
-select plan(25);
+select plan(29);
 set local search_path = public, extensions, auth;
 
 create function pg_temp.make_user(uid uuid, email text, confirmed boolean)
@@ -47,6 +47,32 @@ select throws_ok(
   'an unconfirmed user cannot create a team'
 );
 
+do $$
+begin
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('request.jwt.claims', '', true);
+end $$;
+
+select throws_ok(
+  $$select public.create_team('Nope', 'School', '2026', 'NFHS', '2026-11-30')$$,
+  'P0001',
+  'sign in required',
+  'a null uid cannot create a team'
+);
+
+set local role anon;
+set local search_path = public, extensions, auth;
+
+select throws_ok(
+  $$select public.create_team('Nope', 'School', '2026', 'NFHS', '2026-11-30')$$,
+  'P0001',
+  'sign in required',
+  'anon cannot create a team'
+);
+
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
 select is(
   set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01', true)
     || set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01","role":"authenticated"}', true),
@@ -54,11 +80,35 @@ select is(
   'act as confirmed coach'
 );
 
+select throws_ok(
+  $$select public.create_team('Nope', 'School', '2026', 'CIF', '2026-11-30')$$,
+  'P0001',
+  'hash rule must be NFHS or NCAA',
+  'a bad hash rule is rejected'
+);
+
+-- create_team() has to run as its own statement. Inside the memberships
+-- WHERE clause, memberships_user_id_idx finds no row for this user, so
+-- Postgres never calls the function and no team is created.
+do $$
+declare
+  team uuid;
+begin
+  team := public.create_team('Knights', 'Demo High', '2026', 'NFHS', '2026-11-30');
+  perform set_config('test.knights', team::text, true);
+end $$;
+
+select is(
+  (select created_by from public.teams where id = current_setting('test.knights', true)::uuid),
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01'::uuid,
+  'create_team sets created_by to the caller'
+);
+
 select is(
   (
     select role from public.memberships
-    where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01'
-      and team_id = public.create_team('Knights', 'Demo High', '2026', 'NFHS', '2026-11-30')
+    where team_id = current_setting('test.knights', true)::uuid
+      and user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01'
   ),
   'head_coach'::public.team_role,
   'create_team makes the caller head coach'
@@ -129,19 +179,14 @@ select throws_ok(
   'an assistant coach cannot invite'
 );
 
-do $$
-begin
-  begin
-    insert into public.memberships (team_id, user_id, role)
+select throws_ok(
+  $$insert into public.memberships (team_id, user_id, role)
     select id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa02', 'player'
-    from public.teams where name = 'Knights';
-    raise exception 'coach inserted a membership';
-  exception
-    when insufficient_privilege then
-      null;
-  end;
-end $$;
-select ok(true, 'an assistant coach cannot insert memberships');
+    from public.teams where name = 'Knights'$$,
+  '42501',
+  'new row violates row-level security policy for table "memberships"',
+  'an assistant coach cannot insert memberships'
+);
 
 select is(
   set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01', true)
