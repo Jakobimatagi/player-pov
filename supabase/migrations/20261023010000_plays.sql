@@ -29,7 +29,7 @@ create table public.play_versions (
   compiled_schema smallint not null,
   compiler_version text not null,
   checksum text not null,
-  created_by uuid references auth.users,
+  created_by uuid references auth.users on delete set null,
   created_at timestamptz not null default now(),
   primary key (play_id, version)
 );
@@ -43,7 +43,7 @@ create table public.scout_looks (
   coverage text,
   opponent text,
   current_version int,
-  created_by uuid references auth.users,
+  created_by uuid references auth.users on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -52,7 +52,7 @@ create table public.scout_look_versions (
   version int not null,
   source jsonb not null,
   checksum text not null,
-  created_by uuid references auth.users,
+  created_by uuid references auth.users on delete set null,
   created_at timestamptz not null default now(),
   primary key (look_id, version)
 );
@@ -287,10 +287,16 @@ create policy pb_select on public.playbooks
       )
     )
   );
-create policy pb_write on public.playbooks
-  for all to authenticated
-  using (app.is_staff(team_id))
+create policy pb_insert on public.playbooks
+  for insert to authenticated
   with check (app.is_staff(team_id) and created_by = auth.uid());
+create policy pb_update on public.playbooks
+  for update to authenticated
+  using (app.is_staff(team_id))
+  with check (app.is_staff(team_id));
+create policy pb_delete on public.playbooks
+  for delete to authenticated
+  using (app.is_staff(team_id));
 
 create policy pbp_select on public.playbook_plays
   for select to authenticated
@@ -341,10 +347,16 @@ create policy asg_select on public.assignments
       )
     )
   );
-create policy asg_write on public.assignments
-  for all to authenticated
-  using (app.is_staff(team_id))
+create policy asg_insert on public.assignments
+  for insert to authenticated
   with check (app.is_staff(team_id) and created_by = auth.uid());
+create policy asg_update on public.assignments
+  for update to authenticated
+  using (app.is_staff(team_id))
+  with check (app.is_staff(team_id));
+create policy asg_delete on public.assignments
+  for delete to authenticated
+  using (app.is_staff(team_id));
 
 create function public.save_play_version(
   p_team uuid,

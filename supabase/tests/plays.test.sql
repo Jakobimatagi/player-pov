@@ -1,5 +1,5 @@
 begin;
-select plan(65);
+select plan(67);
 set local search_path = public, extensions, auth;
 
 create function pg_temp.make_user(uid uuid, email text)
@@ -629,6 +629,27 @@ select throws_ok(
   '22023',
   'look checksum must be 64 hex characters',
   'a look checksum that is not 64 hex characters is rejected'
+);
+
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select lives_ok(
+  $$update public.playbooks
+    set name = 'PB1 edited by the head coach'
+    where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'$$,
+  'another staff member can update a playbook'
+);
+select lives_ok(
+  $$update public.assignments
+    set due_at = '2026-10-30T00:00:00Z'
+    where playbook_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'
+      and assignee_group = 'QB'$$,
+  'another staff member can update an assignment'
 );
 
 select is(

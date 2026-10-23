@@ -10,10 +10,16 @@ drop policy if exists looks_select on public.scout_looks;
 drop policy if exists looks_write on public.scout_looks;
 drop policy if exists lv_select on public.scout_look_versions;
 drop policy if exists pb_select on public.playbooks;
+drop policy if exists pb_insert on public.playbooks;
+drop policy if exists pb_update on public.playbooks;
+drop policy if exists pb_delete on public.playbooks;
 drop policy if exists pb_write on public.playbooks;
 drop policy if exists pbp_select on public.playbook_plays;
 drop policy if exists pbp_write on public.playbook_plays;
 drop policy if exists asg_select on public.assignments;
+drop policy if exists asg_insert on public.assignments;
+drop policy if exists asg_update on public.assignments;
+drop policy if exists asg_delete on public.assignments;
 drop policy if exists asg_write on public.assignments;
 
 drop view if exists public.assignment_targets;
