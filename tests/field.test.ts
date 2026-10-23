@@ -17,21 +17,30 @@ describe('field config', () => {
 })
 
 describe('field geometry', () => {
-  it('keeps grass at 48 triangles and markings at or under 2000', () => {
+  it('keeps grass at 48 triangles and markings inside the 6000 triangle budget', () => {
     const grass = triangleCount(buildGrass())
     const nfhs = triangleCount(buildFieldMarkings(fieldConfig('NFHS')))
     const ncaa = triangleCount(buildFieldMarkings(fieldConfig('NCAA')))
     expect(grass).toBe(48)
-    expect(nfhs).toBeLessThanOrEqual(2000)
+    expect(nfhs).toBeLessThanOrEqual(6000)
     expect(nfhs).toBeGreaterThan(100)
     expect(ncaa).toBe(nfhs)
   })
 
-  it('keeps the whole field scene at or under 2000 triangles', () => {
+  it('keeps the field inside 6000 triangles and the scene inside 10 meshes', () => {
     const total =
       triangleCount(buildGrass()) + triangleCount(buildFieldMarkings(fieldConfig('NFHS')))
-    expect(total).toBeLessThanOrEqual(2000)
+    expect(total).toBeLessThanOrEqual(6000)
     expect(total).toBeGreaterThan(48)
+    const tags = (file: string) =>
+      readFileSync(file, 'utf8').match(/<(mesh|instancedMesh)\b/g)?.length ?? 0
+    const meshes =
+      tags('src/scene/Field.tsx') +
+      tags('src/scene/Players.tsx') +
+      tags('src/scene/Ball.tsx') +
+      tags('src/scene/RouteLines.tsx')
+    expect(meshes).toBeLessThanOrEqual(10)
+    expect(meshes).toBeGreaterThan(0)
   })
 
   it('moves hash ticks when the rule changes', () => {

@@ -164,6 +164,240 @@ export type Database = {
         }
         Relationships: []
       }
+      plays: {
+        Row: {
+          id: string
+          team_id: string
+          name: string
+          side: 'offense' | 'defense'
+          formation: string | null
+          tags: string[]
+          default_look_id: string | null
+          current_version: number | null
+          archived_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          name: string
+          side?: 'offense' | 'defense'
+          formation?: string | null
+          tags?: string[]
+          default_look_id?: string | null
+          current_version?: number | null
+          archived_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          name?: string
+          side?: 'offense' | 'defense'
+          formation?: string | null
+          tags?: string[]
+          default_look_id?: string | null
+          current_version?: number | null
+          archived_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      play_versions: {
+        Row: {
+          play_id: string
+          version: number
+          source: Json
+          compiled: Json
+          source_schema: number
+          compiled_schema: number
+          compiler_version: string
+          checksum: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          play_id: string
+          version: number
+          source: Json
+          compiled: Json
+          source_schema: number
+          compiled_schema: number
+          compiler_version: string
+          checksum: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          play_id?: string
+          version?: number
+          source?: Json
+          compiled?: Json
+          source_schema?: number
+          compiled_schema?: number
+          compiler_version?: string
+          checksum?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      scout_looks: {
+        Row: {
+          id: string
+          team_id: string
+          side: 'offense' | 'defense'
+          name: string
+          front: string | null
+          coverage: string | null
+          opponent: string | null
+          current_version: number | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          side: 'offense' | 'defense'
+          name: string
+          front?: string | null
+          coverage?: string | null
+          opponent?: string | null
+          current_version?: number | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          side?: 'offense' | 'defense'
+          name?: string
+          front?: string | null
+          coverage?: string | null
+          opponent?: string | null
+          current_version?: number | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      scout_look_versions: {
+        Row: {
+          look_id: string
+          version: number
+          source: Json
+          checksum: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          look_id: string
+          version: number
+          source: Json
+          checksum: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          look_id?: string
+          version?: number
+          source?: Json
+          checksum?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      playbooks: {
+        Row: {
+          id: string
+          team_id: string
+          name: string
+          description: string | null
+          archived_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          name: string
+          description?: string | null
+          archived_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          name?: string
+          description?: string | null
+          archived_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      playbook_plays: {
+        Row: {
+          playbook_id: string
+          play_id: string
+          sort: number
+          pinned_version: number | null
+        }
+        Insert: {
+          playbook_id: string
+          play_id: string
+          sort: number
+          pinned_version?: number | null
+        }
+        Update: {
+          playbook_id?: string
+          play_id?: string
+          sort?: number
+          pinned_version?: number | null
+        }
+        Relationships: []
+      }
+      assignments: {
+        Row: {
+          id: string
+          team_id: string
+          playbook_id: string
+          assignee_user: string | null
+          assignee_group: PositionGroup | null
+          due_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          playbook_id: string
+          assignee_user?: string | null
+          assignee_group?: PositionGroup | null
+          due_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          playbook_id?: string
+          assignee_user?: string | null
+          assignee_group?: PositionGroup | null
+          due_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       roster_public: {
@@ -245,6 +479,28 @@ export type Database = {
       health: {
         Args: Record<string, never>
         Returns: number
+      }
+      save_play_version: {
+        Args: {
+          p_team: string
+          p_play: string | null
+          p_expected: number | null
+          p_name: string
+          p_source: Json
+          p_compiled: Json
+          p_checksum: string
+          p_compiler: string
+          p_look: string | null
+          p_look_expected: number | null
+          p_look_source: Json
+          p_look_checksum: string
+        }
+        Returns: {
+          play_id: string
+          version: number
+          look_id: string
+          look_version: number
+        }[]
       }
     }
     Enums: {
