@@ -65,8 +65,8 @@ set local search_path = public, extensions, auth;
 
 select throws_ok(
   $$select public.create_team('Nope', 'School', '2026', 'NFHS', '2026-11-30')$$,
-  '42501',
-  'permission denied for function create_team',
+  'P0001',
+  'sign in required',
   'anon cannot create a team'
 );
 

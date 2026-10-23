@@ -98,6 +98,6 @@ Replace `ANON_KEY` with the anon key from `npx supabase status`.
 
 - The file runs 29 of 29 assertions, and the file passes.
 - `create_team` is called as its own statement and the returned id is kept. `teams.created_by` for that id is `aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01`. The `head_coach` membership is read by that id. A fourth team for that user raises `a fourth team is rejected`.
-- A call with a null `auth.uid()` raises `sign in required`. A call as `anon` raises `42501`. A hash rule other than `NFHS` or `NCAA` raises `hash rule must be NFHS or NCAA`. Duplicate team names are allowed, and this file does not reject them.
+- A call with a null `auth.uid()`, and a call as `anon`, each raise `sign in required`. A hash rule other than `NFHS` or `NCAA` raises `hash rule must be NFHS or NCAA`. Duplicate team names are allowed, and this file does not reject them.
 - A player invite with consent stores a `consent_records` row at `consent-v0-provisional`. An assistant coach's invite raises `not allowed`.
 - An assistant coach cannot insert into `memberships`. Joining is only through `accept_invite`. The direct insert raises `42501`, and the file continues through the rest of the assertions.
