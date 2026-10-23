@@ -129,13 +129,17 @@ The engine loads one fixture, `/plays/trips-right-vs-cover2.json`. There is no p
 
 **Steps:**
 
-1. Open http://127.0.0.1:5173/watch/draft/chart-1 .
+1. Open http://127.0.0.1:5173/watch/draft/chart-1 directly, with no earlier page in this app session.
+2. Click **Back to editor**.
+3. Open the app on another page, go to `/watch/draft/chart-1` without a full reload, and click **Back to editor** again.
 
 **Expected:**
 
 - The canvas shows the compiled chart.
 - A **Back to editor** button is on the viewer.
-- The button opens `/plays/trips-flood/edit`.
+- A direct open has no in-app history, so the button lands on `/`.
+- Arriving from in-app navigation goes back to the previous page.
+- The button does not open `/plays/<id>/edit` until that editor route exists.
 
 ## Scenario 11 — A bad draft key is not found
 

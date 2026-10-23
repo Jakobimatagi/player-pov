@@ -1,6 +1,6 @@
 import { Canvas, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import {
   createContextLossState,
   noteContextLost,
@@ -23,6 +23,7 @@ import { gyroListening, gyroState } from './camera/gyro'
 import { lookState } from './camera/look'
 import { clockState, earliestWaypoint, pauseKeepingPlace } from './playback/clockState'
 import { useClock } from './playback/useClock'
+import { draftBackTarget } from './play/draftBack'
 import { playInputFromLocation, usePlayInput } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
 import { CameraRig } from './scene/CameraRig'
@@ -89,6 +90,7 @@ function ClockMount() {
 
 export function App() {
   const params = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const input = playInputFromLocation(window.location.search, {
     playId: params.playId,
@@ -242,7 +244,11 @@ export function App() {
         <button
           type="button"
           className="btn back-to-editor"
-          onClick={() => navigate(`/plays/${loaded.play.meta.id}/edit`)}
+          onClick={() => {
+            // TODO(C7): navigate to /plays/<id>/edit
+            if (draftBackTarget(location.key) === -1) navigate(-1)
+            else navigate('/')
+          }}
         >
           Back to editor
         </button>

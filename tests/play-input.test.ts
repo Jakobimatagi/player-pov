@@ -1,5 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
+import { createMemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
+import { draftBackTarget } from '../src/play/draftBack'
 import { checksumSource, compileChart } from '../src/editor/compileAdapter'
 import { canonicalJson } from '../src/play/canonical'
 import { COVER_2_LOOK, COVER_3_LOOK } from '../src/play/cover2Look'
@@ -157,11 +159,35 @@ describe('play input', () => {
       expect(loaded.url).toBe('/watch/draft/chart-1')
       expect(loaded.play.count).toBe(22)
     }
-    expect(readFileSync('src/App.tsx', 'utf8')).toContain('Back to editor')
-    expect(readFileSync('src/App.tsx', 'utf8')).toContain('/plays/${loaded.play.meta.id}/edit')
-    expect(readFileSync('src/App.tsx', 'utf8')).not.toContain('navigate(-1)')
+    const app = readFileSync('src/App.tsx', 'utf8')
+    expect(app).toContain('Back to editor')
+    expect(app).toContain('// TODO(C7): navigate to /plays/<id>/edit')
+    expect(app).toContain('navigate(-1)')
+    expect(app).toContain("navigate('/')")
     expect(readFileSync('src/app/router.tsx', 'utf8')).toContain('/watch/draft/:draftKey')
     vi.unstubAllGlobals()
+  })
+
+  it('sends a direct draft open home and an in-app visit back', async () => {
+    const routes = [
+      { path: '/', element: null },
+      { path: '/team', element: null },
+      { path: '/watch/draft/:draftKey', element: null },
+    ]
+    const direct = createMemoryRouter(routes, { initialEntries: ['/watch/draft/chart-1'] })
+    expect(direct.state.location.key).toBe('default')
+    const home = draftBackTarget(direct.state.location.key)
+    expect(home).toBe('/')
+    if (home === -1) await direct.navigate(-1)
+    else await direct.navigate(home)
+    expect(direct.state.location.pathname).toBe('/')
+
+    const fromApp = createMemoryRouter(routes, { initialEntries: ['/team'] })
+    await fromApp.navigate('/watch/draft/chart-1')
+    expect(fromApp.state.location.key).not.toBe('default')
+    expect(draftBackTarget(fromApp.state.location.key)).toBe(-1)
+    await fromApp.navigate(-1)
+    expect(fromApp.state.location.pathname).toBe('/team')
   })
 
   it('shows an error for a malformed draft', async () => {
