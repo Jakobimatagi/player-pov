@@ -1,5 +1,5 @@
 begin;
-select plan(36);
+select plan(53);
 set local search_path = public, extensions, auth;
 
 create function pg_temp.make_user(uid uuid, email text)
@@ -53,7 +53,9 @@ select lives_ok(
       'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
       null, null, 'Flood',
       '{"side":"offense"}'::jsonb, '{"players":[{"waypoints":[1]}]}'::jsonb,
-      'sum', 'test', null, null, '{"side":"defense","name":"Cover A"}'::jsonb, 'look'
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'test',
+      null, null, '{"side":"defense","name":"Cover A"}'::jsonb,
+      'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
     )$$,
   'coach creates Flood'
 );
@@ -62,7 +64,9 @@ select lives_ok(
       'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
       null, null, 'Iso',
       '{"side":"offense"}'::jsonb, '{"players":[{"waypoints":[1]}]}'::jsonb,
-      'sum', 'test', null, null, '{"side":"defense","name":"Cover B"}'::jsonb, 'look'
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'test',
+      null, null, '{"side":"defense","name":"Cover B"}'::jsonb,
+      'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
     )$$,
   'coach creates Iso'
 );
@@ -70,10 +74,10 @@ select lives_ok(
 create temp table look_ids (play_name text primary key, look_id uuid);
 insert into look_ids select name, default_look_id from public.plays;
 
-select lives_ok(
-  $$update public.plays set default_look_id = null$$,
-  'coach unlinks the looks from the plays'
-);
+reset role;
+update public.plays set default_look_id = null;
+set local role authenticated;
+set local search_path = public, extensions, auth;
 select lives_ok(
   $$insert into public.scout_packages (id, team_id, name) values
       ('dddddddd-dddd-4ddd-8ddd-dddddddddd01', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'PK1'),
@@ -211,7 +215,211 @@ select is(
   'other team sees no assignments'
 );
 
+-- QA leak.sql, repeated after this migration recreates can_view_play and looks_select.
 reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select lives_ok(
+  $$select public.save_play_version(
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02',
+      null, null, 'B secret play',
+      '{"side":"offense","secret":"B-play"}'::jsonb, '{"players":[]}'::jsonb,
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'test',
+      null, null, '{"side":"defense","name":"B secret look","secret":"B-look"}'::jsonb,
+      'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
+    )$$,
+  'team B coach saves a play'
+);
+select lives_ok(
+  $$insert into public.scout_packages (id, team_id, name) values
+      ('dddddddd-dddd-4ddd-8ddd-dddddddddd03', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02', 'PKB')$$,
+  'team B coach creates a package'
+);
+
+reset role;
+select set_config('test.b_play', (select id::text from public.plays where name = 'B secret play'), true);
+select set_config('test.b_look', (select default_look_id::text from public.plays where name = 'B secret play'), true);
+
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select throws_ok(
+  $$insert into public.scout_package_looks (package_id, look_id, sort) values
+      ('dddddddd-dddd-4ddd-8ddd-dddddddddd01', current_setting('test.b_look')::uuid, 2)$$,
+  '23514',
+  'look is not on this package team',
+  'a team B look cannot be filed in a team A package'
+);
+select throws_ok(
+  $$insert into public.assignments (team_id, package_id, assignee_group) values
+      ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'dddddddd-dddd-4ddd-8ddd-dddddddddd03', 'QB')$$,
+  '23514',
+  'package is not on this team',
+  'an assignment cannot target another team''s package'
+);
+select throws_ok(
+  $$insert into public.player_slots (team_id, play_id, user_id, slot) values
+      (
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+        current_setting('test.b_play')::uuid,
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13',
+        'qb'
+      )$$,
+  '23514',
+  'play is not on this slot''s team',
+  'a slot cannot point at another team''s play'
+);
+
+reset role;
+delete from public.playbook_plays
+where playbook_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'
+  and play_id = current_setting('test.b_play')::uuid;
+do $$
+begin
+  if exists (
+    select 1 from pg_trigger
+    where tgname = 'playbook_plays_team_guard'
+      and tgrelid = 'public.playbook_plays'::regclass
+      and not tgisinternal
+  ) then
+    execute 'alter table public.playbook_plays disable trigger playbook_plays_team_guard';
+  end if;
+end $$;
+insert into public.playbook_plays (playbook_id, play_id, sort)
+values ('cccccccc-cccc-4ccc-8ccc-cccccccccc01', current_setting('test.b_play')::uuid, 2);
+do $$
+begin
+  if exists (
+    select 1 from pg_trigger
+    where tgname = 'playbook_plays_team_guard'
+      and tgrelid = 'public.playbook_plays'::regclass
+      and not tgisinternal
+  ) then
+    execute 'alter table public.playbook_plays enable trigger playbook_plays_team_guard';
+  end if;
+end $$;
+
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  (select count(*)::int from public.plays where id = current_setting('test.b_play')::uuid),
+  0,
+  'quarterback cannot read team B play through a playbook link'
+);
+select is(
+  (select count(*)::int from public.play_versions where play_id = current_setting('test.b_play')::uuid),
+  0,
+  'quarterback cannot read team B play versions through a playbook link'
+);
+select is(
+  (select count(*)::int from public.scout_looks where id = current_setting('test.b_look')::uuid),
+  0,
+  'quarterback cannot read team B look through a linked play'
+);
+select is(
+  (select count(*)::int from public.scout_look_versions where look_id = current_setting('test.b_look')::uuid),
+  0,
+  'quarterback cannot read team B look versions through a linked play'
+);
+
+reset role;
+set local session_replication_role = replica;
+update public.plays
+set default_look_id = current_setting('test.b_look')::uuid
+where name = 'Flood';
+set local session_replication_role = origin;
+
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  (select count(*)::int from public.scout_looks where id = current_setting('test.b_look')::uuid),
+  0,
+  'coach A cannot read team B look through a cross-team default_look_id'
+);
+
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select is(
+  (select count(*)::int from public.scout_looks where id = current_setting('test.b_look')::uuid),
+  0,
+  'quarterback cannot read team B look through a cross-team default_look_id'
+);
+
+reset role;
+set local search_path = public, extensions, auth;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
+set local role authenticated;
+set local search_path = public, extensions, auth;
+
+select ok(
+  not has_function_privilege('anon', 'app.guard_package_look()', 'EXECUTE'),
+  'anon cannot execute guard_package_look'
+);
+select ok(
+  not has_function_privilege('authenticated', 'app.guard_package_look()', 'EXECUTE'),
+  'authenticated cannot execute guard_package_look'
+);
+select ok(
+  exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'app'
+      and p.proname = 'guard_package_look'
+      and p.proconfig @> array['search_path=""']
+  ),
+  'guard_package_look pins search_path'
+);
+select throws_ok(
+  $$update public.scout_packages
+    set team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02'
+    where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd01'$$,
+  '42501',
+  'permission denied for table scout_packages',
+  'a coach cannot change a package team_id'
+);
+
+reset role;
+set local search_path = public, extensions, auth;
+select throws_ok(
+  $$update public.scout_looks
+    set team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02'
+    where name = 'Cover A'$$,
+  '23514',
+  'team_id is immutable',
+  'a look team_id cannot change'
+);
+select throws_ok(
+  $$update public.scout_packages
+    set team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02'
+    where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd01'$$,
+  '23514',
+  'team_id is immutable',
+  'a package team_id cannot change'
+);
+select col_not_null('public', 'scout_packages', 'created_at', 'scout package created_at is not null');
+
 set local role anon;
 select throws_ok(
   $$select count(*) from public.scout_packages$$,

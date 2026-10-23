@@ -143,12 +143,12 @@ select ok(
   'anon cannot execute guard_package_look'
 );
 select ok(
-  has_function_privilege('authenticated', 'app.guard_package_look()', 'EXECUTE'),
-  'authenticated can execute guard_package_look'
+  not has_function_privilege('authenticated', 'app.guard_package_look()', 'EXECUTE'),
+  'authenticated cannot execute guard_package_look'
 );
 select ok(
-  has_function_privilege('service_role', 'app.guard_package_look()', 'EXECUTE'),
-  'service_role can execute guard_package_look'
+  not has_function_privilege('service_role', 'app.guard_package_look()', 'EXECUTE'),
+  'service_role cannot execute guard_package_look'
 );
 
 set local role anon;

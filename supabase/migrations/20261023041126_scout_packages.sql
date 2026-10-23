@@ -10,7 +10,7 @@ create table public.scout_packages (
   opponent text,
   week_of date,
   created_by uuid references auth.users,
-  created_at timestamptz default now()
+  created_at timestamptz not null default now()
 );
 
 create table public.scout_package_looks (
@@ -75,6 +75,7 @@ $$;
 drop policy plays_select on public.plays;
 drop policy pv_select on public.play_versions;
 drop policy looks_select on public.scout_looks;
+drop policy lv_select on public.scout_look_versions;
 drop policy pbp_select on public.playbook_plays;
 drop policy pb_select on public.playbooks;
 drop function app.can_view_play(uuid);
@@ -118,6 +119,7 @@ as $$
           join public.playbook_plays pp on pp.playbook_id = at.playbook_id
           where at.user_id = auth.uid()
             and pp.play_id = p
+            and at.team_id = pl.team_id
         )
       )
   )
@@ -133,13 +135,36 @@ create policy pb_select on public.playbooks
   for select to authenticated
   using (
     app.is_staff(team_id)
-    or exists (
-      select 1
-      from public.assignment_targets at
-      where at.playbook_id = playbooks.id
-        and at.user_id = auth.uid()
+    or (
+      archived_at is null
+      and exists (
+        select 1
+        from public.assignment_targets at
+        where at.playbook_id = playbooks.id
+          and at.user_id = auth.uid()
+      )
     )
   );
+create policy lv_select on public.scout_look_versions
+  for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.scout_looks look
+      where look.id = scout_look_versions.look_id
+        and (
+          app.is_staff(look.team_id)
+          or exists (
+            select 1
+            from public.plays pl
+            where pl.default_look_id = look.id
+              and pl.team_id = look.team_id
+              and app.can_view_play(pl.id)
+          )
+        )
+    )
+  );
+
 create policy pbp_select on public.playbook_plays
   for select to authenticated
   using (
@@ -163,6 +188,7 @@ create policy looks_select on public.scout_looks
       select 1
       from public.plays pl
       where pl.default_look_id = scout_looks.id
+        and pl.team_id = scout_looks.team_id
         and app.can_view_play(pl.id)
     )
     or exists (
@@ -171,6 +197,7 @@ create policy looks_select on public.scout_looks
       join public.scout_package_looks spl on spl.package_id = at.package_id
       where at.user_id = auth.uid()
         and spl.look_id = scout_looks.id
+        and at.team_id = scout_looks.team_id
     )
   );
 
@@ -256,8 +283,54 @@ create trigger scout_package_looks_guard
   before insert or update on public.scout_package_looks
   for each row execute function app.guard_package_look();
 
-revoke all on function app.guard_package_look() from public, anon;
-grant execute on function app.guard_package_look() to authenticated, service_role;
+revoke all on function app.guard_package_look() from public, anon, authenticated, service_role;
+
+create function app.guard_team_id()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.team_id is distinct from old.team_id then
+    raise exception 'team_id is immutable' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger scout_looks_team_id_guard
+  before update on public.scout_looks
+  for each row execute function app.guard_team_id();
+
+create trigger scout_packages_team_id_guard
+  before update on public.scout_packages
+  for each row execute function app.guard_team_id();
+
+revoke all on function app.guard_team_id() from public, anon, authenticated, service_role;
+
+create function app.guard_player_slot()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  play_team uuid;
+begin
+  select team_id into play_team from public.plays where id = new.play_id;
+  if play_team is null or play_team is distinct from new.team_id then
+    raise exception 'play is not on this slot''s team' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger player_slots_team_guard
+  before insert or update on public.player_slots
+  for each row execute function app.guard_player_slot();
+
+revoke all on function app.guard_player_slot() from public, anon, authenticated, service_role;
 
 -- v2 does not name a player_slots policy. Staff write. A player reads their own
 -- slot on a play they can already view.
@@ -297,9 +370,13 @@ revoke all on table
   from public, anon, authenticated;
 revoke all on table public.assignment_targets from public, anon, authenticated;
 
-grant select, insert, update, delete on table public.scout_packages to authenticated;
-grant select, insert, update, delete on table public.scout_package_looks to authenticated;
-grant select, insert, update, delete on table public.player_slots to authenticated;
+grant select, insert, delete on table public.scout_packages to authenticated;
+grant update (name, opponent, week_of) on table public.scout_packages to authenticated;
+grant select, insert, delete on table public.scout_package_looks to authenticated;
+grant update (sort) on table public.scout_package_looks to authenticated;
+grant select, insert, delete on table public.player_slots to authenticated;
+grant update (slot) on table public.player_slots to authenticated;
+grant update (package_id) on table public.assignments to authenticated;
 grant select on table public.assignment_targets to authenticated;
 
 grant all on table

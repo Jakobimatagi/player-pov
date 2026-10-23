@@ -63,3 +63,23 @@ Do not point this at the hosted project, and do not run `seed.sql` anywhere but 
 - The quarterback sees `qb`.
 - The safety and the other team see no slots.
 - v2 does not name a `player_slots` policy. Staff write a slot. A player reads their own slot on a play they can view.
+
+## Scenario 5 — Cross-team rows are rejected
+
+**Preconditions:** Scenario 1. Team B has its own play, look, and package.
+
+**Steps:**
+
+1. File Team B's look in Team A's package.
+2. Assign Team B's package to Team A's quarterbacks.
+3. Insert a Team A slot whose play is Team B's play.
+4. Link Team B's play into Team A's playbook with the team guard switched off, then read it as the quarterback.
+5. Point Team A's play at Team B's look with the foreign key switched off, then read that look as the coach and the quarterback.
+
+**Expected:**
+
+- The package look, the assignment, and the slot each fail with `23514`.
+- The quarterback sees no Team B play, play version, look, or look version through the link.
+- Neither the coach nor the quarterback sees Team B's look through the cross-team `default_look_id`.
+- `app.guard_package_look` is trigger-only. `anon` and `authenticated` lack `EXECUTE`, and `proconfig` pins `search_path`.
+- `scout_packages.created_at` is not null. Changing `team_id` on a look or a package is rejected.
