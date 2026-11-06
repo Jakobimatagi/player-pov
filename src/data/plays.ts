@@ -1,6 +1,7 @@
 import { checksumSource, compileChart } from '../editor/compileAdapter'
 import type { LookSource, PlaySource } from '../play/sourceTypes'
 import type { PlayFile } from '../play/types'
+import type { Folder, FolderKind, FolderLink } from '../playbook/folders'
 import type { Json } from './database.types'
 import { supabase } from './supabase'
 
@@ -283,4 +284,132 @@ export async function addToPlaybook(playbookId: string, playId: string, sort = 0
     .from('playbook_plays')
     .insert({ playbook_id: playbookId, play_id: playId, sort })
   if (error) throw new Error(error.message)
+}
+
+function asFolder(row: {
+  id: string
+  name: string
+  parent_id: string | null
+  kind: string
+  archived_at: string | null
+}): Folder {
+  return {
+    id: row.id,
+    name: row.name,
+    parentId: row.parent_id,
+    kind: row.kind === 'opponent' ? 'opponent' : 'playbook',
+    archived: row.archived_at != null,
+  }
+}
+
+const FOLDER_COLUMNS = 'id, name, parent_id, kind, archived_at'
+
+/** Every folder the caller can see, archived ones included for staff, plus what is filed where. */
+export async function listFolders(
+  teamId: string,
+): Promise<{ folders: Folder[]; links: FolderLink[] }> {
+  const db = client()
+  const { data, error } = await db
+    .from('playbooks')
+    .select(FOLDER_COLUMNS)
+    .eq('team_id', teamId)
+    .order('name')
+  if (error) throw new Error(error.message)
+  const folders = (data ?? []).map((row) => asFolder(row))
+  if (folders.length === 0) return { folders, links: [] }
+  const { data: rows, error: linkError } = await db
+    .from('playbook_plays')
+    .select('playbook_id, play_id')
+    .in(
+      'playbook_id',
+      folders.map((folder) => folder.id),
+    )
+  if (linkError) throw new Error(linkError.message)
+  const links = (rows ?? []).map((row) => ({ folderId: row.playbook_id, playId: row.play_id }))
+  return { folders, links }
+}
+
+export async function createFolder(input: {
+  teamId: string
+  name: string
+  parentId: string | null
+  kind: FolderKind
+}): Promise<Folder> {
+  const db = client()
+  const { data, error } = await db
+    .from('playbooks')
+    .insert({
+      team_id: input.teamId,
+      name: input.name.trim(),
+      parent_id: input.parentId,
+      kind: input.kind,
+    })
+    .select(FOLDER_COLUMNS)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (data == null) throw new Error('forbidden')
+  return asFolder(data)
+}
+
+export async function renameFolder(folderId: string, name: string): Promise<void> {
+  const db = client()
+  const { data, error } = await db
+    .from('playbooks')
+    .update({ name: name.trim() })
+    .eq('id', folderId)
+    .select('id')
+  if (error) throw new Error(error.message)
+  if (data == null || data.length === 0) throw new Error('forbidden')
+}
+
+/** Archives the folder. Players lose it and everything under it; plays are kept. */
+export async function archiveFolder(folderId: string): Promise<void> {
+  const db = client()
+  const { data, error } = await db
+    .from('playbooks')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id', folderId)
+    .select('id')
+  if (error) throw new Error(error.message)
+  if (data == null || data.length === 0) throw new Error('forbidden')
+}
+
+export async function fileInFolder(folderId: string, playIds: readonly string[]): Promise<void> {
+  if (playIds.length === 0) return
+  const db = client()
+  const { error } = await db.from('playbook_plays').upsert(
+    playIds.map((playId, index) => ({ playbook_id: folderId, play_id: playId, sort: index })),
+    { onConflict: 'playbook_id,play_id', ignoreDuplicates: true },
+  )
+  if (error) throw new Error(error.message)
+}
+
+export async function removeFromFolder(folderId: string, playId: string): Promise<void> {
+  const db = client()
+  const { data, error } = await db
+    .from('playbook_plays')
+    .delete()
+    .eq('playbook_id', folderId)
+    .eq('play_id', playId)
+    .select('play_id')
+  if (error) throw new Error(error.message)
+  if (data == null || data.length === 0) throw new Error('forbidden')
+}
+
+/** Saves a brand-new play, then files it in `folderId` when one is given. */
+export async function createPlay(input: {
+  teamId: string
+  folderId: string | null
+  play: { source: PlaySource; look: LookSource }
+}): Promise<string> {
+  const saved = await savePlay({
+    teamId: input.teamId,
+    playId: null,
+    expectedVersion: null,
+    name: input.play.source.name,
+    source: input.play.source,
+    look: { id: null, expectedVersion: null, source: input.play.look },
+  })
+  if (input.folderId != null) await fileInFolder(input.folderId, [saved.playId])
+  return saved.playId
 }

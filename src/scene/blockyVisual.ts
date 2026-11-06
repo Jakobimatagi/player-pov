@@ -31,9 +31,9 @@ function pushBox(
   const quads: { shade: number; v: number[] }[] = [
     { shade: 0.75, v: [x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1] },
     { shade: 0.75, v: [x1, y0, z0, x0, y0, z0, x0, y1, z0, x1, y1, z0] },
-    { shade: 1, v: [x0, y1, z0, x1, y1, z0, x1, y1, z1, x0, y1, z1] },
+    { shade: 1, v: [x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0] },
     { shade: 0.6, v: [x0, y0, z1, x0, y0, z0, x1, y0, z0, x1, y0, z1] },
-    { shade: 0.85, v: [x1, y0, z0, x1, y0, z1, x1, y1, z1, x1, y1, z0] },
+    { shade: 0.85, v: [x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1] },
     { shade: 0.85, v: [x0, y0, z1, x0, y1, z1, x0, y1, z0, x0, y0, z0] },
   ]
   for (const quad of quads) {
