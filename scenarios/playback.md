@@ -42,6 +42,7 @@ The scrubber sits on the viewer. `window.__pov` is available in `npm run dev`.
 
 - Time moves by about 0.1 seconds backward, then forward.
 - The page does not scroll.
+- `[` and `]` step the speed; see `scenarios/playback-rates.md` Scenario 4.
 
 ## Scenario 4 — Hidden tab
 

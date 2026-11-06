@@ -8,6 +8,7 @@ import {
   seekClock,
   spaceClock,
 } from '../src/playback/clockState'
+import { stepRate } from '../src/playback/rates'
 
 beforeEach(() => {
   clockState.tRef.current = 0
@@ -49,8 +50,8 @@ describe('playback clock', () => {
   })
 
   it('lists quarter speed with the faster rates and stores the rate on the clock', () => {
+    expect(readFileSync('src/playback/rates.ts', 'utf8')).toContain('0.25, 0.5, 1, 1.5, 2')
     const source = readFileSync('src/ui/Scrubber.tsx', 'utf8')
-    expect(source).toContain('0.25, 0.5, 1, 1.5, 2')
     expect(source).toContain('clockState.rateRef.current = value')
     expect(source).toContain('{value}×')
     expect(source).toContain('aria-pressed={value === rate}')
@@ -91,5 +92,39 @@ describe('playback clock', () => {
     spaceClock()
     expect(clockState.playingRef.current).toBe(false)
     expect(clockState.tRef.current).toBe(0)
+  })
+})
+
+describe('stepRate', () => {
+  it('steps to the next chip in either direction', () => {
+    expect(stepRate(1, 1)).toBe(1.5)
+    expect(stepRate(1, -1)).toBe(0.5)
+    expect(stepRate(0.25, 1)).toBe(0.5)
+    expect(stepRate(1.5, 1)).toBe(2)
+  })
+
+  it('holds at the ends', () => {
+    expect(stepRate(2, 1)).toBe(2)
+    expect(stepRate(0.25, -1)).toBe(0.25)
+  })
+
+  it('steps an off-list rate to the nearest chip that way and clamps outside the list', () => {
+    expect(stepRate(0.75, 1)).toBe(1)
+    expect(stepRate(0.75, -1)).toBe(0.5)
+    expect(stepRate(3, 1)).toBe(2)
+    expect(stepRate(3, -1)).toBe(2)
+    expect(stepRate(0.1, -1)).toBe(0.25)
+    expect(stepRate(0.1, 1)).toBe(0.25)
+  })
+
+  it('wires the bracket keys in the scrubber through stepRate', () => {
+    const source = readFileSync('src/ui/Scrubber.tsx', 'utf8')
+    expect(source).toContain("event.key === '['")
+    expect(source).toContain("event.key === ']'")
+    expect(source).toContain('stepRate(clockState.rateRef.current')
+    expect(source).toContain('clockState.rateRef.current = next')
+    expect(source).toContain('setRate(next)')
+    expect(source).toContain('HTMLSelectElement')
+    expect(source).toContain('event.ctrlKey || event.metaKey || event.altKey')
   })
 })
