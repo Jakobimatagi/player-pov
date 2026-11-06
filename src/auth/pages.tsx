@@ -1,7 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
+import Alert from '@mui/material/Alert'
+import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Stack from '@mui/material/Stack'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { supabase } from '../data/supabase'
-import { AuthField, AuthScreen } from './AuthScreen'
+import { AuthLink, AuthScreen } from './AuthScreen'
 import {
   CONFIRM_EMAIL,
   FORGOT_SENT,
@@ -18,6 +25,14 @@ import {
 
 function originRedirect(path: string): string {
   return `${window.location.origin}${path}`
+}
+
+function ErrorLine({ children }: { children: ReactNode }) {
+  return (
+    <Alert severity="error" role="alert">
+      {children}
+    </Alert>
+  )
 }
 
 export function LoginPage() {
@@ -54,48 +69,47 @@ export function LoginPage() {
   }
 
   return (
-    <AuthScreen banner={banner ?? undefined} hint="Players need an invite from their coach.">
-      <form onSubmit={onSubmit}>
-        <h1>Log in</h1>
-        {signedOut ? <p className="auth-note">{SIGNED_OUT}</p> : null}
-        <AuthField label="Email">
-          <input
-            type="email"
-            autoComplete="username"
-            value={email}
-            required
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </AuthField>
-        <AuthField label="Password">
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            required
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </AuthField>
+    <AuthScreen
+      title="Log in"
+      banner={banner ?? undefined}
+      hint="Players need an invite from their coach."
+    >
+      <Stack component="form" spacing={2.5} onSubmit={onSubmit}>
+        {signedOut ? <Alert severity="success">{SIGNED_OUT}</Alert> : null}
+        <TextField
+          label="Email"
+          type="email"
+          autoComplete="username"
+          value={email}
+          required
+          onChange={(event) => setEmail(event.target.value)}
+        />
+        <TextField
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          required
+          onChange={(event) => setPassword(event.target.value)}
+        />
         {error ? (
-          <p className="auth-error" role="alert">
+          <ErrorLine>
             {error}{' '}
             {error === CONFIRM_EMAIL ? (
-              <button type="button" className="auth-textlink" onClick={() => void resend()}>
+              <Button size="small" color="inherit" onClick={() => void resend()}>
                 Resend confirmation
-              </button>
+              </Button>
             ) : null}
-          </p>
+          </ErrorLine>
         ) : null}
-        <button className="auth-submit" type="submit" disabled={pending}>
+        <Button type="submit" variant="contained" size="large" disabled={pending}>
           Log in
-        </button>
-        <Link className="auth-textlink" to="/forgot-password">
-          Forgot password?
-        </Link>
-        <Link className="auth-textlink" to="/signup">
-          Create a coach account
-        </Link>
-      </form>
+        </Button>
+        <Stack direction="row" sx={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+          <AuthLink to="/forgot-password">Forgot password?</AuthLink>
+          <AuthLink to="/signup">Create a coach account</AuthLink>
+        </Stack>
+      </Stack>
     </AuthScreen>
   )
 }
@@ -142,61 +156,58 @@ export function SignupPage() {
     await supabase.auth.resend({ type: 'signup', email })
   }
 
-  return (
-    <AuthScreen hint="Players need an invite from their coach.">
-      {sent ? (
-        <div>
-          <h1>Confirm your email</h1>
-          <p className="auth-note">{CONFIRM_EMAIL}</p>
-          <button type="button" className="auth-submit" onClick={() => void resend()}>
+  if (sent) {
+    return (
+      <AuthScreen title="Confirm your email" hint="Players need an invite from their coach.">
+        <Stack spacing={2.5}>
+          <Typography color="text.secondary">{CONFIRM_EMAIL}</Typography>
+          <Button variant="contained" size="large" onClick={() => void resend()}>
             Resend confirmation
-          </button>
-        </div>
-      ) : (
-        <form onSubmit={onSubmit}>
-          <h1>Create account</h1>
-          <AuthField label="Name">
-            <input value={name} required onChange={(event) => setName(event.target.value)} />
-          </AuthField>
-          <AuthField label="Email">
-            <input
-              type="email"
-              autoComplete="username"
-              value={email}
-              required
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </AuthField>
-          <AuthField label="Password">
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              required
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </AuthField>
-          <label className="auth-check">
-            <input
-              type="checkbox"
-              checked={coach}
-              onChange={(event) => setCoach(event.target.checked)}
-            />
-            <span>I&apos;m a coach creating a team</span>
-          </label>
-          {error ? (
-            <p className="auth-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <button className="auth-submit" type="submit" disabled={pending}>
-            Create account
-          </button>
-          <Link className="auth-textlink" to="/login">
-            Log in
-          </Link>
-        </form>
-      )}
+          </Button>
+        </Stack>
+      </AuthScreen>
+    )
+  }
+
+  return (
+    <AuthScreen title="Create account" hint="Players need an invite from their coach.">
+      <Stack component="form" spacing={2.5} onSubmit={onSubmit}>
+        <TextField
+          label="Name"
+          value={name}
+          required
+          onChange={(event) => setName(event.target.value)}
+        />
+        <TextField
+          label="Email"
+          type="email"
+          autoComplete="username"
+          value={email}
+          required
+          onChange={(event) => setEmail(event.target.value)}
+        />
+        <TextField
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          required
+          onChange={(event) => setPassword(event.target.value)}
+        />
+        <FormControlLabel
+          control={
+            <Checkbox checked={coach} onChange={(event) => setCoach(event.target.checked)} />
+          }
+          label="I'm a coach creating a team"
+        />
+        {error ? <ErrorLine>{error}</ErrorLine> : null}
+        <Button type="submit" variant="contained" size="large" disabled={pending}>
+          Create account
+        </Button>
+        <Typography variant="body2" color="text.secondary">
+          Already have an account? <AuthLink to="/login">Log in</AuthLink>
+        </Typography>
+      </Stack>
     </AuthScreen>
   )
 }
@@ -219,30 +230,26 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <AuthScreen>
+    <AuthScreen title="Forgot password">
       {sent ? (
-        <p className="auth-note" role="status">
+        <Alert severity="success" role="status">
           {FORGOT_SENT}
-        </p>
+        </Alert>
       ) : (
-        <form onSubmit={onSubmit}>
-          <h1>Forgot password</h1>
-          <AuthField label="Email">
-            <input
-              type="email"
-              autoComplete="username"
-              value={email}
-              required
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </AuthField>
-          <button className="auth-submit" type="submit" disabled={pending}>
+        <Stack component="form" spacing={2.5} onSubmit={onSubmit}>
+          <TextField
+            label="Email"
+            type="email"
+            autoComplete="username"
+            value={email}
+            required
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          <Button type="submit" variant="contained" size="large" disabled={pending}>
             Send link
-          </button>
-          <Link className="auth-textlink" to="/login">
-            Log in
-          </Link>
-        </form>
+          </Button>
+          <AuthLink to="/login">Log in</AuthLink>
+        </Stack>
       )}
     </AuthScreen>
   )
@@ -276,54 +283,44 @@ export function ResetPasswordPage() {
 
   if (expired) {
     return (
-      <AuthScreen>
-        <h1>Reset password</h1>
-        <p className="auth-error" role="alert">
-          {RESET_EXPIRED}
-        </p>
-        <Link className="auth-submit auth-submit-link" to="/forgot-password">
-          Send a new one
-        </Link>
+      <AuthScreen title="Reset password">
+        <Stack spacing={2.5}>
+          <ErrorLine>{RESET_EXPIRED}</ErrorLine>
+          <Button component={Link} to="/forgot-password" variant="contained" size="large">
+            Send a new one
+          </Button>
+        </Stack>
       </AuthScreen>
     )
   }
 
   return (
-    <AuthScreen>
+    <AuthScreen title="Reset password">
       {done ? (
-        <p className="auth-note">Password updated. You can log in.</p>
+        <Alert severity="success">Password updated. You can log in.</Alert>
       ) : (
-        <form onSubmit={onSubmit}>
-          <h1>Reset password</h1>
-          <div className="auth-pair">
-            <AuthField label="New password">
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                required
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </AuthField>
-            <AuthField label="Confirm password">
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={confirm}
-                required
-                onChange={(event) => setConfirm(event.target.value)}
-              />
-            </AuthField>
-          </div>
-          {error ? (
-            <p className="auth-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <button className="auth-submit" type="submit">
+        <Stack component="form" spacing={2.5} onSubmit={onSubmit}>
+          <TextField
+            label="New password"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            required
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <TextField
+            label="Confirm password"
+            type="password"
+            autoComplete="new-password"
+            value={confirm}
+            required
+            onChange={(event) => setConfirm(event.target.value)}
+          />
+          {error ? <ErrorLine>{error}</ErrorLine> : null}
+          <Button type="submit" variant="contained" size="large">
             Save password
-          </button>
-        </form>
+          </Button>
+        </Stack>
       )}
     </AuthScreen>
   )
@@ -377,55 +374,43 @@ export function AcceptInvitePage() {
 
   if (invalid) {
     return (
-      <AuthScreen>
-        <h1>Accept invite</h1>
-        <p className="auth-error" role="alert">
-          {INVITE_INVALID}
-        </p>
-        <Link className="auth-textlink" to="/login">
-          Log in
-        </Link>
+      <AuthScreen title="Accept invite">
+        <Stack spacing={2.5}>
+          <ErrorLine>{INVITE_INVALID}</ErrorLine>
+          <AuthLink to="/login">Log in</AuthLink>
+        </Stack>
       </AuthScreen>
     )
   }
 
   return (
-    <AuthScreen banner="You're invited">
+    <AuthScreen title="Create account" banner="You're invited">
       {done ? (
-        <p className="auth-note">Account ready.</p>
+        <Alert severity="success">Account ready.</Alert>
       ) : (
-        <form onSubmit={onSubmit}>
-          <h1>Create account</h1>
-          <p className="auth-readonly">{email}</p>
-          <div className="auth-pair">
-            <AuthField label="Password">
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                required
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </AuthField>
-            <AuthField label="Confirm password">
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={confirm}
-                required
-                onChange={(event) => setConfirm(event.target.value)}
-              />
-            </AuthField>
-          </div>
-          {error ? (
-            <p className="auth-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <button className="auth-submit" type="submit">
+        <Stack component="form" spacing={2.5} onSubmit={onSubmit}>
+          <TextField label="Account" value={email} disabled />
+          <TextField
+            label="Password"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            required
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <TextField
+            label="Confirm password"
+            type="password"
+            autoComplete="new-password"
+            value={confirm}
+            required
+            onChange={(event) => setConfirm(event.target.value)}
+          />
+          {error ? <ErrorLine>{error}</ErrorLine> : null}
+          <Button type="submit" variant="contained" size="large">
             Create account
-          </button>
-        </form>
+          </Button>
+        </Stack>
       )}
     </AuthScreen>
   )

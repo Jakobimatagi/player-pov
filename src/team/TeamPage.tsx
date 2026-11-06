@@ -1,10 +1,41 @@
 import { useEffect, useState } from 'react'
 import { useSyncExternalStore } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router'
+import { Navigate, useSearchParams } from 'react-router'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import type { PositionCode, TeamRole } from '../data/database.types'
 import { supabase } from '../data/supabase'
-import { AccountMenu } from '../app/AccountMenu'
+import Alert from '@mui/material/Alert'
+import Avatar from '@mui/material/Avatar'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import IconButton from '@mui/material/IconButton'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemAvatar from '@mui/material/ListItemAvatar'
+import ListItemText from '@mui/material/ListItemText'
+import MenuItem from '@mui/material/MenuItem'
+import Stack from '@mui/material/Stack'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import TextField from '@mui/material/TextField'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import Typography from '@mui/material/Typography'
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
+import PersonAddIcon from '@mui/icons-material/PersonAdd'
+import { CoachLayout } from '../app/CoachLayout'
 
 type Row = {
   id: string
@@ -63,8 +94,6 @@ const DEMO: Row[] = [
   },
 ]
 
-const TABS = ['Team', 'Playbooks', 'Plays', 'Scout', 'Homework'] as const
-
 function roleLabel(role: TeamRole): string {
   if (role === 'player') return 'Player'
   if (role === 'coach') return 'Coach'
@@ -85,7 +114,6 @@ export function TeamPage() {
   const [rows, setRows] = useState<Row[]>(fixture ? DEMO : [])
   const [filter, setFilter] = useState<'All' | 'Coaches' | 'Players' | 'Pending'>('All')
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [consent, setConsent] = useState(false)
   const [inviteRole, setInviteRole] = useState('player')
@@ -290,236 +318,294 @@ export function TeamPage() {
     setMenuId(null)
   }
 
+  const accountName = playerView ? 'Player' : (snap.session?.user.email ?? 'Coach Kim')
+  const counts = {
+    All: rows.length,
+    Coaches: rows.filter((row) => row.kind === 'coach').length,
+    Players: rows.filter((row) => row.kind === 'player').length,
+    Pending: rows.filter((row) => row.status === 'Pending').length,
+  }
+
   return (
-    <div className={playerView ? 'player-frame' : 'coach-frame'}>
-      {playerView ? null : (
-        <nav className="side-nav" aria-label="Coach">
-          {TABS.map((tab) => (
-            <Link key={tab} to={tab === 'Playbooks' ? '/playbook' : '/team'}>
-              {tab}
-            </Link>
-          ))}
-        </nav>
-      )}
-      <div className="coach-main">
-        <header className="roster-head">
-          {playerView ? null : (
-            <button
-              type="button"
-              className="nav-toggle"
-              aria-label="Menu"
-              onClick={() => setMenuOpen(true)}
-            >
-              Menu
-            </button>
-          )}
-          <h1>Team</h1>
-          {headCoach ? (
-            <button type="button" className="invite-button" onClick={() => setInviteOpen(true)}>
-              + Invite
-            </button>
-          ) : null}
-          <AccountMenu name={playerView ? 'Player' : (snap.session?.user.email ?? 'Coach Kim')} />
-        </header>
-        {playerView ? <p>Names and positions only.</p> : null}
-        <div className="roster-filters" role="tablist">
-          {(['All', 'Coaches', 'Players', 'Pending'] as const).map((item) => (
-            <button
-              key={item}
-              type="button"
-              aria-pressed={filter === item}
-              onClick={() => setFilter(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-        <table className="roster-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Position</th>
-              <th className="col-status">Status</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((row) => (
-              <tr key={row.id}>
-                <td>
-                  <span className="status-dot" data-status={row.status} />
-                  {row.name}
-                </td>
-                <td>{row.role}</td>
-                <td>{row.position}</td>
-                <td className="col-status">{row.status}</td>
-                <td>
-                  {headCoach ? (
-                    <button
-                      type="button"
-                      className="more"
-                      aria-label={`Actions for ${row.name}`}
-                      onClick={() => setMenuId(row.id)}
-                    >
-                      ⋯
-                    </button>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <ul className="roster-cards">
-          {shown.map((row) => (
-            <li key={row.id}>
-              <span className="status-dot" data-status={row.status} />
-              <strong>{row.name}</strong>
-              <span className="pos-badge">{row.position}</span>
-              <span>{row.role}</span>
-              {headCoach ? (
-                <button
-                  type="button"
-                  className="more"
-                  aria-label={`Actions for ${row.name}`}
-                  onClick={() => setMenuId(row.id)}
-                >
-                  ⋯
-                </button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-        {notice ? <p className="auth-note">{notice}</p> : null}
-      </div>
-      {playerView ? null : (
-        <nav className="tab-bar" aria-label="Coach">
-          {TABS.map((tab) => (
-            <Link key={tab} to={tab === 'Playbooks' ? '/playbook' : '/team'}>
-              {tab}
-            </Link>
-          ))}
-        </nav>
-      )}
-      {menuOpen ? (
-        <div className="nav-drawer">
-          <button type="button" className="nav-toggle" onClick={() => setMenuOpen(false)}>
-            Close
-          </button>
-          {TABS.map((tab) => (
-            <Link
-              key={tab}
-              to={tab === 'Playbooks' ? '/playbook' : '/team'}
-              onClick={() => setMenuOpen(false)}
-            >
-              {tab}
-            </Link>
-          ))}
-        </div>
+    <CoachLayout
+      title="Team"
+      subtitle={playerView ? 'Names and positions only.' : `${counts.All} people on the roster`}
+      account={accountName}
+      nav={!playerView}
+      actions={
+        headCoach ? (
+          <Button
+            variant="contained"
+            startIcon={<PersonAddIcon />}
+            onClick={() => setInviteOpen(true)}
+          >
+            Invite
+          </Button>
+        ) : null
+      }
+    >
+      <ToggleButtonGroup
+        exclusive
+        size="small"
+        value={filter}
+        onChange={(_, value: typeof filter | null) => {
+          if (value != null) setFilter(value)
+        }}
+        aria-label="Filter roster"
+        sx={{ mb: 2, flexWrap: 'wrap' }}
+      >
+        {(['All', 'Coaches', 'Players', 'Pending'] as const).map((item) => (
+          <ToggleButton key={item} value={item} aria-pressed={filter === item}>
+            {item}
+            <Box component="span" sx={{ ml: 1, color: 'text.secondary', fontWeight: 500 }}>
+              {counts[item]}
+            </Box>
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+
+      {notice ? (
+        <Alert severity="info" onClose={() => setNotice(null)} sx={{ mb: 2 }}>
+          {notice}
+        </Alert>
       ) : null}
-      {menuRow && headCoach ? (
-        <div className="row-menu" role="menu">
-          {menuRow.status === 'Pending' ? (
-            <>
-              <button type="button" onClick={() => void runAction('resend')}>
-                Resend invite
-              </button>
-              <button type="button" onClick={() => void runAction('revoke')}>
-                Revoke invite
-              </button>
-            </>
-          ) : menuRow.status === 'Removed' ? (
-            <button type="button" onClick={() => void runAction('delete')}>
-              Delete player data
-            </button>
-          ) : (
-            <>
-              {menuRow.kind === 'player' ? (
-                <label className="auth-field">
-                  <span>Position</span>
-                  <select
-                    aria-label={`Position for ${menuRow.name}`}
-                    value={
-                      POSITIONS.includes(menuRow.position as PositionCode) ? menuRow.position : 'WR'
-                    }
-                    onChange={(event) => void runAction('position', event.target.value)}
+
+      <Card>
+        <TableContainer sx={{ display: { xs: 'none', sm: 'block' } }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Role</TableCell>
+                <TableCell>Position</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right" />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {shown.map((row) => (
+                <TableRow key={row.id} hover>
+                  <TableCell>
+                    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                      <PersonAvatar name={row.name} />
+                      <Typography sx={{ fontWeight: 600 }}>{row.name}</Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{row.role}</TableCell>
+                  <TableCell>
+                    <Chip size="small" label={row.position} variant="outlined" />
+                  </TableCell>
+                  <TableCell>
+                    <StatusChip status={row.status} />
+                  </TableCell>
+                  <TableCell align="right">
+                    {headCoach ? (
+                      <IconButton
+                        aria-label={`Actions for ${row.name}`}
+                        onClick={() => setMenuId(row.id)}
+                      >
+                        <MoreHorizIcon />
+                      </IconButton>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <List sx={{ display: { xs: 'block', sm: 'none' } }} disablePadding>
+          {shown.map((row, index) => (
+            <ListItem
+              key={row.id}
+              divider={index < shown.length - 1}
+              secondaryAction={
+                headCoach ? (
+                  <IconButton
+                    edge="end"
+                    aria-label={`Actions for ${row.name}`}
+                    onClick={() => setMenuId(row.id)}
                   >
-                    {POSITIONS.map((code) => (
-                      <option key={code}>{code}</option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-              <button type="button" onClick={() => void runAction('remove')}>
-                Remove
-              </button>
-            </>
-          )}
-          <button type="button" onClick={() => setMenuId(null)}>
-            Cancel
-          </button>
-        </div>
-      ) : null}
-      {inviteOpen ? (
+                    <MoreHorizIcon />
+                  </IconButton>
+                ) : null
+              }
+            >
+              <ListItemAvatar>
+                <PersonAvatar name={row.name} />
+              </ListItemAvatar>
+              <ListItemText
+                primary={row.name}
+                secondary={
+                  <Stack
+                    component="span"
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: 'center', mt: 0.5 }}
+                  >
+                    <span>{row.role}</span>
+                    <Chip component="span" size="small" label={row.position} variant="outlined" />
+                    {row.status !== 'Active' ? <StatusChip status={row.status} /> : null}
+                  </Stack>
+                }
+                slotProps={{
+                  primary: { sx: { fontWeight: 600 } },
+                  secondary: { component: 'div' },
+                }}
+              />
+            </ListItem>
+          ))}
+        </List>
+        {shown.length === 0 ? (
+          <Typography color="text.secondary" sx={{ p: 4, textAlign: 'center' }}>
+            Nobody here yet.
+          </Typography>
+        ) : null}
+      </Card>
+
+      <Dialog
+        open={menuRow != null && headCoach}
+        onClose={() => setMenuId(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        {menuRow != null ? (
+          <>
+            <DialogTitle>{menuRow.name}</DialogTitle>
+            <DialogContent>
+              <Stack spacing={1.5} sx={{ pt: 0.5 }}>
+                {menuRow.status === 'Pending' ? (
+                  <>
+                    <Button variant="outlined" onClick={() => void runAction('resend')}>
+                      Resend invite
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => void runAction('revoke')}
+                    >
+                      Revoke invite
+                    </Button>
+                  </>
+                ) : menuRow.status === 'Removed' ? (
+                  <Button variant="outlined" color="error" onClick={() => void runAction('delete')}>
+                    Delete player data
+                  </Button>
+                ) : (
+                  <>
+                    {menuRow.kind === 'player' ? (
+                      <TextField
+                        select
+                        label="Position"
+                        value={
+                          POSITIONS.includes(menuRow.position as PositionCode)
+                            ? menuRow.position
+                            : 'WR'
+                        }
+                        onChange={(event) => void runAction('position', event.target.value)}
+                        slotProps={{ htmlInput: { 'aria-label': `Position for ${menuRow.name}` } }}
+                      >
+                        {POSITIONS.map((code) => (
+                          <MenuItem key={code} value={code}>
+                            {code}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    ) : null}
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => void runAction('remove')}
+                    >
+                      Remove
+                    </Button>
+                  </>
+                )}
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setMenuId(null)}>Cancel</Button>
+            </DialogActions>
+          </>
+        ) : null}
+      </Dialog>
+
+      <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)} fullWidth maxWidth="sm">
         <form
-          className="invite-sheet"
           onSubmit={(event) => {
             event.preventDefault()
             void sendInvite(new FormData(event.currentTarget))
           }}
         >
-          <h2>Invite</h2>
-          <label className="auth-field">
-            <span>Name</span>
-            <input name="name" required />
-          </label>
-          <label className="auth-field">
-            <span>Email</span>
-            <input name="email" type="email" required />
-          </label>
-          <label className="auth-field">
-            <span>Role</span>
-            <select
-              name="role"
-              value={inviteRole}
-              onChange={(event) => setInviteRole(event.target.value)}
+          <DialogTitle>Invite</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              <TextField name="name" label="Name" required />
+              <TextField name="email" label="Email" type="email" required />
+              <TextField
+                name="role"
+                label="Role"
+                select
+                value={inviteRole}
+                onChange={(event) => setInviteRole(event.target.value)}
+              >
+                <MenuItem value="player">Player</MenuItem>
+                <MenuItem value="coach">Coach</MenuItem>
+                <MenuItem value="head_coach">Head coach</MenuItem>
+              </TextField>
+              <TextField name="position" label="Position" />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={consent}
+                    onChange={(event) => setConsent(event.target.checked)}
+                  />
+                }
+                label="I confirm this player's parent/guardian or school has consented to this account"
+              />
+              {inviteRole === 'player' && !consent ? (
+                <Alert severity="warning">Confirm consent to invite a player</Alert>
+              ) : null}
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setInviteOpen(false)}>Cancel</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={inviteRole === 'player' && !consent}
             >
-              <option value="player">Player</option>
-              <option value="coach">Coach</option>
-              <option value="head_coach">Head coach</option>
-            </select>
-          </label>
-          <label className="auth-field">
-            <span>Position</span>
-            <input name="position" />
-          </label>
-          <label className="auth-check">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(event) => setConsent(event.target.checked)}
-            />
-            <span>
-              I confirm this player&apos;s parent/guardian or school has consented to this account
-            </span>
-          </label>
-          {inviteRole === 'player' && !consent ? <p>Confirm consent to invite a player</p> : null}
-          <button
-            className="auth-submit"
-            type="submit"
-            disabled={inviteRole === 'player' && !consent}
-          >
-            Send invite
-          </button>
-          <button
-            type="button"
-            className="auth-submit secondary"
-            onClick={() => setInviteOpen(false)}
-          >
-            Cancel
-          </button>
+              Send invite
+            </Button>
+          </DialogActions>
         </form>
-      ) : null}
-    </div>
+      </Dialog>
+    </CoachLayout>
   )
+}
+
+function PersonAvatar({ name }: { name: string }) {
+  const initials = name
+    .split(' ')
+    .map((part) => part[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+  return (
+    <Avatar
+      sx={{
+        width: 36,
+        height: 36,
+        fontSize: 14,
+        bgcolor: 'rgba(255,255,255,0.1)',
+        color: 'text.primary',
+      }}
+    >
+      {initials}
+    </Avatar>
+  )
+}
+
+function StatusChip({ status }: { status: Row['status'] }) {
+  const color = status === 'Active' ? 'success' : status === 'Pending' ? 'warning' : 'default'
+  return <Chip component="span" size="small" label={status} color={color} variant="outlined" />
 }
