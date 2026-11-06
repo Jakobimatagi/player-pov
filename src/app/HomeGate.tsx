@@ -14,6 +14,7 @@ import {
 } from '../auth/session'
 import { supabase } from '../data/supabase'
 import { AccountMenu } from './AccountMenu'
+import { CoachHome } from './CoachHome'
 
 function useAuth() {
   return useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
@@ -96,11 +97,7 @@ export function HomePage() {
     )
   }
   if (kind === 'staff') {
-    return (
-      <Shell title="Coach home">
-        <p>Playbooks open from the next step.</p>
-      </Shell>
-    )
+    return <CoachHome name={snap.session?.user.email ?? 'Account'} />
   }
   return <CreateTeamPage />
 }

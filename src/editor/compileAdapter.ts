@@ -6,21 +6,9 @@ import { mapCompiledPath } from '../play/sourceMap'
 import type { LookSource, PlaySource } from '../play/sourceTypes'
 import type { CompiledPlay, PlayFile, PlayLoadError } from '../play/types'
 
-export type SideKey = 'ours' | 'theirs'
+import type { EditorIssue, LegRef, PlayerRef, SideKey } from './state'
 
-export interface PlayerRef {
-  side: SideKey
-  slot: string
-}
-
-export interface LegRef extends PlayerRef {
-  leg: number
-}
-
-export interface EditorIssue {
-  ref: PlayerRef | LegRef | null
-  message: string
-}
+export type { EditorIssue, LegRef, PlayerRef, SideKey }
 
 export interface ChartCompile {
   play: PlayFile | null

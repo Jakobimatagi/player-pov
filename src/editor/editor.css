@@ -1,0 +1,43 @@
+.editor-preview {
+  padding: 12px var(--page-pad);
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-toolbar button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  background: #202020;
+  color: #f4f1ea;
+  font-size: 1rem;
+}
+
+.editor-toolbar button:disabled {
+  opacity: 0.45;
+}
+
+.editor-status {
+  color: #c9c4b8;
+}
+
+.editor-title {
+  font-size: 1.1rem;
+  margin: 12px 0 8px;
+}
+
+.editor-stage {
+  width: 100%;
+  max-width: 560px;
+  border-radius: 8px;
+  overflow: hidden;
+}

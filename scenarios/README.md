@@ -70,6 +70,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `playbook-data.md`             | Play RLS, assigned reads, version conflict |
 | `scout-packages.md`            | Package looks, slots, other team           |
 | `playbook.md`                  | Play list, rename, delete, player view     |
+| `editor.md`                    | Editor core: render, select, undo          |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 

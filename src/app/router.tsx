@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router'
+import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router'
 import {
   AcceptInvitePage,
   ForgotPasswordPage,
@@ -9,6 +9,19 @@ import {
 import { HomePage, SessionLayout, WatchPage } from './HomeGate'
 import { PlaybookPage } from '../playbook/PlaybookPage'
 import { TeamPage } from '../team/TeamPage'
+
+/** Dev-only editor harness (C5). Production builds drop it. */
+const devRoutes: RouteObject[] = import.meta.env.DEV
+  ? [
+      {
+        path: '/dev/editor',
+        lazy: async () => {
+          const { EditorPreviewPage } = await import('../editor/EditorPreviewPage')
+          return { Component: EditorPreviewPage }
+        },
+      },
+    ]
+  : []
 
 const router = createBrowserRouter([
   {
@@ -24,6 +37,7 @@ const router = createBrowserRouter([
       { path: '/watch/:playId', element: <WatchPage /> },
       { path: '/team', element: <TeamPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
+      ...devRoutes,
     ],
   },
 ])

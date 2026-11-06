@@ -146,6 +146,41 @@ function lookOrigin(
   return { x: los + player.align.dx, y: ballY + player.align.dy }
 }
 
+export interface AlignOrigins {
+  /** Absolute field yards of the line of scrimmage and the ball's lateral spot. */
+  los: number
+  ballY: number
+  /** Absolute alignment point per slot, with look anchors resolved exactly as compileSource does. */
+  ours: Map<string, { x: number; y: number }>
+  theirs: Map<string, { x: number; y: number }>
+}
+
+/** Where every player lines up at the snap. The editor draws from this so it matches the compiler. */
+export function alignOrigins(
+  source: PlaySource,
+  look: LookSource,
+  config: FieldConfig = fieldConfig(),
+): AlignOrigins {
+  const los = 10 + source.ballSpot.yardLine
+  const ballY = hashToY(source.ballSpot.hash, config)
+  const snaps = snapPoints(source, los, ballY)
+  const ours = new Map(snaps.map((snap) => [snap.slot, { x: snap.x, y: snap.y }]))
+  const theirs = new Map(
+    look.players.map((player) => [player.slot, lookOrigin(player, snaps, los, ballY)]),
+  )
+  return { los, ballY, ours, theirs }
+}
+
+function snapPoints(source: PlaySource, los: number, ballY: number): SnapPoint[] {
+  return source.players.map((player) => ({
+    slot: player.slot,
+    position: player.position,
+    x: los + player.align.dx,
+    y: ballY + player.align.dy,
+    dy: player.align.dy,
+  }))
+}
+
 export interface CompileResult {
   play: PlayFile
   sourceMap: SourceMapEntry[]
@@ -172,13 +207,7 @@ export function compileSource(
   const ballY = hashToY(source.ballSpot.hash, config)
   const adjustment = matchingAdjustment(source, look)
   const sourceMap: SourceMapEntry[] = []
-  const snaps: SnapPoint[] = source.players.map((player) => ({
-    slot: player.slot,
-    position: player.position,
-    x: los + player.align.dx,
-    y: ballY + player.align.dy,
-    dy: player.align.dy,
-  }))
+  const snaps = snapPoints(source, los, ballY)
   const ours = source.players.map((player, index) =>
     trackFrom(
       player.slot,
