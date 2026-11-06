@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type FormEvent } from 'react'
 import type { PlayRow } from '../data/plays'
 import { folderNameError, KIND_LABEL, type FolderKind } from './folders'
+import type { PlaybookTemplate } from './playbooks'
 
 function message(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.length > 0 ? error.message : fallback
@@ -74,6 +75,69 @@ export function NewFolderForm(props: {
         </button>
       </div>
     </form>
+  )
+}
+
+export function GeneratePlaybookPanel(props: {
+  parentName: string | null
+  templates: readonly PlaybookTemplate[]
+  onGenerate: (templateId: string) => Promise<void>
+  onCancel: () => void
+}) {
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function pick(id: string) {
+    setBusy(id)
+    setError(null)
+    try {
+      await props.onGenerate(id)
+    } catch (caught) {
+      setError(message(caught, 'Could not generate the playbook'))
+      setBusy(null)
+    }
+  }
+
+  return (
+    <section className="folder-panel" aria-label="Generate playbook">
+      <h2>
+        {props.parentName == null
+          ? 'Generate playbook'
+          : `Generate playbook in ${props.parentName}`}
+      </h2>
+      <p className="folder-hint">
+        Each one makes a folder of charted pass plays you can watch and edit.
+      </p>
+      <ul className="template-list">
+        {props.templates.map((template) => (
+          <li key={template.id}>
+            <button
+              type="button"
+              className="playbook-action template-pick"
+              disabled={busy != null}
+              onClick={() => void pick(template.id)}
+            >
+              <strong>{template.name}</strong>
+              <span>
+                {busy === template.id
+                  ? 'Creating…'
+                  : `${template.plays.length} plays · ${template.summary}`}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {error ? (
+        <p className="auth-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="playbook-actions">
+        <button type="button" className="playbook-action" onClick={props.onCancel}>
+          Cancel
+        </button>
+      </div>
+    </section>
   )
 }
 

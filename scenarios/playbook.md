@@ -131,3 +131,21 @@ The play list is `/playbook`. Staff can search, browse nested folders, rename, a
 - The player sees the assigned folder, every subfolder under it, and the nested play. Unassigned folders do not show.
 - After step 3 the player loses the middle folder and everything under it. Staff still see it under the database's archived rows.
 - A folder cannot sit under another team's folder, under itself, or under its own subfolder (`23514`).
+
+## Scenario 9 — Generate a starter playbook
+
+**Preconditions:** Signed in as a coach, or `npm run dev` with no backend. Open `/playbook`.
+
+**Steps:**
+
+1. Choose **Generate playbook**. Three choices show: Spread Air Raid (5 plays), West Coast (5 plays) and Trips Package (3 plays).
+2. Choose **Spread Air Raid**.
+3. Open the Spread Air Raid folder and choose **Watch** on Smash.
+4. Back on the playbook, open Opponents › Lincoln High and generate **West Coast** there.
+
+**Expected:**
+
+- Step 2 shows Spread Air Raid created with 5 plays. A Playbook folder named Spread Air Raid is listed, holding Four Verticals, Mesh, Stick, Smash and Levels.
+- Step 3 plays Smash from Gun Spread against Cover 2. X and Z run hitches, H and Y run corners, the line sets and the QB drops. The ball is snapped, then thrown to H, who carries it to the end of the play.
+- Step 4 makes West Coast inside Lincoln High. Its plays line up under center in Pro Right Slot.
+- Players do not see Generate playbook. It is hidden at the eighth folder level, like New folder.

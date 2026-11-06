@@ -29,7 +29,8 @@ import {
   listStatus,
   visiblePlays,
 } from './archive'
-import { AddPlaysPanel, NewFolderForm, type AddMode } from './FolderForms'
+import { AddPlaysPanel, GeneratePlaybookPanel, NewFolderForm, type AddMode } from './FolderForms'
+import { buildPlaybook, findTemplate, PLAYBOOK_TEMPLATES } from './playbooks'
 import {
   breadcrumb,
   canAddSubfolder,
@@ -48,7 +49,7 @@ import { blankPlay, nameFromFile, parsePlayUpload, type NewPlay } from './newPla
 
 const TABS = ['Team', 'Playbooks', 'Plays', 'Scout', 'Homework'] as const
 
-type Panel = { kind: 'folder' } | { kind: 'add'; mode: AddMode } | null
+type Panel = { kind: 'folder' } | { kind: 'add'; mode: AddMode } | { kind: 'generate' } | null
 
 function useAuth() {
   return useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
@@ -339,7 +340,7 @@ export function PlaybookPage() {
     done(playIds.length === 1 ? 'Added 1 play' : `Added ${playIds.length} plays`)
   }
 
-  async function saveNew(play: NewPlay): Promise<void> {
+  async function saveNew(play: NewPlay, folderId: string | null = current): Promise<void> {
     if (fixture) {
       const id = demoId()
       const row: PlayRow = {
@@ -352,11 +353,41 @@ export function PlaybookPage() {
         updated_at: '2026-11-05T00:00:00.000Z',
       }
       setPlays((rows) => [...rows, row].sort((a, b) => a.name.localeCompare(b.name)))
-      if (current != null) setLinks((rows) => [...rows, { folderId: current, playId: id }])
+      if (folderId != null) setLinks((rows) => [...rows, { folderId, playId: id }])
       return
     }
     if (snap.teamId == null) throw new Error('No team')
-    await createPlay({ teamId: snap.teamId, folderId: current, play })
+    await createPlay({ teamId: snap.teamId, folderId, play })
+  }
+
+  /** Files a starter playbook as a new folder here, one saved play per concept. */
+  async function generate(templateId: string): Promise<void> {
+    const template = findTemplate(templateId)
+    if (template == null) throw new Error('Unknown playbook')
+    const plays = buildPlaybook(template.id)
+    let folder: Folder
+    if (fixture) {
+      folder = {
+        id: demoId(),
+        name: template.name,
+        parentId: current,
+        kind: 'playbook',
+        archived: false,
+      }
+    } else {
+      if (snap.teamId == null) throw new Error('No team')
+      folder = await createFolder({
+        teamId: snap.teamId,
+        name: template.name,
+        parentId: current,
+        kind: 'playbook',
+      })
+    }
+    setFolders((rows) => [...rows, folder])
+    for (const play of plays) await saveNew(play, folder.id)
+    if (!fixture) await refresh()
+    setPanel(null)
+    done(`${template.name} created with ${plays.length} plays`)
   }
 
   async function upload(files: File[]): Promise<string[]> {
@@ -485,6 +516,16 @@ export function PlaybookPage() {
                 New folder
               </button>
             ) : null}
+            {canAddSubfolder(live, current) ? (
+              <button
+                type="button"
+                className="playbook-action"
+                aria-expanded={panel?.kind === 'generate'}
+                onClick={() => setPanel(panel?.kind === 'generate' ? null : { kind: 'generate' })}
+              >
+                Generate playbook
+              </button>
+            ) : null}
             <button
               type="button"
               className="playbook-action primary"
@@ -507,6 +548,14 @@ export function PlaybookPage() {
             parentName={here?.name ?? null}
             initialKind={defaultKind(live, current)}
             onCreate={createSubfolder}
+            onCancel={() => setPanel(null)}
+          />
+        ) : null}
+        {panel?.kind === 'generate' ? (
+          <GeneratePlaybookPanel
+            parentName={here?.name ?? null}
+            templates={PLAYBOOK_TEMPLATES}
+            onGenerate={generate}
             onCancel={() => setPanel(null)}
           />
         ) : null}
