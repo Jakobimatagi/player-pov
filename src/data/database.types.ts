@@ -321,6 +321,8 @@ export type Database = {
           name: string
           description: string | null
           archived_at: string | null
+          parent_id: string | null
+          kind: 'playbook' | 'opponent'
           created_by: string | null
           created_at: string
         }
@@ -330,6 +332,8 @@ export type Database = {
           name: string
           description?: string | null
           archived_at?: string | null
+          parent_id?: string | null
+          kind?: 'playbook' | 'opponent'
           created_by?: string | null
           created_at?: string
         }
@@ -339,6 +343,8 @@ export type Database = {
           name?: string
           description?: string | null
           archived_at?: string | null
+          parent_id?: string | null
+          kind?: 'playbook' | 'opponent'
           created_by?: string | null
           created_at?: string
         }

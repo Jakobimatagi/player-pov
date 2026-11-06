@@ -1,10 +1,7 @@
 import type { PlayRow } from '../data/plays'
+import type { Folder, FolderLink } from './folders'
 
-export interface ListedPlay extends PlayRow {
-  playbookId: string | null
-}
-
-export const DEMO_PLAYS: ListedPlay[] = [
+export const DEMO_PLAYS: PlayRow[] = [
   {
     id: 'flood',
     team_id: 'demo',
@@ -13,7 +10,6 @@ export const DEMO_PLAYS: ListedPlay[] = [
     current_version: 1,
     default_look_id: null,
     updated_at: '2026-10-23T00:00:00.000Z',
-    playbookId: 'pb1',
   },
   {
     id: 'iso',
@@ -23,9 +19,18 @@ export const DEMO_PLAYS: ListedPlay[] = [
     current_version: 1,
     default_look_id: null,
     updated_at: '2026-10-23T00:00:00.000Z',
-    playbookId: null,
   },
 ]
+
+/** Our Playbooks > Base Offense (Flood), and Opponents > Lincoln High. Iso is unfiled. */
+export const DEMO_FOLDERS: Folder[] = [
+  { id: 'ours', name: 'Our Playbooks', parentId: null, kind: 'playbook', archived: false },
+  { id: 'base', name: 'Base Offense', parentId: 'ours', kind: 'playbook', archived: false },
+  { id: 'opp', name: 'Opponents', parentId: null, kind: 'opponent', archived: false },
+  { id: 'lincoln', name: 'Lincoln High', parentId: 'opp', kind: 'opponent', archived: false },
+]
+
+export const DEMO_LINKS: FolderLink[] = [{ folderId: 'base', playId: 'flood' }]
 
 export const DEMO_ARCHIVED: PlayRow[] = [
   {

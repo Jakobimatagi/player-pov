@@ -1116,3 +1116,251 @@ body {
     bottom: 24px;
   }
 }
+
+.playbook-action.primary {
+  background: #c8102e;
+  border-color: #c8102e;
+  color: #fff;
+}
+
+.playbook-action.danger {
+  border-color: #c8102e;
+  color: #ffb3bf;
+}
+
+.playbook-action:disabled {
+  opacity: 0.5;
+}
+
+.folder-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 12px;
+  min-width: 0;
+}
+
+.folder-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  font-size: 1.05rem;
+}
+
+.folder-crumbs li {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.folder-crumbs li + li::before {
+  content: '›';
+  padding: 0 6px;
+  color: #8a867d;
+}
+
+.folder-crumbs button {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: #9cc4ff;
+  font-size: inherit;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.folder-crumbs [aria-current='page'] {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.folder-kind {
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid #3a3a3a;
+  font-size: 0.8rem;
+  color: #c9c4b8;
+}
+
+.folder-kind[data-kind='opponent'] {
+  border-color: #b98a1d;
+  color: #f2c55c;
+}
+
+.folder-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.folder-list {
+  margin-bottom: 16px;
+}
+
+.folder-row {
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 8px;
+}
+
+.folder-open {
+  flex: 1 1 12rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f4f1ea;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.folder-open:hover .playbook-name {
+  text-decoration: underline;
+}
+
+.folder-glyph {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  fill: #d9d3c4;
+}
+
+.folder-glyph[data-kind='opponent'] {
+  fill: #f2c55c;
+}
+
+.folder-meta {
+  flex: none;
+  color: #a39e92;
+  font-size: 0.875rem;
+}
+
+.folder-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.folder-heading {
+  margin: 8px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #a39e92;
+}
+
+.folder-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid #3a3a3a;
+  border-radius: 12px;
+  background: #161616;
+  min-width: 0;
+}
+
+.folder-panel h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.folder-panel .playbook-search {
+  margin-top: 0;
+}
+
+.folder-panel form,
+.folder-panel > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.folder-panel .roster-filters {
+  margin: 0;
+  flex-direction: row;
+}
+
+.folder-hint {
+  margin: 0;
+  color: #a39e92;
+  font-size: 0.9rem;
+}
+
+.kind-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.kind-pick legend {
+  padding: 0;
+  margin-bottom: 4px;
+  color: #a39e92;
+  font-size: 0.875rem;
+}
+
+.kind-option,
+.pick-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.kind-option input,
+.pick-row input {
+  width: 20px;
+  height: 20px;
+  accent-color: #c8102e;
+}
+
+.pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.pick-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.file-input {
+  min-height: 44px;
+  max-width: 100%;
+  color: #f4f1ea;
+}
+
+.folder-panel .playbook-actions {
+  flex-direction: row;
+}
+
+.roster-filters button[aria-pressed='true'] {
+  background: #f4f1ea;
+  border-color: #f4f1ea;
+  color: #111;
+}
