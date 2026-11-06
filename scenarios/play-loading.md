@@ -151,3 +151,21 @@ The engine loads one fixture, `/plays/trips-right-vs-cover2.json`. There is no p
 
 - The load-error panel shows `/watch/draft/nope`.
 - The message is `not found`.
+
+## Scenario 12 — Back to plays from a saved play
+
+**Preconditions:** `npm run dev` is running.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/playbook?roster=demo, open a folder, and choose **Watch** on a play.
+2. Choose **Back to plays**.
+3. Open http://127.0.0.1:5173/watch/trips-flood directly in a new tab and choose **Back to plays**.
+4. Open a draft (`/watch/draft/<key>`) and http://127.0.0.1:5173/?play=/plays/trips-right-vs-cover2.json.
+
+**Expected:**
+
+- In step 1 the viewer shows **Back to plays** at the top left, at least 44 px tall, across from **Show routes**.
+- Step 2 returns to the same folder, with `?folder=` still in the URL.
+- Step 3 opens `/playbook`, because the tab has no history to go back to.
+- In step 4 the draft shows **Back to editor** instead, and the `?play=` viewer shows neither button.
