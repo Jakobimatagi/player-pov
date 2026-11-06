@@ -42,3 +42,23 @@ The scrubber always offers **0.25×**, **0.5×**, **1×**, **1.5×**, and **2×*
 - The page does not scroll horizontally.
 - The chips wrap inside the scrubber instead of running off the screen.
 - **Play**, each speed chip, and the slider's hit area are at least 44×44 px.
+
+## Scenario 4 — Bracket keys step the rate
+
+**Preconditions:** http://127.0.0.1:5173 is open. The sample play is loaded. **1×** is pressed.
+
+**Steps:**
+
+1. Click an empty part of the page so no control has focus.
+2. Press `]` three times.
+3. Press `[` five times.
+4. Click **1×**, then press `[`.
+5. Click the time slider, then press `]`.
+
+**Expected:**
+
+- After step 2 the pressed chip goes **1.5×**, then **2×**, and stays on **2×** on the third press.
+- After step 3 it goes **1.5×**, **1×**, **0.5×**, **0.25×**, and stays on **0.25×**.
+- After step 4 **0.5×** is pressed.
+- After step 5 the rate is unchanged (**0.5×**) because the slider has focus.
+- `data-rate` on `data-testid="scrubber"` always matches the pressed chip. Play/pause and the readout time do not change from a bracket key.

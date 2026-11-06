@@ -8,8 +8,7 @@ import {
   seekClock,
   spaceClock,
 } from '../playback/clockState'
-
-const PLAYBACK_RATES = [0.25, 0.5, 1, 1.5, 2] as const
+import { PLAYBACK_RATES, stepRate } from '../playback/rates'
 
 export function Scrubber({
   duration,
@@ -59,8 +58,18 @@ export function Scrubber({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
-      if (event.code === 'Space') {
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement
+      )
+        return
+      if (event.key === '[' || event.key === ']') {
+        if (event.ctrlKey || event.metaKey || event.altKey) return
+        const next = stepRate(clockState.rateRef.current, event.key === ']' ? 1 : -1)
+        clockState.rateRef.current = next
+        setRate(next)
+      } else if (event.code === 'Space') {
         event.preventDefault()
         spaceClock()
       } else if (event.key === ',') {
