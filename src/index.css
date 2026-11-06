@@ -1359,6 +1359,32 @@ body {
   flex-direction: row;
 }
 
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.template-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.template-pick span {
+  color: #a39e92;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
 .roster-filters button[aria-pressed='true'] {
   background: #f4f1ea;
   border-color: #f4f1ea;
