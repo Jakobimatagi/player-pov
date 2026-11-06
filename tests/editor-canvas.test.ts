@@ -9,9 +9,9 @@ import type { PlaySource } from '../src/play/sourceTypes'
 
 const FIXTURE = JSON.parse(readFileSync('fixtures/trips-flood.source.json', 'utf8')) as PlaySource
 
-function render(state: EditorState, rotate: 0 | 90 = 0): string {
+function render(state: EditorState, rotate: 0 | 90 = 90): string {
   return renderToStaticMarkup(
-    createElement(EditorCanvas, { state, width: 800, height: 450, rotate }),
+    createElement(EditorCanvas, { state, width: 480, height: 640, rotate }),
   )
 }
 
@@ -45,8 +45,8 @@ describe('EditorCanvas', () => {
     expect(html).toContain('Offense WR #11 (h), selected')
   })
 
-  it('renders in portrait too', () => {
-    const html = render(base, 90)
+  it('renders horizontal too', () => {
+    const html = render(base, 0)
     expect(count(html, 'data-player=')).toBe(22)
   })
 })

@@ -8,6 +8,7 @@ export interface EditorCanvasProps {
   state: Pick<EditorState, 'source' | 'look' | 'selection'>
   width: number
   height: number
+  /** 90 (default) = vertical, offense moving up. 0 = horizontal, offense moving right. */
   rotate?: 0 | 90
   config?: FieldConfig
   /** Yards shown behind and ahead of the line of scrimmage. */
@@ -43,7 +44,7 @@ export function EditorCanvas({
   state,
   width,
   height,
-  rotate = 0,
+  rotate = 90,
   config = fieldConfig(),
   behind = 15,
   ahead = 25,

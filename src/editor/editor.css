@@ -37,6 +37,7 @@
 
 .editor-stage {
   width: 100%;
+  max-width: 560px;
   border-radius: 8px;
   overflow: hidden;
 }

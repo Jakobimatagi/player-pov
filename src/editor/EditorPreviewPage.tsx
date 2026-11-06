@@ -24,7 +24,7 @@ export function EditorPreviewPage() {
     createEditorState({ source: tripsFlood as PlaySource, look: COVER_2_LOOK }),
   )
   const box = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState({ width: 800, height: 450 })
+  const [size, setSize] = useState({ width: 480, height: 640 })
 
   useEffect(() => {
     const el = box.current
@@ -32,7 +32,9 @@ export function EditorPreviewPage() {
     const observer = new ResizeObserver(([entry]) => {
       if (entry == null) return
       const width = Math.floor(entry.contentRect.width)
-      setSize({ width, height: Math.max(240, Math.round(width * 0.56)) })
+      // Vertical field: taller than wide, but never taller than the window.
+      const height = Math.max(360, Math.min(window.innerHeight - 140, Math.round(width * 1.3)))
+      setSize({ width, height })
     })
     observer.observe(el)
     return () => observer.disconnect()

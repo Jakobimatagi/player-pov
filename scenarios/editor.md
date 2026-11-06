@@ -13,8 +13,8 @@ The play draw board. C5 adds the editor core: the reducer, hit testing, and a re
 **Expected:**
 
 - The title reads "Trips Right Flood". The status reads "Nothing selected".
-- A green field with yard lines, hash marks and a blue line of scrimmage fills the width of the page.
-- 11 offense players show as white circles labelled LT, LG, C, RG, RT, QB, RB, X, Z, H, Y. The offense moves to the right, and X is above the line (the offense's left).
+- A vertical green field with yard lines, hash marks and a blue horizontal line of scrimmage fills the width of the page (up to 560 px) and fits the window height.
+- 11 offense players show as white circles labelled LT, LG, C, RG, RT, QB, RB, X, Z, H, Y. The offense moves up the screen, and X is on the left (the offense's left).
 - 11 defense players show as red labels: DE, DT, DT, DE, S, M, W, CB, CB, SS, FS. The CBs line up 1 yd off X and Z.
 - H has one white route with an arrowhead and the labels "stem", "corner" and "flatten". No other player has a route.
 - The console has no errors.
@@ -53,10 +53,10 @@ The play draw board. C5 adds the editor core: the reducer, hit testing, and a re
 
 **Expected:**
 
-- After step 1, H and its whole route sit 2 yd further right, and **Undo** is enabled.
-- After step 2, H is 1 yd right of where it started and **Redo** is enabled.
+- After step 1, H and its whole route sit 2 yd further up the field, and **Undo** is enabled.
+- After step 2, H is 1 yd above where it started and **Redo** is enabled.
 - After step 3, H is back where it started, **Undo** is greyed out, and H is still selected.
-- After steps 4 and 5, H is 2 yd right again and **Redo** is greyed out.
+- After steps 4 and 5, H is 2 yd up again and **Redo** is greyed out.
 
 ## Scenario 4 — Undo a waypoint move
 
@@ -69,7 +69,7 @@ The play draw board. C5 adds the editor core: the reducer, hit testing, and a re
 
 **Expected:**
 
-- After step 1 only that bend moves 1 yd right. H, the "corner" point and the "flatten" point stay where they were.
+- After step 1 only that bend moves 1 yd up the field. H, the "corner" point and the "flatten" point stay where they were.
 - After step 2 the route is back to its first shape.
 
 ## Scenario 5 — Narrow window
@@ -82,5 +82,5 @@ The play draw board. C5 adds the editor core: the reducer, hit testing, and a re
 
 **Expected:**
 
-- The field shrinks to the page width and keeps its shape. The page does not scroll sideways.
+- The field shrinks to the page width and stays vertical. The page does not scroll sideways.
 - Undo, Redo and Nudge 1 yd are each at least 44 px tall.
