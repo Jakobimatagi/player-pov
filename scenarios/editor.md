@@ -12,8 +12,8 @@ The play draw board. C5 adds the editor core: the reducer, hit testing, and a re
 
 **Expected:**
 
-- The title reads "Trips Right Flood". The status reads "Nothing selected".
-- A vertical green field with yard lines, hash marks and a blue horizontal line of scrimmage fills the width of the page (up to 560 px) and fits the window height.
+- The title reads "Trips Right Flood", with "Gun Trips Right vs Cover 2 (4-3 Over)" under it. The Selection panel reads "Nothing selected".
+- A vertical striped green field with yard lines, yard numbers, hash marks, a blue line of scrimmage and a yellow line to gain 10 yd ahead. It is up to 600 px wide and fits the window height.
 - 11 offense players show as white circles labelled LT, LG, C, RG, RT, QB, RB, X, Z, H, Y. The offense moves up the screen, and X is on the left (the offense's left).
 - 11 defense players show as red labels: DE, DT, DT, DE, S, M, W, CB, CB, SS, FS. The CBs line up 1 yd off X and Z.
 - H has one white route with an arrowhead and the labels "stem", "corner" and "flatten". No other player has a route.
@@ -33,15 +33,15 @@ The play draw board. C5 adds the editor core: the reducer, hit testing, and a re
 
 **Expected:**
 
-- After step 1 the status reads "Selected: WR #11 (h)". H has a yellow ring, its route turns yellow, and its waypoints show as yellow dots.
-- After step 2 the status reads "Selected: WR #11 (h), leg 1" and that waypoint dot is filled.
-- After steps 3 and 4 the status reads "Nothing selected" and the route is white again.
-- After step 5 the status reads "Selected: LB #55 (mike)".
+- After step 1 the Selection panel reads "Selected: WR #11 (h)". H has a yellow ring, its route turns yellow, and its waypoints show as yellow dots.
+- After step 2 the Selection panel reads "Selected: WR #11 (h), leg 1" and that waypoint dot is filled.
+- After steps 3 and 4 the Selection panel reads "Nothing selected" and the route is white again.
+- After step 5 the Selection panel reads "Selected: LB #55 (mike)".
 - A click up to 22 px from a player's centre still selects it (44 px target), whatever the window size.
 
 ## Scenario 3 — Undo and redo
 
-**Preconditions:** Scenario 1 is on screen. Undo and Redo are greyed out.
+**Preconditions:** Scenario 1 is on screen. Undo and Redo (top right) are greyed out.
 
 **Steps:**
 

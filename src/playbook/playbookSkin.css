@@ -1,0 +1,178 @@
+/* MUI-matching skin for the legacy playbook markup. Tokens mirror src/ui/theme.ts. */
+.playbook-skin {
+  --pb-brand: #d7263d;
+  --pb-surface: #161a22;
+  --pb-line: rgba(255, 255, 255, 0.08);
+  --pb-muted: #a8adb8;
+}
+
+/* The MUI layout already draws the title, account menu and navigation. */
+.playbook-skin .side-nav,
+.playbook-skin .tab-bar,
+.playbook-skin .nav-toggle,
+.playbook-skin .nav-drawer,
+.playbook-skin .roster-head > h1,
+.playbook-skin .roster-head > .account {
+  display: none !important;
+}
+
+.playbook-skin .coach-frame {
+  display: block;
+  min-height: 0;
+}
+
+.playbook-skin .coach-main {
+  padding: 0;
+}
+
+.playbook-skin .roster-head:empty {
+  display: none;
+}
+
+.playbook-skin .playbook-search {
+  min-height: 48px;
+  margin: 0 0 16px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  font: inherit;
+  transition: border-color 0.15s;
+}
+
+.playbook-skin .playbook-search:focus {
+  outline: none;
+  border-color: var(--pb-brand);
+  box-shadow: 0 0 0 1px var(--pb-brand);
+}
+
+.playbook-skin .roster-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.playbook-skin .roster-filters button {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--pb-line);
+  background: transparent;
+  color: var(--pb-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.playbook-skin .roster-filters button:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.playbook-skin .roster-filters button[aria-pressed='true'] {
+  color: #fff;
+  border-color: transparent;
+  background: rgba(215, 38, 61, 0.2);
+  box-shadow: inset 0 0 0 1px var(--pb-brand);
+}
+
+.playbook-skin .playbook-list {
+  gap: 10px;
+}
+
+.playbook-skin .playbook-row {
+  padding: 12px 12px 12px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--pb-line);
+  background: var(--pb-surface);
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
+}
+
+.playbook-skin .playbook-row:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.playbook-skin .playbook-name {
+  font-weight: 650;
+  font-size: 1.02rem;
+}
+
+.playbook-skin .playbook-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.playbook-skin .playbook-action,
+.playbook-skin .playbook-rename button,
+.playbook-skin .folder-toolbar button {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.playbook-skin .playbook-action:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.playbook-skin .playbook-action.primary {
+  border-color: transparent;
+  background: var(--pb-brand);
+  color: #fff;
+}
+
+.playbook-skin .playbook-action.danger {
+  border-color: rgba(244, 67, 54, 0.5);
+  color: #f88078;
+}
+
+.playbook-skin .playbook-rename input {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--pb-brand);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  font: inherit;
+}
+
+.playbook-skin .playbook-success,
+.playbook-skin .auth-error {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.playbook-skin .playbook-success {
+  background: rgba(63, 179, 107, 0.12);
+  color: #8fe0ad;
+}
+
+.playbook-skin .auth-error {
+  background: rgba(244, 67, 54, 0.12);
+  color: #f88078;
+}
+
+.playbook-skin .folder-crumbs,
+.playbook-skin .folder-meta,
+.playbook-skin .folder-kind {
+  color: var(--pb-muted);
+}
+
+.playbook-skin .folder-heading {
+  font-weight: 700;
+}
+
+.playbook-skin .folder-glyph {
+  color: #f5c542;
+}

@@ -19,9 +19,12 @@ export interface EditorCanvasProps {
 }
 
 const COLORS = {
-  grass: '#2f6b35',
+  grass: '#1f5a2c',
+  stripe: '#246632',
   line: 'rgba(255,255,255,0.55)',
+  number: 'rgba(255,255,255,0.4)',
   los: '#4aa3ff',
+  toGain: '#f5c542',
   ours: '#f4f1ea',
   oursText: '#141414',
   theirs: '#ff7a6b',
@@ -74,12 +77,17 @@ export function EditorCanvas({
     return { x1: a.px, y1: a.py, x2: b.px, y2: b.py }
   }
 
+  // Alternate 5-yard mowing stripes between the goal lines.
+  const stripes: number[] = []
+  for (let x = 10; x < 110; x += 10) stripes.push(x)
+  const numbers: { x: number; n: number }[] = []
+  for (let x = 20; x <= 100; x += 10) numbers.push({ x, n: x <= 60 ? x - 10 : 110 - x })
   const yardLines: number[] = []
   for (let x = 10; x <= 110; x += 5) yardLines.push(x)
   const hashLines: number[] = []
   for (let x = 11; x < 110; x += 1) if (x % 5 !== 0) hashLines.push(x)
   const [hashR, hashL] = config.hashY
-  const radius = Math.min(18, Math.max(9, 0.9 * view.scale))
+  const radius = Math.min(20, Math.max(11, 1.05 * view.scale))
   const selection = state.selection
   const isSelected = (p: ChartPlayer) =>
     selection != null && selection.side === p.ref.side && selection.slot === p.ref.slot
@@ -140,6 +148,40 @@ export function EditorCanvas({
         </marker>
       </defs>
       <g aria-hidden="true">
+        {stripes.map((x) => {
+          const a = at(x, 0)
+          const b = at(x + 5, FIELD_WIDTH)
+          return (
+            <rect
+              key={`s${x}`}
+              x={Math.min(a.px, b.px)}
+              y={Math.min(a.py, b.py)}
+              width={Math.abs(b.px - a.px)}
+              height={Math.abs(b.py - a.py)}
+              fill={COLORS.stripe}
+            />
+          )
+        })}
+        {numbers.map(({ x, n }) =>
+          [7, FIELD_WIDTH - 7].map((y) => {
+            const p = at(x, y)
+            return (
+              <text
+                key={`n${x}-${y}`}
+                x={p.px}
+                y={p.py}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill={COLORS.number}
+                fontSize={Math.max(10, Math.min(28, view.scale * 2))}
+                fontWeight={800}
+                fontFamily="system-ui, sans-serif"
+              >
+                {n}
+              </text>
+            )
+          }),
+        )}
         <rect
           x={Math.min(tl.px, br.px)}
           y={Math.min(tl.py, br.py)}
@@ -158,6 +200,14 @@ export function EditorCanvas({
             <line {...line(x, hashL - 0.5, x, hashL + 0.5)} stroke={COLORS.line} />
           </g>
         ))}
+        {layout.los + 10 < 110 ? (
+          <line
+            {...line(layout.los + 10, 0, layout.los + 10, FIELD_WIDTH)}
+            stroke={COLORS.toGain}
+            strokeWidth={3}
+            opacity={0.85}
+          />
+        ) : null}
         <line
           {...line(layout.los, 0, layout.los, FIELD_WIDTH)}
           stroke={COLORS.los}

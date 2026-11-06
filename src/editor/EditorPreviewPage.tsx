@@ -1,12 +1,25 @@
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Chip from '@mui/material/Chip'
+import Divider from '@mui/material/Divider'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import NorthIcon from '@mui/icons-material/North'
+import RedoIcon from '@mui/icons-material/Redo'
+import TouchAppIcon from '@mui/icons-material/TouchApp'
+import UndoIcon from '@mui/icons-material/Undo'
 import tripsFlood from '../../fixtures/trips-flood.source.json'
+import { CoachLayout } from '../app/CoachLayout'
+import { getAuthSnap, subscribeAuth } from '../auth/session'
 import { COVER_2_LOOK } from '../play/cover2Look'
 import type { PlaySource } from '../play/sourceTypes'
 import { editorReducer } from './actions'
 import { EditorCanvas } from './EditorCanvas'
 import type { Hit } from './hitTest'
 import { createEditorState, findPlayer, isLegRef, type EditorState } from './state'
-import './editor.css'
 
 function selectionText(s: EditorState): string {
   const sel = s.selection
@@ -18,8 +31,34 @@ function selectionText(s: EditorState): string {
   return `Selected: ${who}`
 }
 
+function Shortcut({ keys, label }: { keys: string; label: string }) {
+  return (
+    <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+      <Typography variant="body2" color="text.secondary">
+        {label}
+      </Typography>
+      <Box
+        component="kbd"
+        sx={{
+          px: 1,
+          py: 0.25,
+          borderRadius: 1,
+          border: 1,
+          borderColor: 'divider',
+          fontFamily: 'inherit',
+          fontSize: 12,
+          fontWeight: 600,
+        }}
+      >
+        {keys}
+      </Box>
+    </Stack>
+  )
+}
+
 /** Dev-only harness for the C5 editor core: render, select, undo. C7 replaces it with /plays/:id/edit. */
 export function EditorPreviewPage() {
+  const snap = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
   const [state, dispatch] = useReducer(editorReducer, undefined, () =>
     createEditorState({ source: tripsFlood as PlaySource, look: COVER_2_LOOK }),
   )
@@ -33,7 +72,7 @@ export function EditorPreviewPage() {
       if (entry == null) return
       const width = Math.floor(entry.contentRect.width)
       // Vertical field: taller than wide, but never taller than the window.
-      const height = Math.max(360, Math.min(window.innerHeight - 140, Math.round(width * 1.3)))
+      const height = Math.max(360, Math.min(window.innerHeight - 200, Math.round(width * 1.3)))
       setSize({ width, height })
     })
     observer.observe(el)
@@ -86,34 +125,91 @@ export function EditorPreviewPage() {
     })
   }
 
+  const selected = sel != null
+
   return (
-    <main className="editor-preview">
-      <div className="editor-toolbar" role="toolbar" aria-label="Editor">
-        <button
-          type="button"
-          onClick={() => dispatch({ type: 'undo' })}
-          disabled={state.past.length === 0}
+    <CoachLayout
+      title={state.name}
+      subtitle={`${state.source.formation ?? 'Formation'} vs ${state.look.name}`}
+      account={snap.session?.user.email ?? 'Coach'}
+      actions={
+        <Stack direction="row" spacing={1} role="toolbar" aria-label="Editor">
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<UndoIcon />}
+            onClick={() => dispatch({ type: 'undo' })}
+            disabled={state.past.length === 0}
+          >
+            Undo
+          </Button>
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<RedoIcon />}
+            onClick={() => dispatch({ type: 'redo' })}
+            disabled={state.future.length === 0}
+          >
+            Redo
+          </Button>
+        </Stack>
+      }
+    >
+      <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3} sx={{ alignItems: 'flex-start' }}>
+        <Box
+          ref={box}
+          sx={{
+            width: '100%',
+            maxWidth: 600,
+            borderRadius: 3,
+            overflow: 'hidden',
+            border: 1,
+            borderColor: 'divider',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.45)',
+          }}
         >
-          Undo
-        </button>
-        <button
-          type="button"
-          onClick={() => dispatch({ type: 'redo' })}
-          disabled={state.future.length === 0}
-        >
-          Redo
-        </button>
-        <button type="button" onClick={nudge} disabled={sel == null}>
-          Nudge 1 yd
-        </button>
-        <span className="editor-status" data-testid="editor-selection">
-          {selectionText(state)}
-        </span>
-      </div>
-      <h1 className="editor-title">{state.name}</h1>
-      <div ref={box} className="editor-stage">
-        <EditorCanvas state={state} width={size.width} height={size.height} onHit={onHit} />
-      </div>
-    </main>
+          <EditorCanvas state={state} width={size.width} height={size.height} onHit={onHit} />
+        </Box>
+
+        <Card sx={{ width: '100%', maxWidth: { xs: 600, lg: 340 }, flexShrink: 0 }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="overline" color="text.secondary">
+              Selection
+            </Typography>
+            <Box sx={{ mt: 1, mb: 2 }}>
+              <Chip
+                data-testid="editor-selection"
+                icon={selected ? undefined : <TouchAppIcon />}
+                label={selectionText(state)}
+                color={selected ? 'secondary' : 'default'}
+                variant={selected ? 'filled' : 'outlined'}
+                sx={{ maxWidth: '100%' }}
+              />
+            </Box>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<NorthIcon />}
+              onClick={nudge}
+              disabled={sel == null}
+            >
+              Nudge 1 yd
+            </Button>
+            <Divider sx={{ my: 3 }} />
+            <Typography variant="overline" color="text.secondary">
+              How it works
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+              Tap a player or a bend in a route to select it. Dragging and drawing routes come next.
+            </Typography>
+            <Stack spacing={1.25}>
+              <Shortcut keys="⌘Z" label="Undo" />
+              <Shortcut keys="⇧⌘Z" label="Redo" />
+              <Shortcut keys="Esc" label="Clear selection" />
+            </Stack>
+          </CardContent>
+        </Card>
+      </Stack>
+    </CoachLayout>
   )
 }
