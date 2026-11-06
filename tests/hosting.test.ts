@@ -76,5 +76,8 @@ describe('hosting', () => {
     expect(scan('import "node:crypto"').status).toBe(1)
     expect(scan('import "node:crypto"').stderr).toContain('node: import')
     expect(scan('{node:1}').status).toBe(0)
+    expect(scan('n.push({tabIndex:i,node:e})').status).toBe(0)
+    expect(scan("import('node:fs')").status).toBe(1)
+    expect(scan('require(`node:path`)').status).toBe(1)
   })
 })

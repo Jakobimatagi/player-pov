@@ -16,8 +16,9 @@ export function payloadRole(token) {
 export function scanText(text) {
   const hits = []
   if (/service_role|SUPABASE_SERVICE_ROLE|sb_secret_/.test(text)) hits.push('service role marker')
-  // `{node:` is a minified object key, not an import. A real `node:` module is not.
-  if (/(?<![{.\w])node:[a-z]/.test(text)) hits.push('node: import')
+  // A real `node:` module is a quoted specifier (from "node:fs", import('node:fs'), require(`node:fs`)).
+  // Minified object keys like `{node:e}` or `,node:e` are not imports.
+  if (/["'`]node:[a-z]/.test(text)) hits.push('node: import')
   for (const token of text.match(jwtPattern) ?? []) {
     try {
       if (payloadRole(token) === 'service_role') hits.push('JWT role is service_role')
