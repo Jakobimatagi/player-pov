@@ -23,7 +23,7 @@ import { gyroListening, gyroState } from './camera/gyro'
 import { lookState } from './camera/look'
 import { clockState, earliestWaypoint, pauseKeepingPlace } from './playback/clockState'
 import { useClock } from './playback/useClock'
-import { draftBackTarget } from './play/draftBack'
+import { draftBackTarget, playsBackTarget } from './play/draftBack'
 import { playInputFromLocation, usePlayInput } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
 import { CameraRig } from './scene/CameraRig'
@@ -97,6 +97,11 @@ export function App() {
     draftKey: params.draftKey,
   })
   const loaded = usePlayInput(input)
+  const backToPlays = () => {
+    const target = playsBackTarget(location.key)
+    if (target === -1) void navigate(-1)
+    else void navigate(target)
+  }
   const [webglOk] = useState(detectWebGL)
   const forceFlat = new URLSearchParams(window.location.search).get('webgl') === '0'
   const [loss, setLoss] = useState<ContextLossState>(createContextLossState)
@@ -189,7 +194,14 @@ export function App() {
   }
 
   if (loaded.status === 'error') {
-    return <LoadError errors={loaded.errors} url={loaded.url} onRetry={loaded.retry} />
+    return (
+      <LoadError
+        errors={loaded.errors}
+        url={loaded.url}
+        onRetry={loaded.retry}
+        onBack={input.kind === 'id' ? backToPlays : undefined}
+      />
+    )
   }
 
   if (!webglOk || loss.failed || forceFlat) {
@@ -251,6 +263,11 @@ export function App() {
           }}
         >
           Back to editor
+        </button>
+      )}
+      {input.kind === 'id' && (
+        <button type="button" className="btn back-to-editor" onClick={backToPlays}>
+          Back to plays
         </button>
       )}
       <button type="button" className="btn route-toggle" onClick={() => setShowRoutes((v) => !v)}>

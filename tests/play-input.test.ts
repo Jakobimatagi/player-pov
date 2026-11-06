@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { createMemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
-import { draftBackTarget } from '../src/play/draftBack'
+import { draftBackTarget, playsBackTarget } from '../src/play/draftBack'
 import { checksumSource, compileChart } from '../src/editor/compileAdapter'
 import { canonicalJson } from '../src/play/canonical'
 import { COVER_2_LOOK, COVER_3_LOOK } from '../src/play/cover2Look'
@@ -188,6 +188,27 @@ describe('play input', () => {
     expect(draftBackTarget(fromApp.state.location.key)).toBe(-1)
     await fromApp.navigate(-1)
     expect(fromApp.state.location.pathname).toBe('/team')
+  })
+
+  it('sends Back to plays back to the folder, or to the playbook on a direct open', async () => {
+    const routes = [
+      { path: '/', element: null },
+      { path: '/playbook', element: null },
+      { path: '/watch/:playId', element: null },
+    ]
+    const direct = createMemoryRouter(routes, { initialEntries: ['/watch/trips-flood'] })
+    const target = playsBackTarget(direct.state.location.key)
+    expect(target).toBe('/playbook')
+    if (target !== -1) await direct.navigate(target)
+    expect(direct.state.location.pathname).toBe('/playbook')
+
+    const fromApp = createMemoryRouter(routes, { initialEntries: ['/playbook?folder=f1'] })
+    await fromApp.navigate('/watch/trips-flood')
+    expect(playsBackTarget(fromApp.state.location.key)).toBe(-1)
+    await fromApp.navigate(-1)
+    expect(fromApp.state.location.pathname).toBe('/playbook')
+    expect(fromApp.state.location.search).toBe('?folder=f1')
+    expect(readFileSync('src/App.tsx', 'utf8')).toContain('Back to plays')
   })
 
   it('shows an error for a malformed draft', async () => {

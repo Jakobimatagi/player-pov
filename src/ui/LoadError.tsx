@@ -6,10 +6,13 @@ export function LoadError({
   errors,
   url,
   onRetry,
+  onBack,
 }: {
   errors: readonly PlayLoadError[]
   url: string
   onRetry: () => void
+  /** Shown as Back to plays when the play came from the playbook. */
+  onBack?: () => void
 }) {
   const { groups, more } = formatLoadErrors(errors)
   return (
@@ -38,6 +41,11 @@ export function LoadError({
           <button type="button" className="btn" onClick={onRetry}>
             Retry
           </button>
+          {onBack != null && (
+            <button type="button" className="btn" onClick={onBack}>
+              Back to plays
+            </button>
+          )}
         </p>
       </section>
     </div>
