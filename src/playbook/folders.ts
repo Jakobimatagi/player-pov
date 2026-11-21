@@ -1,3 +1,5 @@
+import type { Side } from '../data/database.types'
+
 /** A playbook row seen as a folder. `kind` marks our own book or a scouted opponent. */
 export type FolderKind = 'playbook' | 'opponent'
 
@@ -7,6 +9,34 @@ export interface Folder {
   parentId: string | null
   kind: FolderKind
   archived: boolean
+  /** Offense or defense book. Null or missing is shared. */
+  side?: Side | null
+}
+
+export type SideFilter = 'all' | Side
+
+/** The folder's own side, else the nearest folder above it with one, else null. */
+export function effectiveSide(folders: readonly Folder[], id: string | null): Side | null {
+  const byId = new Map(folders.map((folder) => [folder.id, folder]))
+  const seen = new Set<string>()
+  let current = id == null ? undefined : byId.get(id)
+  while (current != null && !seen.has(current.id)) {
+    if (current.side != null) return current.side
+    seen.add(current.id)
+    current = current.parentId == null ? undefined : byId.get(current.parentId)
+  }
+  return null
+}
+
+/** Top-level filter: shared folders always show; sided folders show under their side. */
+export function matchesSide(
+  folders: readonly Folder[],
+  folder: Folder,
+  filter: SideFilter,
+): boolean {
+  if (filter === 'all') return true
+  const side = effectiveSide(folders, folder.id)
+  return side == null || side === filter
 }
 
 /** One play filed in one folder. A play can be filed in several folders. */

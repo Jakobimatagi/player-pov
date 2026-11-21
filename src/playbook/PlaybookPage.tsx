@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSyncExternalStore } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
+import { canEditSide, SIDE_LABEL } from '../auth/sides'
+import type { Side } from '../data/database.types'
 import { AccountMenu } from '../app/AccountMenu'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import type { PlayRow } from '../data/plays'
@@ -35,6 +37,9 @@ import {
   breadcrumb,
   canAddSubfolder,
   childFolders,
+  effectiveSide,
+  matchesSide,
+  type SideFilter,
   defaultKind,
   folderNameError,
   KIND_LABEL,
@@ -90,6 +95,7 @@ export function PlaybookPage() {
     params.get('roster') === 'player' || (supabase != null && snap.role === 'player')
   const staff = !playerView && (fixture || snap.role === 'head_coach' || snap.role === 'coach')
   const folderId = params.get('folder')
+  const [sidePick, setSidePick] = useState<SideFilter | null>(null)
 
   const [plays, setPlays] = useState<PlayRow[]>(() =>
     fixture
@@ -164,6 +170,19 @@ export function PlaybookPage() {
     }
   }, [fetchKey, refresh])
 
+  const role = snap.role
+  const mySide = snap.side
+  const sideFilter: SideFilter = sidePick ?? mySide ?? 'all'
+  const canEdit = (side: Side | null) => fixture || canEditSide(role, mySide, side)
+  const hereSide = effectiveSide(live, current)
+  const editHere = staff && canEdit(hereSide)
+  const newFolderSides: (Side | null)[] =
+    current != null
+      ? []
+      : fixture || role === 'head_coach' || mySide == null
+        ? ['offense', 'defense', null]
+        : [mySide, null]
+
   if (!fixture && snap.ready && snap.session == null) {
     return <Navigate to="/login?next=/playbook" replace />
   }
@@ -203,7 +222,12 @@ export function PlaybookPage() {
     : searching
       ? visiblePlays({ staff, list: 'active', active: plays, archived, search })
       : plays.filter((play) => folderPlayIds.has(play.id))
-  const subfolders = viewingArchived || searching ? [] : childFolders(live, current)
+  const subfolders =
+    viewingArchived || searching
+      ? []
+      : childFolders(live, current).filter(
+          (folder) => current != null || matchesSide(live, folder, sideFilter),
+        )
   const status =
     subfolders.length > 0
       ? null
@@ -319,13 +343,14 @@ export function PlaybookPage() {
     setSuccess(next.success)
   }
 
-  async function createSubfolder(name: string, kind: FolderKind) {
+  async function createSubfolder(name: string, kind: FolderKind, picked: Side | null) {
+    const side = current == null ? picked : hereSide
     let folder: Folder
     if (fixture) {
-      folder = { id: demoId(), name, parentId: current, kind, archived: false }
+      folder = { id: demoId(), name, parentId: current, kind, archived: false, side }
     } else {
       if (snap.teamId == null) throw new Error('No team')
-      folder = await createFolder({ teamId: snap.teamId, name, parentId: current, kind })
+      folder = await createFolder({ teamId: snap.teamId, name, parentId: current, kind, side })
     }
     setFolders((rows) => [...rows, folder])
     setPanel(null)
@@ -373,6 +398,7 @@ export function PlaybookPage() {
         parentId: current,
         kind: 'playbook',
         archived: false,
+        side: hereSide ?? 'offense',
       }
     } else {
       if (snap.teamId == null) throw new Error('No team')
@@ -381,6 +407,7 @@ export function PlaybookPage() {
         name: template.name,
         parentId: current,
         kind: 'playbook',
+        side: hereSide ?? 'offense',
       })
     }
     setFolders((rows) => [...rows, folder])
@@ -472,6 +499,21 @@ export function PlaybookPage() {
           </div>
         ) : null}
 
+        {staff && !viewingArchived && !searching && current == null ? (
+          <div className="roster-filters" role="group" aria-label="Side of the ball">
+            {(['all', 'offense', 'defense'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={sideFilter === option}
+                onClick={() => setSidePick(option)}
+              >
+                {option === 'all' ? 'All' : SIDE_LABEL[option]}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {!viewingArchived && !searching ? (
           <nav className="folder-crumbs" aria-label="Folder path">
             <ol>
@@ -499,12 +541,13 @@ export function PlaybookPage() {
             {here != null ? (
               <span className="folder-kind" data-kind={here.kind}>
                 {KIND_LABEL[here.kind]}
+                {hereSide != null ? ` · ${SIDE_LABEL[hereSide]}` : ''}
               </span>
             ) : null}
           </nav>
         ) : null}
 
-        {staff && !viewingArchived && !searching ? (
+        {editHere && !viewingArchived && !searching ? (
           <div className="folder-toolbar">
             {canAddSubfolder(live, current) ? (
               <button
@@ -516,7 +559,7 @@ export function PlaybookPage() {
                 New folder
               </button>
             ) : null}
-            {canAddSubfolder(live, current) ? (
+            {canAddSubfolder(live, current) && hereSide !== 'defense' && canEdit('offense') ? (
               <button
                 type="button"
                 className="playbook-action"
@@ -547,6 +590,8 @@ export function PlaybookPage() {
           <NewFolderForm
             parentName={here?.name ?? null}
             initialKind={defaultKind(live, current)}
+            sides={newFolderSides}
+            initialSide={mySide ?? (sideFilter === 'all' ? null : sideFilter)}
             onCreate={createSubfolder}
             onCancel={() => setPanel(null)}
           />
@@ -643,6 +688,10 @@ export function PlaybookPage() {
                       <FolderGlyph kind={folder.kind} />
                       <span className="playbook-name">{folder.name}</span>
                       <span className="folder-meta">
+                        {(() => {
+                          const side = effectiveSide(live, folder.id)
+                          return side != null && current == null ? `${SIDE_LABEL[side]} · ` : ''
+                        })()}
                         {folder.kind === 'opponent' ? 'Opponent · ' : ''}
                         {(() => {
                           const count = subtreePlayCount(live, links, folder.id)
@@ -650,7 +699,7 @@ export function PlaybookPage() {
                         })()}
                       </span>
                     </button>
-                    {staff ? (
+                    {staff && canEdit(effectiveSide(live, folder.id)) ? (
                       <span className="playbook-actions">
                         <button
                           type="button"

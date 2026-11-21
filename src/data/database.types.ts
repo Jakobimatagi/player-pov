@@ -4,6 +4,7 @@ export type TeamRole = 'head_coach' | 'coach' | 'player'
 export type PositionCode =
   'QB' | 'RB' | 'FB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'CB' | 'S' | 'K' | 'ATH'
 export type PositionGroup = 'QB' | 'RB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'DB' | 'ST'
+export type Side = 'offense' | 'defense'
 
 export type Database = {
   public: {
@@ -65,6 +66,7 @@ export type Database = {
           user_id: string
           role: TeamRole
           position: PositionCode | null
+          coordinates: Side | null
           created_at: string
         }
         Insert: {
@@ -72,6 +74,7 @@ export type Database = {
           user_id: string
           role: TeamRole
           position?: PositionCode | null
+          coordinates?: Side | null
           created_at?: string
         }
         Update: {
@@ -79,6 +82,7 @@ export type Database = {
           user_id?: string
           role?: TeamRole
           position?: PositionCode | null
+          coordinates?: Side | null
           created_at?: string
         }
         Relationships: []
@@ -323,6 +327,7 @@ export type Database = {
           archived_at: string | null
           parent_id: string | null
           kind: 'playbook' | 'opponent'
+          side: Side | null
           created_by: string | null
           created_at: string
         }
@@ -334,6 +339,7 @@ export type Database = {
           archived_at?: string | null
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
+          side?: Side | null
           created_by?: string | null
           created_at?: string
         }
@@ -345,6 +351,7 @@ export type Database = {
           archived_at?: string | null
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
+          side?: Side | null
           created_by?: string | null
           created_at?: string
         }
@@ -422,6 +429,39 @@ export type Database = {
           play_id?: string
           user_id?: string
           slot?: string
+        }
+        Relationships: []
+      }
+      position_rules: {
+        Row: {
+          play_id: string
+          slot: string
+          team_id: string
+          side: Side
+          alignment: string | null
+          assignment: string | null
+          key_read: string | null
+          notes: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          play_id: string
+          slot: string
+          team_id: string
+          side: Side
+          alignment?: string | null
+          assignment?: string | null
+          key_read?: string | null
+          notes?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alignment?: string | null
+          assignment?: string | null
+          key_read?: string | null
+          notes?: string | null
         }
         Relationships: []
       }

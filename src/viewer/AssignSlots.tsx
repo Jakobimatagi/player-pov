@@ -18,12 +18,15 @@ export function AssignSlots({
   play,
   playId,
   teamId,
+  open,
+  setOpen,
 }: {
   play: CompiledPlay
   playId: string
   teamId: string
+  open: boolean
+  setOpen: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
   const [players, setPlayers] = useState<TeamPlayer[]>([])
   const [slots, setSlots] = useState<SlotRow[]>([])
   const [note, setNote] = useState<string | null>(null)
@@ -81,7 +84,7 @@ export function AssignSlots({
         data-testid="assign-toggle"
         onClick={() => {
           setNote(null)
-          setOpen((v) => !v)
+          setOpen(!open)
         }}
       >
         Assign players

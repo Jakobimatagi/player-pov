@@ -1,6 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../data/supabase'
-import type { TeamRole } from '../data/database.types'
+import type { Side, TeamRole } from '../data/database.types'
 
 export const INACTIVITY_MS = 14 * 24 * 60 * 60 * 1000
 export const LAST_ACTIVE_KEY = 'last_active'
@@ -77,6 +77,8 @@ export type AuthSnap = {
   session: Session | null
   role: TeamRole | null
   teamId: string | null
+  /** Coordinator side for a coach, or null. */
+  side: Side | null
   membershipLoaded: boolean
   membershipError: boolean
   expired: boolean
@@ -88,6 +90,7 @@ let snap: AuthSnap = {
   session: null,
   role: null,
   teamId: null,
+  side: null,
   membershipLoaded: supabase == null,
   membershipError: false,
   expired: false,
@@ -111,19 +114,21 @@ export function getAuthSnap(): AuthSnap {
 async function loadRole(userId: string): Promise<{
   role: TeamRole | null
   teamId: string | null
+  side: Side | null
   error: boolean
 }> {
-  if (supabase == null) return { role: null, teamId: null, error: false }
+  if (supabase == null) return { role: null, teamId: null, side: null, error: false }
   const { data, error } = await supabase
     .from('memberships')
-    .select('role, team_id')
+    .select('role, team_id, coordinates')
     .eq('user_id', userId)
     .limit(1)
-  if (error) return { role: null, teamId: null, error: true }
+  if (error) return { role: null, teamId: null, side: null, error: true }
   const role = data?.[0]?.role ?? null
   const teamId = data?.[0]?.team_id ?? null
+  const side = data?.[0]?.coordinates ?? null
   if (role != null) localStorage.setItem(HAD_TEAM_KEY, userId)
-  return { role, teamId, error: false }
+  return { role, teamId, side, error: false }
 }
 
 async function applySession(session: Session | null, expired: boolean): Promise<void> {
@@ -133,6 +138,7 @@ async function applySession(session: Session | null, expired: boolean): Promise<
       session: null,
       role: null,
       teamId: null,
+      side: null,
       membershipLoaded: true,
       membershipError: false,
       expired,
@@ -145,6 +151,7 @@ async function applySession(session: Session | null, expired: boolean): Promise<
     session,
     role: membership.role,
     teamId: membership.teamId,
+    side: membership.side,
     membershipLoaded: true,
     membershipError: membership.error,
     expired,

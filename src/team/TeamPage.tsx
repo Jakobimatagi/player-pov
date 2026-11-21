@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useSyncExternalStore } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
-import type { PositionCode, TeamRole } from '../data/database.types'
+import { SIDE_LABEL, staffTitle } from '../auth/sides'
+import type { PositionCode, Side, TeamRole } from '../data/database.types'
 import { supabase } from '../data/supabase'
 import { AccountMenu } from '../app/AccountMenu'
 
@@ -12,6 +13,8 @@ type Row = {
   role: string
   roleCode: TeamRole
   position: string
+  /** Coordinator side for staff. */
+  side?: Side | null
   status: 'Active' | 'Pending' | 'Removed'
   kind: 'coach' | 'player' | 'pending'
   email?: string
@@ -120,7 +123,7 @@ export function TeamPage() {
         return
       }
       const [{ data: members }, { data: profiles }, { data: invites }] = await Promise.all([
-        client.from('memberships').select('user_id, role, position'),
+        client.from('memberships').select('user_id, role, position, coordinates'),
         client.from('profiles').select('user_id, display_name'),
         client.from('invites').select('id, display_name, role, position, accepted_at, expires_at'),
       ])
@@ -131,9 +134,10 @@ export function TeamPage() {
       const active: Row[] = members.map((row) => ({
         id: row.user_id,
         name: names.get(row.user_id) ?? 'Teammate',
-        role: roleLabel(row.role),
+        role: staffTitle(row.role, row.coordinates),
         roleCode: row.role,
         position: row.position ?? '—',
+        side: row.coordinates,
         status: 'Active',
         kind: row.role === 'player' ? 'player' : 'coach',
       }))
@@ -195,11 +199,34 @@ export function TeamPage() {
   }
 
   async function runAction(
-    action: 'resend' | 'revoke' | 'remove' | 'delete' | 'position',
+    action: 'resend' | 'revoke' | 'remove' | 'delete' | 'position' | 'side',
     position?: string,
   ) {
     const row = menuRow
     if (row == null) return
+    if (action === 'side') {
+      const side: Side | null = position === 'offense' || position === 'defense' ? position : null
+      const title = staffTitle(row.roleCode, side)
+      if (!(fixture || supabase == null || snap.teamId == null)) {
+        const { data, error } = await supabase
+          .from('memberships')
+          .update({ coordinates: side })
+          .eq('team_id', snap.teamId)
+          .eq('user_id', row.id)
+          .select('user_id')
+        if (error || data == null || data.length === 0) {
+          setNotice(error?.message ?? 'Only the head coach can change coordinators.')
+          setMenuId(null)
+          return
+        }
+      }
+      setRows((current) =>
+        current.map((item) => (item.id === row.id ? { ...item, side, role: title } : item)),
+      )
+      setNotice(`${row.name} is now ${side == null ? 'a coach' : title.toLowerCase()}.`)
+      setMenuId(null)
+      return
+    }
     if (fixture || supabase == null || snap.teamId == null) {
       if (action === 'remove' && row.roleCode === 'head_coach' && onlyHeadCoach) {
         setNotice('cannot remove the last head coach')
@@ -449,7 +476,20 @@ export function TeamPage() {
                     ))}
                   </select>
                 </label>
-              ) : null}
+              ) : (
+                <label className="auth-field">
+                  <span>Coordinator</span>
+                  <select
+                    aria-label={`Coordinator side for ${menuRow.name}`}
+                    value={menuRow.side ?? ''}
+                    onChange={(event) => void runAction('side', event.target.value)}
+                  >
+                    <option value="">None</option>
+                    <option value="offense">{SIDE_LABEL.offense} (OC)</option>
+                    <option value="defense">{SIDE_LABEL.defense} (DC)</option>
+                  </select>
+                </label>
+              )}
               <button type="button" onClick={() => void runAction('remove')}>
                 Remove
               </button>

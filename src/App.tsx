@@ -42,6 +42,9 @@ import {
 } from './camera/cameraState'
 import { watchLabel } from './ui/watchLabel'
 import { AssignSlots } from './viewer/AssignSlots'
+import { RuleCard } from './viewer/RuleCard'
+import { RulesPanel } from './viewer/RulesPanel'
+import { useRules } from './viewer/useRules'
 import { useViewerAccess } from './viewer/useViewerAccess'
 import { Scrubber } from './ui/Scrubber'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
@@ -198,6 +201,9 @@ export function App() {
   const readyPlay = loaded.status === 'ready' ? loaded.play : null
   const access = useViewerAccess(playId, readyPlay?.ids ?? null)
   const lockIndex = access.kind === 'locked' ? access.index : -1
+  const savedId = isSavedPlayId(playId) ? playId : null
+  const { rules, replace: replaceRule } = useRules(savedId)
+  const [coachPanel, setCoachPanel] = useState<'assign' | 'rules' | null>(null)
 
   // Lock before paint so a locked player never sees another player's view.
   useLayoutEffect(() => {
@@ -316,14 +322,38 @@ export function App() {
       <button type="button" className="btn route-toggle" onClick={() => setShowRoutes((v) => !v)}>
         {showRoutes ? 'Hide routes' : 'Show routes'}
       </button>
-      {access.kind === 'free' && access.staff && isSavedPlayId(playId) && access.teamId != null && (
-        <AssignSlots play={loaded.play} playId={playId} teamId={access.teamId} />
+      {access.kind === 'free' && access.staff && savedId != null && access.teamId != null && (
+        <>
+          <AssignSlots
+            play={loaded.play}
+            playId={savedId}
+            teamId={access.teamId}
+            open={coachPanel === 'assign'}
+            setOpen={(open) => setCoachPanel(open ? 'assign' : null)}
+          />
+          <RulesPanel
+            play={loaded.play}
+            playId={savedId}
+            teamId={access.teamId}
+            role={access.role}
+            mySide={access.side}
+            rules={rules}
+            onSaved={replaceRule}
+            open={coachPanel === 'rules'}
+            setOpen={(open) => setCoachPanel(open ? 'rules' : null)}
+          />
+        </>
       )}
-      {access.kind === 'unassigned' && (
-        <p className="player-note" role="status" data-testid="unassigned-note">
-          Your coach hasn&apos;t given you a position on this play yet. You can watch any player.
-        </p>
-      )}
+      <div className="viewer-notes">
+        {access.kind === 'unassigned' && (
+          <p className="player-note" role="status" data-testid="unassigned-note">
+            Your coach hasn&apos;t given you a position on this play yet. You can watch any player.
+          </p>
+        )}
+        {savedId != null && coachPanel == null && (
+          <RuleCard play={loaded.play} rules={rules} locked={lockIndex >= 0} />
+        )}
+      </div>
       {loaded.warnings.length > 0 && (
         <details className="banner" data-testid="warnings">
           <summary className="banner-summary">{loaded.warnings.length} warnings</summary>
