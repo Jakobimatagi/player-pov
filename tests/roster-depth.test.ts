@@ -154,7 +154,7 @@ describe('roster lists', () => {
 describe('depth slots', () => {
   it('matches the database slot list and sides', () => {
     const sql = readFileSync(
-      new URL('../supabase/migrations/20261122000000_roster_depth_chart.sql', import.meta.url),
+      new URL('../supabase/migrations/20261123000000_special_teams.sql', import.meta.url),
       'utf8',
     )
     for (const slot of DEPTH_SLOTS) expect(sql).toContain(`'${slot.id}'`)
@@ -162,7 +162,11 @@ describe('depth slots', () => {
     expect(slotsFor('defense')).toHaveLength(11)
     expect(slotSide('FS')).toBe('defense')
     expect(slotSide('LT')).toBe('offense')
+    expect(slotSide('KR_R1')).toBe('special')
     expect(slotSide('KR')).toBeNull()
+    for (const u of ['ko', 'kr', 'punt', 'pr', 'fg', 'pat'] as const)
+      expect(slotsFor(u)).toHaveLength(11)
+    expect(new Set(DEPTH_SLOTS.map((slot) => slot.id)).size).toBe(DEPTH_SLOTS.length)
   })
 
   it('demo depth only points at demo players', () => {

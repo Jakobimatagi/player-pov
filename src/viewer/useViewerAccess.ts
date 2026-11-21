@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { getAuthSnap, subscribeAuth } from '../auth/session'
-import type { Side, TeamRole } from '../data/database.types'
+import type { StaffSide, TeamRole } from '../data/database.types'
 import { loadMySlot } from '../data/slots'
 import { supabase } from '../data/supabase'
 import { viewerAccess, type ViewerAccess } from './access'
@@ -9,7 +9,7 @@ import { viewerAccess, type ViewerAccess } from './access'
 export function useViewerAccess(
   playId: string | null,
   ids: readonly string[] | null,
-): ViewerAccess & { teamId: string | null; role: TeamRole | null; side: Side | null } {
+): ViewerAccess & { teamId: string | null; role: TeamRole | null; side: StaffSide | null } {
   const snap = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
   const userId = snap.session?.user.id ?? null
   const isPlayer = snap.role === 'player'

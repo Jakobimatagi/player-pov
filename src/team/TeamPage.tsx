@@ -3,7 +3,7 @@ import { useSyncExternalStore } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import { SIDE_LABEL, staffTitle } from '../auth/sides'
-import type { PositionCode, Side, TeamRole } from '../data/database.types'
+import type { PositionCode, StaffSide, TeamRole } from '../data/database.types'
 import { supabase } from '../data/supabase'
 import { AccountMenu } from '../app/AccountMenu'
 import { TeamTabs } from './TeamShell'
@@ -16,7 +16,7 @@ type Row = {
   roleCode: TeamRole
   position: string
   /** Coordinator side for staff. */
-  side?: Side | null
+  side?: StaffSide | null
   status: 'Active' | 'Pending' | 'Removed'
   kind: 'coach' | 'player' | 'pending'
   email?: string
@@ -207,7 +207,8 @@ export function TeamPage() {
     const row = menuRow
     if (row == null) return
     if (action === 'side') {
-      const side: Side | null = position === 'offense' || position === 'defense' ? position : null
+      const side: StaffSide | null =
+        position === 'offense' || position === 'defense' || position === 'special' ? position : null
       const title = staffTitle(row.roleCode, side)
       if (!(fixture || supabase == null || snap.teamId == null)) {
         const { data, error } = await supabase
@@ -489,6 +490,7 @@ export function TeamPage() {
                     <option value="">None</option>
                     <option value="offense">{SIDE_LABEL.offense} (OC)</option>
                     <option value="defense">{SIDE_LABEL.defense} (DC)</option>
+                    <option value="special">{SIDE_LABEL.special} (STC)</option>
                   </select>
                 </label>
               )}

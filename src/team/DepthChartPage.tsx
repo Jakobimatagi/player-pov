@@ -2,10 +2,15 @@ import { useId, useState, type CSSProperties } from 'react'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
 import {
   DEPTH_SLOTS,
+  GROUP_LABEL,
+  groupOf,
   MAX_DEPTH,
   slotSide,
   slotsFor,
+  SPECIAL_UNITS,
   UNIT_LABEL,
+  unitColumns,
+  slotDisplay,
   type DepthSlot,
   type Unit,
 } from './depthSlots'
@@ -27,13 +32,38 @@ export function DepthChartPage() {
   const team = useTeamRoster()
   const { snap, demo, players, depth } = team
   const [unitPick, setUnitPick] = useState<Unit | null>(null)
-  const unit: Unit = unitPick ?? snap.side ?? 'offense'
+  const unit: Unit = unitPick ?? (snap.side === 'special' ? 'ko' : (snap.side ?? 'offense'))
+  const group = groupOf(unit)
   const [openSlot, setOpenSlot] = useState<string | null>(null)
+  const [copyNote, setCopyNote] = useState<string | null>(null)
   const byId = new Map(players.map((player) => [player.id, player]))
   const slots = slotsFor(unit)
   const empty = slots.filter((slot) => (depth[slot.id] ?? []).length === 0).length
-  const canEdit = (slotId: string) => demo || canEditSide(snap.role, snap.side, slotSide(slotId))
+  const canEdit = (slotId: string) =>
+    demo || canEditSide(snap.role, snap.side, slotSide(slotId), snap.specialCoordinator)
+  const editable = slots[0] != null && canEdit(slots[0].id)
   const current = DEPTH_SLOTS.find((slot) => slot.id === openSlot) ?? null
+  const receiving = unit === 'defense' || unit === 'kr' || unit === 'pr'
+  const fieldStyle = { '--cols': unitColumns(unit) } as CSSProperties
+
+  const pick = (next: Unit) => {
+    setUnitPick(next)
+    setOpenSlot(null)
+    setCopyNote(null)
+  }
+
+  async function copyFieldGoal() {
+    setCopyNote(null)
+    try {
+      for (const slot of slotsFor('pat')) {
+        const twin = slot.id.replace(/^PAT_/, 'FG_')
+        await team.saveDepth(slot.id, depth[twin] ?? [])
+      }
+      setCopyNote('PAT unit copied from field goal.')
+    } catch (err) {
+      setCopyNote(err instanceof Error ? err.message : 'Could not copy')
+    }
+  }
 
   return (
     <TeamShell title="Depth chart" snap={snap} demo={demo} wide>
@@ -42,16 +72,27 @@ export function DepthChartPage() {
           <button
             key={option}
             type="button"
-            aria-pressed={unit === option}
-            onClick={() => {
-              setUnitPick(option)
-              setOpenSlot(null)
-            }}
+            aria-pressed={group === option}
+            onClick={() => pick(option === 'special' ? 'ko' : option)}
           >
-            {UNIT_LABEL[option]}
+            {GROUP_LABEL[option]}
           </button>
         ))}
       </div>
+      {group === 'special' ? (
+        <div className="roster-filters depth-subunits" role="group" aria-label="Special teams unit">
+          {SPECIAL_UNITS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={unit === option}
+              onClick={() => pick(option)}
+            >
+              {UNIT_LABEL[option]}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {team.loading ? <p className="loading-line">Loading…</p> : null}
       {team.error ? <p className="auth-error">{team.error}</p> : null}
       {!team.loading ? (
@@ -60,21 +101,28 @@ export function DepthChartPage() {
             ? 'Every position has a starter.'
             : `${empty} open ${empty === 1 ? 'spot' : 'spots'}.`}{' '}
           Click a position to set who plays there.
-          {unit !== 'special' && !canEdit(slots[0]?.id ?? '')
-            ? ` View only: the ${SIDE_LABEL[unit].toLowerCase()} coordinator or head coach sets this side.`
+          {!editable
+            ? ` View only: the ${SIDE_LABEL[group].toLowerCase()} coordinator or head coach sets this.`
             : ''}
         </p>
+      ) : null}
+      {unit === 'pat' && editable ? (
+        <div className="depth-actions">
+          <button type="button" className="playbook-action" onClick={() => void copyFieldGoal()}>
+            Copy from field goal
+          </button>
+          {copyNote ? <span role="status">{copyNote}</span> : null}
+        </div>
       ) : null}
 
       <div className="depth-layout">
         <div
           className="depth-field"
           data-unit={unit}
+          style={fieldStyle}
           aria-label={`${UNIT_LABEL[unit]} depth chart`}
         >
-          {unit !== 'special' ? (
-            <div className="depth-los" aria-hidden="true" data-unit={unit} />
-          ) : null}
+          <div className="depth-los" aria-hidden="true" data-dir={receiving ? 'down' : 'up'} />
           {slots.map((slot) => (
             <SlotCard
               key={slot.id}
@@ -166,7 +214,7 @@ function SlotPanel({
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const headingId = useId()
-  const elsewhere = slotsByPlayer(depth)
+  const elsewhere = slotsByPlayer(depth, slotDisplay)
   const { suggested, others } = depthCandidates(slot, players, ids)
 
   async function save(next: string[]) {
@@ -181,10 +229,9 @@ function SlotPanel({
     }
   }
 
+  const here = slotDisplay(slot.id)
   const also = (id: string) =>
-    (elsewhere.get(id) ?? []).filter(
-      (entry) => !entry.startsWith(`${slot.id} `) && entry !== slot.id,
-    )
+    (elsewhere.get(id) ?? []).filter((entry) => entry !== here && !entry.startsWith(`${here} (`))
 
   return (
     <section className="depth-panel" aria-labelledby={headingId} data-testid="depth-panel">

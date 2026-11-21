@@ -2,7 +2,7 @@ import { checksumSource, compileChart } from '../editor/compileAdapter'
 import type { LookSource, PlaySource } from '../play/sourceTypes'
 import type { PlayFile } from '../play/types'
 import type { Folder, FolderKind, FolderLink } from '../playbook/folders'
-import type { Json, Side } from './database.types'
+import type { Json, StaffSide } from './database.types'
 import { supabase } from './supabase'
 
 export interface PlayRow {
@@ -300,7 +300,8 @@ function asFolder(row: {
     parentId: row.parent_id,
     kind: row.kind === 'opponent' ? 'opponent' : 'playbook',
     archived: row.archived_at != null,
-    side: row.side === 'offense' || row.side === 'defense' ? row.side : null,
+    side:
+      row.side === 'offense' || row.side === 'defense' || row.side === 'special' ? row.side : null,
   }
 }
 
@@ -336,7 +337,7 @@ export async function createFolder(input: {
   name: string
   parentId: string | null
   kind: FolderKind
-  side?: Side | null
+  side?: StaffSide | null
 }): Promise<Folder> {
   const db = client()
   const { data, error } = await db

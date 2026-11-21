@@ -1,4 +1,4 @@
-import type { Side } from '../data/database.types'
+import type { StaffSide } from '../data/database.types'
 
 /** A playbook row seen as a folder. `kind` marks our own book or a scouted opponent. */
 export type FolderKind = 'playbook' | 'opponent'
@@ -10,13 +10,13 @@ export interface Folder {
   kind: FolderKind
   archived: boolean
   /** Offense or defense book. Null or missing is shared. */
-  side?: Side | null
+  side?: StaffSide | null
 }
 
-export type SideFilter = 'all' | Side
+export type SideFilter = 'all' | StaffSide
 
 /** The folder's own side, else the nearest folder above it with one, else null. */
-export function effectiveSide(folders: readonly Folder[], id: string | null): Side | null {
+export function effectiveSide(folders: readonly Folder[], id: string | null): StaffSide | null {
   const byId = new Map(folders.map((folder) => [folder.id, folder]))
   const seen = new Set<string>()
   let current = id == null ? undefined : byId.get(id)

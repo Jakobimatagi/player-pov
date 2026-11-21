@@ -166,7 +166,7 @@ select throws_ok(
   'OC cannot set the FS depth'
 );
 select lives_ok(
-  $$select public.set_depth('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'KR',
+  $$select public.set_depth('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'KR_R1',
       array['eeeeeeee-eeee-4eee-8eee-eeeeeeeeee01'::uuid])$$,
   'special teams are shared'
 );
@@ -203,7 +203,7 @@ select lives_ok(
 );
 select results_eq(
   $$select r.jersey::int, (select count(*)::int from public.depth_chart d
-      where d.roster_player_id = r.id and d.slot in ('QB', 'KR'))
+      where d.roster_player_id = r.id and d.slot in ('QB', 'KR_R1'))
     from public.roster_players r where r.user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13'$$,
   $$values (7, 2)$$,
   'the kept row keeps its jersey and takes over the depth spots'

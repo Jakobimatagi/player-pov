@@ -5,6 +5,8 @@ export type PositionCode =
   'QB' | 'RB' | 'FB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'CB' | 'S' | 'K' | 'ATH'
 export type PositionGroup = 'QB' | 'RB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'DB' | 'ST'
 export type Side = 'offense' | 'defense'
+/** Coordinator side and playbook side: a side of the ball, or special teams. */
+export type StaffSide = Side | 'special'
 
 export type Database = {
   public: {
@@ -66,7 +68,7 @@ export type Database = {
           user_id: string
           role: TeamRole
           position: PositionCode | null
-          coordinates: Side | null
+          coordinates: StaffSide | null
           created_at: string
         }
         Insert: {
@@ -74,7 +76,7 @@ export type Database = {
           user_id: string
           role: TeamRole
           position?: PositionCode | null
-          coordinates?: Side | null
+          coordinates?: StaffSide | null
           created_at?: string
         }
         Update: {
@@ -82,7 +84,7 @@ export type Database = {
           user_id?: string
           role?: TeamRole
           position?: PositionCode | null
-          coordinates?: Side | null
+          coordinates?: StaffSide | null
           created_at?: string
         }
         Relationships: []
@@ -327,7 +329,7 @@ export type Database = {
           archived_at: string | null
           parent_id: string | null
           kind: 'playbook' | 'opponent'
-          side: Side | null
+          side: StaffSide | null
           created_by: string | null
           created_at: string
         }
@@ -339,7 +341,7 @@ export type Database = {
           archived_at?: string | null
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
-          side?: Side | null
+          side?: StaffSide | null
           created_by?: string | null
           created_at?: string
         }
@@ -351,7 +353,7 @@ export type Database = {
           archived_at?: string | null
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
-          side?: Side | null
+          side?: StaffSide | null
           created_by?: string | null
           created_at?: string
         }

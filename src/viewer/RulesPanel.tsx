@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
 import { cameraState } from '../camera/cameraState'
-import type { Side, TeamRole } from '../data/database.types'
+import type { Side, StaffSide, TeamRole } from '../data/database.types'
 import {
   EMPTY_RULE,
   RULE_FIELDS,
@@ -32,7 +32,7 @@ export function RulesPanel({
   playId: string
   teamId: string
   role: TeamRole | null
-  mySide: Side | null
+  mySide: StaffSide | null
   rules: readonly PositionRule[]
   onSaved: (slot: string, rule: PositionRule | null) => void
   open: boolean
@@ -74,8 +74,11 @@ export function RulesPanel({
           </header>
           <p className="assign-hint">
             Players see the rules for their own position while they watch.
-            {mySide != null && role !== 'head_coach'
+            {(mySide === 'offense' || mySide === 'defense') && role !== 'head_coach'
               ? ` As ${mySide === 'offense' ? 'offensive' : 'defensive'} coordinator you edit ${SIDE_LABEL[mySide].toLowerCase()} players.`
+              : ''}
+            {mySide === 'special' && role !== 'head_coach'
+              ? ' As special teams coordinator you can read these rules. Special teams plays are not in the 3D viewer yet.'
               : ''}
           </p>
           {groups.map((group) => {

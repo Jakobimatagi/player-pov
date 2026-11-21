@@ -1,6 +1,115 @@
-import type { PositionCode, Side } from '../data/database.types'
+import type { PositionCode, Side, StaffSide } from '../data/database.types'
 
-export type Unit = Side | 'special'
+/** The six special teams units. */
+export type SpecialUnit = 'ko' | 'kr' | 'punt' | 'pr' | 'fg' | 'pat'
+export type Unit = Side | SpecialUnit
+/** Top-level tabs on the depth chart. */
+export type UnitGroup = Side | 'special'
+
+export const SPECIAL_UNITS: readonly SpecialUnit[] = ['ko', 'kr', 'punt', 'pr', 'fg', 'pat']
+
+type SlotRow = [
+  id: string,
+  label: string,
+  name: string,
+  col: number,
+  row: number,
+  suggest: PositionCode[],
+]
+
+function unit(prefix: string, u: SpecialUnit, rows: SlotRow[]): DepthSlot[] {
+  return rows.map(([id, label, name, col, row, suggest]) => ({
+    id: `${prefix}_${id}`,
+    label,
+    name,
+    unit: u,
+    col,
+    row,
+    suggest,
+  }))
+}
+
+const COVER: PositionCode[] = ['LB', 'S', 'CB', 'WR', 'RB']
+const LINE: PositionCode[] = ['OL', 'DL', 'TE']
+
+/** Field goal and PAT share one shape. */
+function kickBlock(prefix: string, u: SpecialUnit): DepthSlot[] {
+  return unit(prefix, u, [
+    ['LE', 'TE', 'Left end', 2, 1, ['TE', 'DL', 'OL']],
+    ['LT', 'LT', 'Left tackle', 3, 1, ['OL']],
+    ['LG', 'LG', 'Left guard', 4, 1, ['OL']],
+    ['LS', 'LS', 'Long snapper', 5, 1, ['OL', 'TE']],
+    ['RG', 'RG', 'Right guard', 6, 1, ['OL']],
+    ['RT', 'RT', 'Right tackle', 7, 1, ['OL']],
+    ['RE', 'TE', 'Right end', 8, 1, ['TE', 'DL', 'OL']],
+    ['LW', 'W', 'Left wing', 1, 2, ['TE', 'LB', 'DL']],
+    ['RW', 'W', 'Right wing', 9, 2, ['TE', 'LB', 'DL']],
+    ['H', 'H', 'Holder', 5, 2, ['QB', 'K', 'WR']],
+    ['K', 'K', 'Kicker', 5, 3, ['K']],
+  ])
+}
+
+/** Must match app.depth_slot_side in the database. */
+const SPECIAL_SLOTS: DepthSlot[] = [
+  // Kickoff: ten across, kicker behind. Coverage moves up the screen.
+  ...unit('KO', 'ko', [
+    ['L5', 'L5', 'Left 5', 1, 1, COVER],
+    ['L4', 'L4', 'Left 4', 2, 1, COVER],
+    ['L3', 'L3', 'Left 3', 3, 1, COVER],
+    ['L2', 'L2', 'Left 2', 4, 1, COVER],
+    ['L1', 'L1', 'Left 1', 5, 1, COVER],
+    ['R1', 'R1', 'Right 1', 7, 1, COVER],
+    ['R2', 'R2', 'Right 2', 8, 1, COVER],
+    ['R3', 'R3', 'Right 3', 9, 1, COVER],
+    ['R4', 'R4', 'Right 4', 10, 1, COVER],
+    ['R5', 'R5', 'Right 5', 11, 1, COVER],
+    ['K', 'K', 'Kicker', 6, 2, ['K']],
+  ]),
+  // Kick return: front line, second line, two deep returners.
+  ...unit('KR', 'kr', [
+    ['F1', 'F1', 'Front 1', 3, 1, LINE],
+    ['F2', 'F2', 'Front 2', 4, 1, LINE],
+    ['F3', 'F3', 'Front 3', 5, 1, LINE],
+    ['F4', 'F4', 'Front 4', 6, 1, LINE],
+    ['F5', 'F5', 'Front 5', 7, 1, LINE],
+    ['S1', 'S1', 'Second line 1', 2, 2, ['TE', 'LB', 'RB', 'FB']],
+    ['S2', 'S2', 'Second line 2', 4, 2, ['TE', 'LB', 'RB', 'FB']],
+    ['S3', 'S3', 'Second line 3', 6, 2, ['TE', 'LB', 'RB', 'FB']],
+    ['S4', 'S4', 'Second line 4', 8, 2, ['TE', 'LB', 'RB', 'FB']],
+    ['R1', 'KR', 'Returner', 4, 3, ['RB', 'WR', 'CB', 'S']],
+    ['R2', 'KR', 'Returner 2', 6, 3, ['RB', 'WR', 'CB', 'S']],
+  ]),
+  // Punt: line with gunners split wide, wings, personal protector, punter.
+  ...unit('PNT', 'punt', [
+    ['GL', 'G', 'Left gunner', 1, 1, ['WR', 'CB', 'S']],
+    ['LT', 'LT', 'Left tackle', 3, 1, ['OL', 'TE', 'DL']],
+    ['LG', 'LG', 'Left guard', 4, 1, ['OL', 'DL']],
+    ['LS', 'LS', 'Long snapper', 5, 1, ['OL', 'TE']],
+    ['RG', 'RG', 'Right guard', 6, 1, ['OL', 'DL']],
+    ['RT', 'RT', 'Right tackle', 7, 1, ['OL', 'TE', 'DL']],
+    ['GR', 'G', 'Right gunner', 9, 1, ['WR', 'CB', 'S']],
+    ['LW', 'W', 'Left wing', 2, 2, ['TE', 'LB', 'FB']],
+    ['RW', 'W', 'Right wing', 8, 2, ['TE', 'LB', 'FB']],
+    ['PP', 'PP', 'Personal protector', 5, 2, ['LB', 'FB', 'S', 'RB']],
+    ['P', 'P', 'Punter', 5, 3, ['K']],
+  ]),
+  // Punt return: vises on the gunners, front five, up back, returner.
+  ...unit('PR', 'pr', [
+    ['VL1', 'V', 'Left vise (outside)', 1, 1, ['CB', 'WR', 'S']],
+    ['VL2', 'V', 'Left vise (inside)', 2, 1, ['CB', 'WR', 'S']],
+    ['F1', 'F1', 'Front 1', 3, 1, ['DL', 'LB', 'TE']],
+    ['F2', 'F2', 'Front 2', 4, 1, ['DL', 'LB', 'TE']],
+    ['F3', 'F3', 'Front 3', 5, 1, ['DL', 'LB', 'TE']],
+    ['F4', 'F4', 'Front 4', 6, 1, ['DL', 'LB', 'TE']],
+    ['F5', 'F5', 'Front 5', 7, 1, ['DL', 'LB', 'TE']],
+    ['VR2', 'V', 'Right vise (inside)', 8, 1, ['CB', 'WR', 'S']],
+    ['VR1', 'V', 'Right vise (outside)', 9, 1, ['CB', 'WR', 'S']],
+    ['U', 'U', 'Up back', 5, 2, ['S', 'LB', 'RB']],
+    ['R', 'PR', 'Returner', 5, 3, ['WR', 'CB', 'RB', 'S']],
+  ]),
+  ...kickBlock('FG', 'fg'),
+  ...kickBlock('PAT', 'pat'),
+]
 
 /** One depth chart position. `col`/`row` place the card on the field (wide screens). */
 export interface DepthSlot {
@@ -88,53 +197,51 @@ export const DEPTH_SLOTS: readonly DepthSlot[] = [
     row: 3,
     suggest: ['CB'],
   },
-  // Special teams.
-  { id: 'K', label: 'K', name: 'Kicker', unit: 'special', col: 1, row: 1, suggest: ['K'] },
-  { id: 'P', label: 'P', name: 'Punter', unit: 'special', col: 2, row: 1, suggest: ['K'] },
-  {
-    id: 'LS',
-    label: 'LS',
-    name: 'Long snapper',
-    unit: 'special',
-    col: 3,
-    row: 1,
-    suggest: ['OL', 'TE'],
-  },
-  { id: 'HLD', label: 'H', name: 'Holder', unit: 'special', col: 1, row: 2, suggest: ['QB', 'K'] },
-  {
-    id: 'KR',
-    label: 'KR',
-    name: 'Kick returner',
-    unit: 'special',
-    col: 2,
-    row: 2,
-    suggest: ['RB', 'WR', 'CB'],
-  },
-  {
-    id: 'PR',
-    label: 'PR',
-    name: 'Punt returner',
-    unit: 'special',
-    col: 3,
-    row: 2,
-    suggest: ['WR', 'CB', 'S'],
-  },
+  ...SPECIAL_SLOTS,
 ]
 
 export const UNIT_LABEL: Record<Unit, string> = {
   offense: 'Offense',
   defense: 'Defense',
+  ko: 'Kickoff',
+  kr: 'Kick return',
+  punt: 'Punt',
+  pr: 'Punt return',
+  fg: 'Field goal',
+  pat: 'PAT',
+}
+
+export const GROUP_LABEL: Record<UnitGroup, string> = {
+  offense: 'Offense',
+  defense: 'Defense',
   special: 'Special teams',
+}
+
+export function groupOf(u: Unit): UnitGroup {
+  return u === 'offense' || u === 'defense' ? u : 'special'
+}
+
+/** Grid columns on wide screens. Kickoff lines up eleven across. */
+export function unitColumns(u: Unit): number {
+  return u === 'ko' ? 11 : 9
 }
 
 export function slotsFor(unit: Unit): DepthSlot[] {
   return DEPTH_SLOTS.filter((slot) => slot.unit === unit)
 }
 
-/** The side whose coordinator edits this slot. Special teams are shared (null). */
-export function slotSide(slotId: string): Side | null {
-  const unit = DEPTH_SLOTS.find((slot) => slot.id === slotId)?.unit
-  return unit === 'offense' || unit === 'defense' ? unit : null
+/** The side whose coordinator edits this slot. */
+export function slotSide(slotId: string): StaffSide | null {
+  const found = DEPTH_SLOTS.find((slot) => slot.id === slotId)
+  return found == null ? null : groupOf(found.unit)
 }
 
 export const MAX_DEPTH = 6
+
+/** Short name for hints: "RDT" on offense and defense, "Kickoff K" on special teams. */
+export function slotDisplay(slotId: string): string {
+  const found = DEPTH_SLOTS.find((slot) => slot.id === slotId)
+  if (found == null) return slotId
+  if (found.unit === 'offense' || found.unit === 'defense') return found.id
+  return `${UNIT_LABEL[found.unit]} ${found.label}`
+}

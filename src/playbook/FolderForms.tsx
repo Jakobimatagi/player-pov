@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type FormEvent } from 'react'
 import { SIDE_LABEL } from '../auth/sides'
-import type { Side } from '../data/database.types'
+import type { StaffSide } from '../data/database.types'
 import type { PlayRow } from '../data/plays'
 import { folderNameError, KIND_LABEL, type FolderKind } from './folders'
 import type { PlaybookTemplate } from './playbooks'
@@ -13,15 +13,15 @@ export function NewFolderForm(props: {
   parentName: string | null
   initialKind: FolderKind
   /** Sides offered at the top level. Empty: the folder takes its parent's side. */
-  sides?: readonly (Side | null)[]
-  initialSide?: Side | null
-  onCreate: (name: string, kind: FolderKind, side: Side | null) => Promise<void>
+  sides?: readonly (StaffSide | null)[]
+  initialSide?: StaffSide | null
+  onCreate: (name: string, kind: FolderKind, side: StaffSide | null) => Promise<void>
   onCancel: () => void
 }) {
   const [name, setName] = useState('')
   const [kind, setKind] = useState<FolderKind>(props.initialKind)
   const sides = props.sides ?? []
-  const [side, setSide] = useState<Side | null>(
+  const [side, setSide] = useState<StaffSide | null>(
     sides.includes(props.initialSide ?? null) ? (props.initialSide ?? null) : (sides[0] ?? null),
   )
   const sideName = useId()

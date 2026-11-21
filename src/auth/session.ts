@@ -1,6 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../data/supabase'
-import type { Side, TeamRole } from '../data/database.types'
+import type { StaffSide, TeamRole } from '../data/database.types'
 
 export const INACTIVITY_MS = 14 * 24 * 60 * 60 * 1000
 export const LAST_ACTIVE_KEY = 'last_active'
@@ -78,7 +78,9 @@ export type AuthSnap = {
   role: TeamRole | null
   teamId: string | null
   /** Coordinator side for a coach, or null. */
-  side: Side | null
+  side: StaffSide | null
+  /** The team has a special teams coordinator (special teams stop being shared). */
+  specialCoordinator: boolean
   membershipLoaded: boolean
   membershipError: boolean
   expired: boolean
@@ -91,6 +93,7 @@ let snap: AuthSnap = {
   role: null,
   teamId: null,
   side: null,
+  specialCoordinator: false,
   membershipLoaded: supabase == null,
   membershipError: false,
   expired: false,
@@ -114,21 +117,33 @@ export function getAuthSnap(): AuthSnap {
 async function loadRole(userId: string): Promise<{
   role: TeamRole | null
   teamId: string | null
-  side: Side | null
+  side: StaffSide | null
+  specialCoordinator: boolean
   error: boolean
 }> {
-  if (supabase == null) return { role: null, teamId: null, side: null, error: false }
+  const none = { role: null, teamId: null, side: null, specialCoordinator: false }
+  if (supabase == null) return { ...none, error: false }
   const { data, error } = await supabase
     .from('memberships')
     .select('role, team_id, coordinates')
     .eq('user_id', userId)
     .limit(1)
-  if (error) return { role: null, teamId: null, side: null, error: true }
+  if (error) return { ...none, error: true }
   const role = data?.[0]?.role ?? null
   const teamId = data?.[0]?.team_id ?? null
   const side = data?.[0]?.coordinates ?? null
   if (role != null) localStorage.setItem(HAD_TEAM_KEY, userId)
-  return { role, teamId, side, error: false }
+  let specialCoordinator = false
+  if (teamId != null && role != null && role !== 'player') {
+    const { data: st } = await supabase
+      .from('memberships')
+      .select('user_id')
+      .eq('team_id', teamId)
+      .eq('coordinates', 'special')
+      .limit(1)
+    specialCoordinator = (st ?? []).length > 0
+  }
+  return { role, teamId, side, specialCoordinator, error: false }
 }
 
 async function applySession(session: Session | null, expired: boolean): Promise<void> {
@@ -139,6 +154,7 @@ async function applySession(session: Session | null, expired: boolean): Promise<
       role: null,
       teamId: null,
       side: null,
+      specialCoordinator: false,
       membershipLoaded: true,
       membershipError: false,
       expired,
@@ -152,6 +168,7 @@ async function applySession(session: Session | null, expired: boolean): Promise<
     role: membership.role,
     teamId: membership.teamId,
     side: membership.side,
+    specialCoordinator: membership.specialCoordinator,
     membershipLoaded: true,
     membershipError: membership.error,
     expired,

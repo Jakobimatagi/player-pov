@@ -6,7 +6,8 @@ import {
   matchesFilter,
   parseHeight,
   parsePositions,
-  parseRosterPaste,
+  parseRosterTable,
+  splitNewPlayers,
   parseWhole,
   POSITION_CODES,
   sortRoster,
@@ -89,7 +90,7 @@ export function RosterSheetPage() {
           aria-expanded={pasteOpen}
           onClick={() => setPasteOpen((open) => !open)}
         >
-          Paste from spreadsheet
+          Import roster
         </button>
       </div>
       <div className="roster-filters" role="group" aria-label="Show">
@@ -106,6 +107,7 @@ export function RosterSheetPage() {
       </div>
       {pasteOpen ? (
         <PastePanel
+          roster={players}
           onImport={async (rows) => {
             await team.add(rows)
             setPasteOpen(false)
@@ -475,36 +477,82 @@ function AddRow({ onAdd }: { onAdd: (row: RosterPatch & { name: string }) => Pro
 }
 
 function PastePanel({
+  roster,
   onImport,
 }: {
+  roster: readonly RosterPlayer[]
   onImport: (rows: (RosterPatch & { name: string })[]) => Promise<void>
 }) {
   const [text, setText] = useState('')
+  const [fileName, setFileName] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const parsed = parseRosterPaste(text)
+  const parsed = parseRosterTable(text)
+  const { fresh, existing } = splitNewPlayers(parsed.players, roster)
 
   return (
-    <section className="folder-panel" aria-label="Paste from spreadsheet">
-      <h2>Paste from spreadsheet</h2>
+    <section className="folder-panel" aria-label="Import roster">
+      <h2>Import roster</h2>
       <p className="folder-hint">
-        Copy rows from Excel or Google Sheets in this column order: number, name, position(s), grad
-        year, height, weight. Only the name is required.
+        Choose a CSV file, or paste rows copied from Excel or Google Sheets. With a header row,
+        columns are matched by name: Name (or First and Last), Number, Position, Class or Grad year,
+        Height, Weight. Other columns are ignored. Without a header, use that order with the number
+        first. To bring a roster over from Hudl or another app, export it as a CSV file and choose
+        it here.
       </p>
+      <label className="playbook-action sheet-file">
+        Choose CSV file
+        <input
+          type="file"
+          accept=".csv,.tsv,.txt,text/csv,text/plain"
+          className="visually-hidden"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0]
+            if (file == null) return
+            if (file.size > 1_000_000) {
+              setError('That file is over 1 MB. Export only the roster columns and try again.')
+              return
+            }
+            setError(null)
+            setFileName(file.name)
+            void file.text().then(setText)
+          }}
+        />
+      </label>
+      {fileName ? <span className="folder-hint"> {fileName}</span> : null}
       <textarea
         className="sheet-paste"
-        aria-label="Rows to paste"
+        aria-label="Rows to import"
         rows={6}
-        placeholder={'12\tMarcus Hill\tQB\t2027\t6-2\t190\n52\tNate Harris\tLB, RB\t2027\t6-0\t215'}
+        placeholder={
+          'Number,First Name,Last Name,Position,Class,Height,Weight\n12,Marcus,Hill,QB,Jr,6-2,190'
+        }
         value={text}
-        onChange={(event) => setText(event.target.value)}
+        onChange={(event) => {
+          setText(event.target.value)
+          setFileName(null)
+        }}
       />
       {text.trim() !== '' ? (
-        <p className="folder-hint" role="status">
-          {parsed.players.length} {parsed.players.length === 1 ? 'player' : 'players'} ready
-          {parsed.problems.length > 0 ? ` · ${parsed.problems.slice(0, 3).join('; ')}` : ''}
-          {parsed.problems.length > 3 ? `; and ${parsed.problems.length - 3} more` : ''}
-        </p>
+        <div className="folder-hint" role="status">
+          <p>
+            {fresh.length} new {fresh.length === 1 ? 'player' : 'players'} ready
+            {existing.length > 0
+              ? `, ${existing.length} already on the roster (skipped: ${existing
+                  .slice(0, 3)
+                  .map((player) => player.name)
+                  .join(', ')}${existing.length > 3 ? '…' : ''})`
+              : ''}
+            .
+          </p>
+          {parsed.columns.length > 0 ? <p>Columns found: {parsed.columns.join(', ')}.</p> : null}
+          {parsed.problems.length > 0 ? (
+            <p>
+              {parsed.problems.slice(0, 3).join('; ')}
+              {parsed.problems.length > 3 ? `; and ${parsed.problems.length - 3} more` : ''}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {error ? (
         <p className="auth-error" role="alert">
@@ -515,18 +563,18 @@ function PastePanel({
         <button
           type="button"
           className="playbook-action primary"
-          disabled={busy || parsed.players.length === 0}
+          disabled={busy || fresh.length === 0}
           onClick={() => {
             setBusy(true)
             setError(null)
-            onImport(parsed.players)
+            onImport(fresh)
               .catch((err: unknown) =>
                 setError(err instanceof Error ? err.message : 'Could not add'),
               )
               .finally(() => setBusy(false))
           }}
         >
-          Add {parsed.players.length || ''} to roster
+          Add {fresh.length || ''} to roster
         </button>
       </div>
     </section>

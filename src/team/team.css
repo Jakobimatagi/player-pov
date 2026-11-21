@@ -462,7 +462,7 @@ select.sheet-cell {
 /* Tablet and up: cards sit where the players line up, on a turf field. */
 @media (min-width: 900px) {
   .depth-field {
-    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--cols, 9), minmax(0, 1fr));
     grid-auto-rows: minmax(104px, auto);
     gap: 6px;
     padding: 20px 12px;
@@ -475,10 +475,6 @@ select.sheet-cell {
       ),
       #1f4d2b;
     border: 1px solid #2f6b3d;
-  }
-
-  .depth-field[data-unit='special'] {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .depth-card {
@@ -502,12 +498,12 @@ select.sheet-cell {
     pointer-events: none;
   }
 
-  /* Offense: line of scrimmage just above row 1. Defense: just below row 3. */
-  .depth-los[data-unit='offense'] {
+  /* Units moving up the screen have the line above row 1; receiving units below the last row. */
+  .depth-los[data-dir='up'] {
     top: 14px;
   }
 
-  .depth-los[data-unit='defense'] {
+  .depth-los[data-dir='down'] {
     bottom: 14px;
   }
 }
@@ -527,4 +523,32 @@ select.sheet-cell {
     position: sticky;
     top: 16px;
   }
+}
+
+.depth-subunits {
+  margin-top: -4px;
+}
+
+.depth-subunits button {
+  font-size: 0.9rem;
+}
+
+.depth-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.sheet-file {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.sheet-file:focus-within {
+  outline: 2px solid #c8102e;
+  outline-offset: 2px;
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSyncExternalStore } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
-import type { Side } from '../data/database.types'
+import type { StaffSide } from '../data/database.types'
 import { AccountMenu } from '../app/AccountMenu'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import type { PlayRow } from '../data/plays'
@@ -173,15 +173,18 @@ export function PlaybookPage() {
   const role = snap.role
   const mySide = snap.side
   const sideFilter: SideFilter = sidePick ?? mySide ?? 'all'
-  const canEdit = (side: Side | null) => fixture || canEditSide(role, mySide, side)
+  const canEdit = (side: StaffSide | null) =>
+    fixture || canEditSide(role, mySide, side, snap.specialCoordinator)
   const hereSide = effectiveSide(live, current)
   const editHere = staff && canEdit(hereSide)
-  const newFolderSides: (Side | null)[] =
+  const newFolderSides: (StaffSide | null)[] =
     current != null
       ? []
       : fixture || role === 'head_coach' || mySide == null
-        ? ['offense', 'defense', null]
-        : [mySide, null]
+        ? ['offense', 'defense', 'special', null]
+        : mySide === 'special' || snap.specialCoordinator
+          ? [mySide, null]
+          : [mySide, 'special', null]
 
   if (!fixture && snap.ready && snap.session == null) {
     return <Navigate to="/login?next=/playbook" replace />
@@ -343,7 +346,7 @@ export function PlaybookPage() {
     setSuccess(next.success)
   }
 
-  async function createSubfolder(name: string, kind: FolderKind, picked: Side | null) {
+  async function createSubfolder(name: string, kind: FolderKind, picked: StaffSide | null) {
     const side = current == null ? picked : hereSide
     let folder: Folder
     if (fixture) {
@@ -501,7 +504,7 @@ export function PlaybookPage() {
 
         {staff && !viewingArchived && !searching && current == null ? (
           <div className="roster-filters" role="group" aria-label="Side of the ball">
-            {(['all', 'offense', 'defense'] as const).map((option) => (
+            {(['all', 'offense', 'defense', 'special'] as const).map((option) => (
               <button
                 key={option}
                 type="button"
