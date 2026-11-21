@@ -60,13 +60,16 @@ export function RosterSheetPage() {
     'name',
   )
 
-  async function run(action: () => Promise<unknown>, ok?: string) {
+  /** Runs a save and reports it. Resolves true on success, false after showing the error. */
+  async function run(action: () => Promise<unknown>, ok?: string): Promise<boolean> {
     setNotice(null)
     try {
       await action()
       if (ok) setNotice({ kind: 'ok', text: ok })
+      return true
     } catch (err) {
       setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'Could not save' })
+      return false
     }
   }
 
@@ -407,7 +410,7 @@ function Cell<T>({
   )
 }
 
-function AddRow({ onAdd }: { onAdd: (row: RosterPatch & { name: string }) => Promise<void> }) {
+function AddRow({ onAdd }: { onAdd: (row: RosterPatch & { name: string }) => Promise<boolean> }) {
   const [name, setName] = useState('')
   const [jersey, setJersey] = useState('')
   const [position, setPosition] = useState<PositionCode | ''>('')
@@ -424,7 +427,12 @@ function AddRow({ onAdd }: { onAdd: (row: RosterPatch & { name: string }) => Pro
       return
     }
     setError(null)
-    await onAdd({ name: name.trim(), jersey: number, position: position === '' ? null : position })
+    const added = await onAdd({
+      name: name.trim(),
+      jersey: number,
+      position: position === '' ? null : position,
+    })
+    if (!added) return
     setName('')
     setJersey('')
     setPosition('')

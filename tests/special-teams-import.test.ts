@@ -133,4 +133,25 @@ describe('roster import', () => {
     expect(fresh.map((p) => p.name)).toEqual(['New Kid'])
     expect(existing.map((p) => p.name)).toEqual(['Marcus Hill', 'marcus  hill', 'New Kid'])
   })
+
+  it('reads a header with only one known column instead of guessing positions', () => {
+    const { players, problems } = parseRosterTable('Name,Email\nMarcus Hill,mh@example.org', FALL)
+    expect(players).toEqual([expect.objectContaining({ name: 'Marcus Hill', jersey: null })])
+    expect(problems).toEqual([])
+    expect(parseRosterTable('Name\nSolo Player', FALL).players[0]?.name).toBe('Solo Player')
+  })
+
+  it('compares names across scripts and accents without collapsing them', () => {
+    const { fresh, existing } = splitNewPlayers(
+      [
+        { name: 'Иван Петров' },
+        { name: 'Алексей Смирнов' },
+        { name: 'Zoe Adams' },
+        { name: '---' },
+      ],
+      [{ name: 'Zoë Adams' }, { name: '???' }],
+    )
+    expect(fresh.map((p) => p.name)).toEqual(['Иван Петров', 'Алексей Смирнов', '---'])
+    expect(existing.map((p) => p.name)).toEqual(['Zoe Adams'])
+  })
 })

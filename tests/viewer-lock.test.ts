@@ -65,6 +65,29 @@ describe('viewer access', () => {
   })
 })
 
+describe('viewer access failures', () => {
+  const base = { backend: true, savedPlay: true, slotLoaded: true, ids }
+
+  it('never unlocks a player when their slot fails to load', () => {
+    expect(viewerAccess({ ...base, role: 'player', slot: null, slotError: true }).kind).toBe(
+      'error',
+    )
+  })
+
+  it('treats a failed membership load as an error, not a free viewer', () => {
+    expect(viewerAccess({ ...base, role: null, slot: null, membershipError: true }).kind).toBe(
+      'error',
+    )
+  })
+
+  it('lets players watch demo plays freely, with no unassigned note', () => {
+    expect(viewerAccess({ ...base, savedPlay: false, role: 'player', slot: null })).toEqual({
+      kind: 'free',
+      staff: false,
+    })
+  })
+})
+
 describe('camera lock', () => {
   beforeEach(reset)
 

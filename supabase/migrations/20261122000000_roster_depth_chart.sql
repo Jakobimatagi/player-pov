@@ -209,6 +209,16 @@ begin
   if drop_row.user_id is not null then
     raise exception 'only a player without an account can be merged away' using errcode = '23514';
   end if;
+  -- Moving depth spots is a depth chart edit: the caller needs the side of every slot
+  -- the typed-in player holds, exactly as set_depth would require.
+  if exists (
+    select 1 from public.depth_chart d
+    where d.team_id = keep_row.team_id
+      and d.roster_player_id = p_drop
+      and not app.can_edit_side(d.team_id, app.depth_slot_side(d.slot))
+  ) then
+    raise exception 'merging would change depth chart spots you cannot edit' using errcode = '42501';
+  end if;
   update public.roster_players set
     jersey = coalesce(keep_row.jersey, drop_row.jersey),
     alt_positions = case when cardinality(keep_row.alt_positions) = 0

@@ -20,6 +20,33 @@ alter table public.memberships
 
 grant update (coordinates) on table public.memberships to authenticated;
 
+-- Becoming a player clears any coordinator side, so update_member can still demote.
+create function app.clear_player_coordinates()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.role = 'player'::public.team_role then
+    new.coordinates := null;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger memberships_clear_coordinates
+  before insert or update of role on public.memberships
+  for each row execute function app.clear_player_coordinates();
+
+revoke all on function app.clear_player_coordinates() from public, anon, authenticated;
+
+-- The head coach guard skips coordinator-only changes. Changing a head coach's role,
+-- position or identity still needs the owner, exactly as before.
+drop trigger memberships_last_head_coach on public.memberships;
+create trigger memberships_last_head_coach
+  before update of user_id, team_id, role, position or delete on public.memberships
+  for each row execute function app.guard_last_head_coach();
+
 create function app.my_side(t uuid)
 returns text
 language sql
@@ -55,8 +82,30 @@ grant execute on function app.my_side(uuid) to authenticated, service_role;
 grant execute on function app.can_edit_side(uuid, text) to authenticated, service_role;
 
 -- 2. Playbooks belong to a side. Null is a shared book (any staff with edit rights).
+-- A folder with no side of its own takes the nearest side above it.
 alter table public.playbooks
   add column side text check (side in ('offense', 'defense'));
+
+create function app.book_side(b uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with recursive up(id, parent_id, side, level) as (
+    select id, parent_id, side, 1 from public.playbooks where id = b
+    union all
+    select pb.id, pb.parent_id, pb.side, up.level + 1
+    from public.playbooks pb
+    join up on pb.id = up.parent_id
+    where up.side is null and up.level < 64
+  )
+  select side from up where side is not null order by level limit 1
+$$;
+
+revoke all on function app.book_side(uuid) from public, anon;
+grant execute on function app.book_side(uuid) to authenticated, service_role;
 
 grant update (side) on table public.playbooks to authenticated;
 
@@ -68,18 +117,44 @@ create policy pb_insert on public.playbooks
   for insert to authenticated
   with check (
     app.is_staff(team_id)
-    and app.can_edit_side(team_id, side)
+    and app.can_edit_side(team_id, coalesce(side, app.book_side(parent_id)))
     and created_by = auth.uid()
   );
--- USING checks the side before the change, WITH CHECK the side after it, so a
--- defensive coordinator cannot take over an offense book by flipping its side.
+-- USING checks the effective side before the change, WITH CHECK the side after it, so
+-- a coordinator cannot take over the other side's book by flipping or moving it.
 create policy pb_update on public.playbooks
   for update to authenticated
-  using (app.is_staff(team_id) and app.can_edit_side(team_id, side))
-  with check (app.is_staff(team_id) and app.can_edit_side(team_id, side));
+  using (app.is_staff(team_id) and app.can_edit_side(team_id, app.book_side(id)))
+  with check (
+    app.is_staff(team_id)
+    and app.can_edit_side(team_id, coalesce(side, app.book_side(parent_id)))
+  );
 create policy pb_delete on public.playbooks
   for delete to authenticated
-  using (app.is_staff(team_id) and app.can_edit_side(team_id, side));
+  using (app.is_staff(team_id) and app.can_edit_side(team_id, app.book_side(id)));
+
+-- Filing plays in a book follows the book's side too.
+drop policy pbp_write on public.playbook_plays;
+create policy pbp_write on public.playbook_plays
+  for all to authenticated
+  using (
+    exists (
+      select 1
+      from public.playbooks book
+      where book.id = playbook_plays.playbook_id
+        and app.is_staff(book.team_id)
+        and app.can_edit_side(book.team_id, app.book_side(book.id))
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.playbooks book
+      where book.id = playbook_plays.playbook_id
+        and app.is_staff(book.team_id)
+        and app.can_edit_side(book.team_id, app.book_side(book.id))
+    )
+  );
 
 create index playbooks_team_side_idx on public.playbooks (team_id, side);
 

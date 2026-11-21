@@ -202,7 +202,7 @@ export function App() {
   const access = useViewerAccess(playId, readyPlay?.ids ?? null)
   const lockIndex = access.kind === 'locked' ? access.index : -1
   const savedId = isSavedPlayId(playId) ? playId : null
-  const { rules, replace: replaceRule } = useRules(savedId)
+  const { rules, version: rulesVersion, replace: replaceRule } = useRules(savedId)
   const [coachPanel, setCoachPanel] = useState<'assign' | 'rules' | null>(null)
 
   // Lock before paint so a locked player never sees another player's view.
@@ -221,6 +221,17 @@ export function App() {
       unlockPlayer()
     }
   }, [readyPlay, lockIndex, onFrameloop])
+
+  if (loaded.status === 'ready' && access.kind === 'error') {
+    return (
+      <div className="fallback" data-testid="access-error">
+        <p>Couldn&apos;t load your position for this play.</p>
+        <button type="button" className="btn primary" onClick={access.retry}>
+          Try again
+        </button>
+      </div>
+    )
+  }
 
   if (loaded.status === 'loading' || (loaded.status === 'ready' && access.kind === 'loading')) {
     return (
@@ -338,6 +349,7 @@ export function App() {
             role={access.role}
             mySide={access.side}
             rules={rules}
+            rulesVersion={rulesVersion}
             onSaved={replaceRule}
             open={coachPanel === 'rules'}
             setOpen={(open) => setCoachPanel(open ? 'rules' : null)}

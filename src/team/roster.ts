@@ -327,9 +327,9 @@ export function parseRosterTable(
   const rows = lines.map((line) => splitDelimited(line, delimiter))
   const header = (rows[0] ?? []).map(headerColumn)
   const named = header.filter((column) => column != null)
+  // A recognised name column alone is enough ("Name,Email,Phone"); otherwise two columns.
   const hasHeader =
-    named.length >= 2 &&
-    (named.includes('name') || named.includes('first') || named.includes('last'))
+    named.includes('name') || named.includes('first') || named.includes('last') || named.length >= 2
   const index = (column: Column) => header.indexOf(column)
   const at = (cells: string[], column: Column, fallback: number) => {
     const i = hasHeader ? index(column) : fallback
@@ -391,15 +391,22 @@ export function splitNewPlayers<T extends { name: string }>(
   incoming: readonly T[],
   roster: readonly { name: string }[],
 ): { fresh: T[]; existing: T[] } {
-  const key = (name: string) => name.toLowerCase().replace(/[^a-z]/g, '')
-  const known = new Set(roster.map((player) => key(player.name)))
+  // Accents and punctuation don't count ("Zoë" = "Zoe"); letters in any script do.
+  const key = (name: string) =>
+    name
+      .normalize('NFKD')
+      .replace(/\p{M}/gu, '')
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]/gu, '')
+  const known = new Set(roster.map((player) => key(player.name)).filter((k) => k !== ''))
   const fresh: T[] = []
   const existing: T[] = []
   for (const player of incoming) {
-    if (known.has(key(player.name))) existing.push(player)
+    const k = key(player.name)
+    if (k !== '' && known.has(k)) existing.push(player)
     else {
       fresh.push(player)
-      known.add(key(player.name))
+      if (k !== '') known.add(k)
     }
   }
   return { fresh, existing }

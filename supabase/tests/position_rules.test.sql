@@ -1,5 +1,5 @@
 begin;
-select plan(34);
+select plan(42);
 set local search_path = public, extensions, auth;
 
 -- Users: 11 head coach, 12 offensive coordinator, 15 defensive coordinator,
@@ -34,6 +34,7 @@ begin
   perform pg_temp.make_user('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', 'qb@example.com');
   perform pg_temp.make_user('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14', 'fs@example.com');
   perform pg_temp.make_user('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21', 't2@example.com');
+  perform pg_temp.make_user('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa18', 'hc2@example.com');
 end $$;
 
 insert into public.teams (id, name, season_ends_on, created_by) values
@@ -47,7 +48,8 @@ insert into public.memberships (team_id, user_id, role, position, coordinates) v
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa16', 'coach', null, null),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', 'player', 'QB', null),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14', 'player', 'S', null),
-  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21', 'head_coach', null, null);
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21', 'head_coach', null, null),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa18', 'head_coach', null, null);
 
 select throws_ok(
   $$update public.memberships set coordinates = 'defense'
@@ -73,6 +75,10 @@ insert into public.playbooks (id, team_id, name, side, created_by) values
    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11'),
   ('dddddddd-dddd-4ddd-8ddd-dddddddddd02', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'Base O', 'offense',
    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11');
+-- A subfolder of the offense book with no side of its own.
+insert into public.playbooks (id, team_id, name, parent_id, created_by) values
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddd03', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'Red zone',
+   'dddddddd-dddd-4ddd-8ddd-dddddddddd02', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11');
 insert into public.playbook_plays (playbook_id, play_id, sort) values
   ('dddddddd-dddd-4ddd-8ddd-dddddddddd01', 'cccccccc-cccc-4ccc-8ccc-cccccccccc01', 0);
 insert into public.assignments (team_id, playbook_id, assignee_user) values
@@ -143,6 +149,36 @@ select is(
   (select count(*)::int from public.playbooks where side = 'offense'),
   2,
   'DC still reads offense playbooks'
+);
+
+-- Book contents and subfolders follow the book's side (still acting as the DC)
+select throws_ok(
+  $$insert into public.playbook_plays (playbook_id, play_id, sort)
+    values ('dddddddd-dddd-4ddd-8ddd-dddddddddd02', 'cccccccc-cccc-4ccc-8ccc-cccccccccc01', 1)$$,
+  '42501', null,
+  'DC cannot file a play in the offense book'
+);
+select results_eq(
+  $$with c as (update public.playbooks set name = 'Mine' where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd03' returning 1) select count(*)::int from c$$,
+  $$values (0)$$,
+  'DC cannot rename a subfolder of the offense book'
+);
+select throws_ok(
+  $$insert into public.playbooks (team_id, name, parent_id)
+    values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'Sneaky', 'dddddddd-dddd-4ddd-8ddd-dddddddddd02')$$,
+  '42501', null,
+  'DC cannot add a subfolder inside the offense book'
+);
+select lives_ok(
+  $$delete from public.playbook_plays
+    where playbook_id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd01'
+      and play_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'$$,
+  'DC can change what is filed in the defense book'
+);
+select lives_ok(
+  $$insert into public.playbook_plays (playbook_id, play_id, sort)
+    values ('dddddddd-dddd-4ddd-8ddd-dddddddddd01', 'cccccccc-cccc-4ccc-8ccc-cccccccccc01', 0)$$,
+  'DC files a play back in the defense book'
 );
 
 -- Position rules
@@ -240,6 +276,23 @@ select lives_ok(
   $$update public.memberships set coordinates = 'defense'
     where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa16'$$,
   'head coach makes a coach the DC'
+);
+select lives_ok(
+  $$select public.update_member('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa16', 'player', 'LB')$$,
+  'head coach demotes a coordinator to player'
+);
+select ok(
+  (select coordinates is null from public.memberships where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa16'),
+  'demotion clears the coordinator side'
+);
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa18', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa18","role":"authenticated"}', true);
+select results_eq(
+  $$with c as (update public.memberships set coordinates = 'offense'
+     where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11' returning 1) select count(*)::int from c$$,
+  $$values (1)$$,
+  'a head coach who is not the owner can set another head coach''s coordinator side'
 );
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);

@@ -24,6 +24,7 @@ export function RulesPanel({
   role,
   mySide,
   rules,
+  rulesVersion = 0,
   onSaved,
   open,
   setOpen,
@@ -34,6 +35,8 @@ export function RulesPanel({
   role: TeamRole | null
   mySide: StaffSide | null
   rules: readonly PositionRule[]
+  /** Changes when rules are refetched; open forms reset only then. */
+  rulesVersion?: number
   onSaved: (slot: string, rule: PositionRule | null) => void
   open: boolean
   setOpen: (open: boolean) => void
@@ -109,7 +112,7 @@ export function RulesPanel({
                       </button>
                       {isOpen ? (
                         <RuleForm
-                          key={`${choice.id}:${rule?.updatedAt ?? ''}`}
+                          key={`${choice.id}:${rulesVersion}`}
                           initial={rule ?? EMPTY_RULE}
                           editable={editable}
                           side={group.side}

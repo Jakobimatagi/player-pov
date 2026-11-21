@@ -1,5 +1,5 @@
 begin;
-select plan(30);
+select plan(31);
 set local search_path = public, extensions, auth;
 
 -- 11 head coach, 12 OC, 15 DC, 13 QB player, 14 FS player, 21 other team's head coach.
@@ -193,6 +193,15 @@ select throws_ok(
 );
 
 -- Merge a typed-in row into the account holder's row
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15","role":"authenticated"}', true);
+select throws_ok(
+  $$select public.merge_roster_players(
+      (select id from ids where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13'),
+      'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee01')$$,
+  '42501', null,
+  'DC cannot merge away a player who holds offense depth spots'
+);
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11', true);
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11","role":"authenticated"}', true);
 select lives_ok(
