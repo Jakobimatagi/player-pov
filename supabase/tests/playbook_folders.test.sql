@@ -163,6 +163,8 @@ select is(
 
 -- The quarterback is assigned the top folder and inherits everything under it.
 reset role;
+-- Players read published plays only (20261124000000_play_calls).
+update public.plays set published_at = now();
 set local search_path = public, extensions, auth;
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', true);
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13","role":"authenticated"}', true);

@@ -1,6 +1,6 @@
 # Coordinators and position rules
 
-The head coach can mark any coach as **Offensive coordinator**, **Defensive coordinator** or **Special teams coordinator** (`memberships.coordinates`). Playbooks carry a side (`playbooks.side`: offense, defense, special teams, or shared). Special teams stay shared until a special teams coordinator is named; see `scenarios/roster-depth.md`. Each play holds **position rules** for each player in it (`position_rules`, keyed by play and player id): Alignment, Assignment, Key / read, and Coaching points.
+The head coach can mark any coach as **Offensive coordinator**, **Defensive coordinator** or **Special teams coordinator** (`memberships.coordinates`). Playbooks carry a side (`playbooks.side`: offense, defense, special teams, or shared). Special teams stay shared until a special teams coordinator is named; see `scenarios/roster-depth.md`. Each play holds **position rules** for each player in it (`position_rules`, keyed by play and player id): the 3 A's (Alignment, Assignment, Adjustment), the 3 R's (Read, Recognize, React) and optional Coaching points. Edited in place: this used to list Alignment, Assignment, Key / read and Coaching points. Publishing and the play sheet are in `scenarios/play-calls.md`.
 
 Who can edit what (`app.can_edit_side`, mirrored by `canEditSide` in `src/auth/sides.ts`):
 
@@ -40,7 +40,7 @@ Players read every rule on a play they're assigned, so they can see teammates' j
 
 **Preconditions:** Signed in as the DC. Open a saved play.
 
-**Steps:** Click **Position rules**. Open `FS`, fill Alignment, Assignment and Key / read, and click **Save**.
+**Steps:** Click **Position rules**. Open `FS`, fill Alignment, Assignment and Read, and click **Save**.
 
 **Expected:**
 

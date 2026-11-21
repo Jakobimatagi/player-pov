@@ -10,6 +10,7 @@ export const DEMO_PLAYS: PlayRow[] = [
     current_version: 1,
     default_look_id: null,
     updated_at: '2026-10-23T00:00:00.000Z',
+    published_at: '2026-10-24T00:00:00.000Z',
   },
   {
     id: 'iso',
@@ -19,6 +20,7 @@ export const DEMO_PLAYS: PlayRow[] = [
     current_version: 1,
     default_look_id: null,
     updated_at: '2026-10-23T00:00:00.000Z',
+    published_at: null,
   },
 ]
 
@@ -41,6 +43,7 @@ export const DEMO_ARCHIVED: PlayRow[] = [
     current_version: 1,
     default_look_id: null,
     updated_at: '2026-10-23T00:00:00.000Z',
+    published_at: null,
   },
 ]
 

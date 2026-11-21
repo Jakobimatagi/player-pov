@@ -181,6 +181,8 @@ export type Database = {
           default_look_id: string | null
           current_version: number | null
           archived_at: string | null
+          published_at: string | null
+          published_by: string | null
           created_by: string | null
           created_at: string
           updated_at: string
@@ -443,6 +445,9 @@ export type Database = {
           alignment: string | null
           assignment: string | null
           key_read: string | null
+          recognize: string | null
+          react: string | null
+          adjustment: string | null
           notes: string | null
           updated_by: string | null
           updated_at: string
@@ -455,6 +460,9 @@ export type Database = {
           alignment?: string | null
           assignment?: string | null
           key_read?: string | null
+          recognize?: string | null
+          react?: string | null
+          adjustment?: string | null
           notes?: string | null
           updated_by?: string | null
           updated_at?: string
@@ -463,6 +471,9 @@ export type Database = {
           alignment?: string | null
           assignment?: string | null
           key_read?: string | null
+          recognize?: string | null
+          react?: string | null
+          adjustment?: string | null
           notes?: string | null
         }
         Relationships: []
@@ -615,6 +626,14 @@ export type Database = {
       health: {
         Args: Record<string, never>
         Returns: number
+      }
+      publish_play: {
+        Args: { p_play: string }
+        Returns: string
+      }
+      unpublish_play: {
+        Args: { p_play: string }
+        Returns: undefined
       }
       save_play_version: {
         Args: {

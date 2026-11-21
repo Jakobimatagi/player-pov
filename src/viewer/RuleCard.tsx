@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { cameraState, subscribeCamera } from '../camera/cameraState'
-import { RULE_FIELDS, type PositionRule } from '../data/rules'
+import type { PositionRule } from '../data/rules'
+import { RuleView } from '../playsheet/RuleEditor'
 import type { CompiledPlay } from '../play/types'
 import { watchLabel } from '../ui/watchLabel'
 
@@ -29,14 +30,7 @@ export function RuleCard({
       {rule == null ? (
         <p className="rule-empty">Your coach hasn&apos;t written rules for this play yet.</p>
       ) : (
-        <dl>
-          {RULE_FIELDS.filter((field) => rule[field.key] !== '').map((field) => (
-            <div key={field.key} className="rule-line">
-              <dt>{field.label}</dt>
-              <dd>{rule[field.key]}</dd>
-            </div>
-          ))}
-        </dl>
+        <RuleView rule={rule} required={false} compact />
       )}
     </details>
   )

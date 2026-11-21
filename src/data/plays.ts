@@ -13,6 +13,8 @@ export interface PlayRow {
   current_version: number | null
   default_look_id: string | null
   updated_at: string
+  /** Null while the play is a Draft. Players only ever see published plays. */
+  published_at: string | null
 }
 
 export interface PlaybookRow {
@@ -21,7 +23,8 @@ export interface PlaybookRow {
   playCount: number
 }
 
-const PLAY_COLUMNS = 'id, team_id, name, side, current_version, default_look_id, updated_at'
+const PLAY_COLUMNS =
+  'id, team_id, name, side, current_version, default_look_id, updated_at, published_at'
 
 export class StaleVersionError extends Error {
   current: number
@@ -56,6 +59,7 @@ function asPlay(row: {
   current_version: number | null
   default_look_id: string | null
   updated_at: string
+  published_at?: string | null
 }): PlayRow {
   return {
     id: row.id,
@@ -65,6 +69,7 @@ function asPlay(row: {
     current_version: row.current_version,
     default_look_id: row.default_look_id,
     updated_at: row.updated_at,
+    published_at: row.published_at ?? null,
   }
 }
 
@@ -106,6 +111,35 @@ export async function listArchivedPlays(teamId: string): Promise<PlayRow[]> {
     .order('name')
   if (error) throw new Error(error.message)
   return (data ?? []).map((row) => asPlay(row))
+}
+
+/**
+ * Publish a play to the players it is assigned to. The database refuses (23514) while any
+ * position on the play's side is missing one of its 3 A's or 3 R's.
+ */
+export async function publishPlay(playId: string): Promise<string> {
+  const { data, error } = await client().rpc('publish_play', { p_play: playId })
+  if (error) {
+    if (error.code === '23514') {
+      throw new Error('Every position needs all 3 A’s and 3 R’s before this play can go out.')
+    }
+    if (error.code === '42501') {
+      throw new Error('Only the head coach or this side’s coordinator can publish this play.')
+    }
+    throw new Error(error.message)
+  }
+  return data
+}
+
+/** Back to Draft: players stop seeing the play until it is published again. */
+export async function unpublishPlay(playId: string): Promise<void> {
+  const { error } = await client().rpc('unpublish_play', { p_play: playId })
+  if (error) {
+    if (error.code === '42501') {
+      throw new Error('Only the head coach or this side’s coordinator can unpublish this play.')
+    }
+    throw new Error(error.message)
+  }
 }
 
 export async function loadPlay(

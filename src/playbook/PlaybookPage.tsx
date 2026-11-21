@@ -379,6 +379,7 @@ export function PlaybookPage() {
         current_version: 1,
         default_look_id: null,
         updated_at: '2026-11-05T00:00:00.000Z',
+        published_at: null,
       }
       setPlays((rows) => [...rows, row].sort((a, b) => a.name.localeCompare(b.name)))
       if (folderId != null) setLinks((rows) => [...rows, { folderId, playId: id }])
@@ -737,7 +738,23 @@ export function PlaybookPage() {
         <ul className="playbook-list" aria-label="Plays">
           {shown.map((play) => (
             <li key={play.id} className="playbook-row">
-              <span className="playbook-name">{play.name}</span>
+              <span className="playbook-name">
+                {viewingArchived ? (
+                  play.name
+                ) : (
+                  <Link className="playbook-open" to={`/plays/${play.id}`}>
+                    {play.name}
+                  </Link>
+                )}
+                {staff && !viewingArchived ? (
+                  <span
+                    className="play-state"
+                    data-state={play.published_at != null ? 'published' : 'draft'}
+                  >
+                    {play.published_at != null ? 'Published' : 'Draft'}
+                  </span>
+                ) : null}
+              </span>
               {renaming === play.id ? (
                 <form
                   className="playbook-rename"

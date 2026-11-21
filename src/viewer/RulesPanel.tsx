@@ -1,14 +1,9 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useId, useState } from 'react'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
 import { cameraState } from '../camera/cameraState'
 import type { Side, StaffSide, TeamRole } from '../data/database.types'
-import {
-  EMPTY_RULE,
-  RULE_FIELDS,
-  saveRule,
-  type PositionRule,
-  type RuleFields,
-} from '../data/rules'
+import { saveRule, type PositionRule } from '../data/rules'
+import { RuleEditor } from '../playsheet/RuleEditor'
 import type { CompiledPlay } from '../play/types'
 import { watchChoices } from '../ui/watchLabel'
 
@@ -76,7 +71,9 @@ export function RulesPanel({
             </button>
           </header>
           <p className="assign-hint">
-            Players see the rules for their own position while they watch.
+            Players see the rules for their own position while they watch.{' '}
+            <a href={`/plays/${playId}`}>Open the play sheet</a> to see every position on the board,
+            check what is missing, and publish.
             {(mySide === 'offense' || mySide === 'defense') && role !== 'head_coach'
               ? ` As ${mySide === 'offense' ? 'offensive' : 'defensive'} coordinator you edit ${SIDE_LABEL[mySide].toLowerCase()} players.`
               : ''}
@@ -111,10 +108,11 @@ export function RulesPanel({
                         </span>
                       </button>
                       {isOpen ? (
-                        <RuleForm
+                        <RuleEditor
                           key={`${choice.id}:${rulesVersion}`}
-                          initial={rule ?? EMPTY_RULE}
+                          initial={rule}
                           editable={editable}
+                          required={false}
                           side={group.side}
                           onSave={async (fields) => {
                             const result = await saveRule({
@@ -147,85 +145,5 @@ export function RulesPanel({
         </section>
       )}
     </>
-  )
-}
-
-function RuleForm({
-  initial,
-  editable,
-  side,
-  onSave,
-}: {
-  initial: RuleFields
-  editable: boolean
-  side: Side
-  onSave: (fields: RuleFields) => Promise<void>
-}) {
-  const [fields, setFields] = useState<RuleFields>({
-    alignment: initial.alignment,
-    assignment: initial.assignment,
-    keyRead: initial.keyRead,
-    notes: initial.notes,
-  })
-  const [status, setStatus] = useState<{
-    kind: 'idle' | 'busy' | 'saved' | 'error'
-    text?: string
-  }>({ kind: 'idle' })
-  const formId = useId()
-
-  useEffect(() => {
-    if (status.kind !== 'saved') return
-    const id = window.setTimeout(() => setStatus({ kind: 'idle' }), 2000)
-    return () => window.clearTimeout(id)
-  }, [status.kind])
-
-  async function submit(event: FormEvent) {
-    event.preventDefault()
-    setStatus({ kind: 'busy' })
-    try {
-      await onSave(fields)
-      setStatus({ kind: 'saved' })
-    } catch (err) {
-      setStatus({ kind: 'error', text: err instanceof Error ? err.message : 'Could not save' })
-    }
-  }
-
-  return (
-    <form className="rule-form" onSubmit={(event) => void submit(event)}>
-      {RULE_FIELDS.map((field) => (
-        <label key={field.key} className="rule-field" htmlFor={`${formId}-${field.key}`}>
-          <span>{field.label}</span>
-          <textarea
-            id={`${formId}-${field.key}`}
-            rows={field.key === 'notes' ? 3 : 2}
-            maxLength={field.max}
-            placeholder={editable ? field.hint : ''}
-            readOnly={!editable}
-            value={fields[field.key]}
-            onChange={(event) => {
-              const value = event.currentTarget.value
-              setFields((current) => ({ ...current, [field.key]: value }))
-            }}
-          />
-        </label>
-      ))}
-      {editable ? (
-        <div className="rule-actions">
-          <button type="submit" className="btn primary" disabled={status.kind === 'busy'}>
-            Save
-          </button>
-          {status.kind === 'saved' ? <span role="status">Saved</span> : null}
-          {status.kind === 'error' ? (
-            <span className="assign-note" role="alert">
-              {status.text}
-            </span>
-          ) : null}
-        </div>
-      ) : (
-        <p className="assign-hint">
-          Only the head coach or the {side} coordinator can change these.
-        </p>
-      )}
-    </form>
   )
 }

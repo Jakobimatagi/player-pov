@@ -245,6 +245,11 @@ select results_eq(
   'OC cannot delete the FS rule'
 );
 
+-- Players read published plays only (20261124000000_play_calls).
+reset role;
+update public.plays set published_at = now();
+set local role authenticated;
+
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14', true);
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14","role":"authenticated"}', true);
 select is((select count(*)::int from public.position_rules), 2, 'assigned player reads every rule on the play');
