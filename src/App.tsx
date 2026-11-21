@@ -1,5 +1,5 @@
 import { Canvas, useThree } from '@react-three/fiber'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import {
   createContextLossState,
@@ -24,7 +24,7 @@ import { lookState } from './camera/look'
 import { clockState, earliestWaypoint, pauseKeepingPlace } from './playback/clockState'
 import { useClock } from './playback/useClock'
 import { draftBackTarget, playsBackTarget } from './play/draftBack'
-import { playInputFromLocation, usePlayInput } from './play/usePlay'
+import { isSavedPlayId, playInputFromLocation, usePlayInput } from './play/usePlay'
 import { fieldConfigFromSearch } from './field/fieldConfig'
 import { CameraRig } from './scene/CameraRig'
 import { Field } from './scene/Field'
@@ -33,7 +33,16 @@ import { Players } from './scene/Players'
 import { RouteLines } from './scene/RouteLines'
 import { CameraBar, HopChips } from './ui/CameraBar'
 import { FacemaskOverlay } from './ui/FacemaskOverlay'
-import { cameraState, subscribeCamera } from './camera/cameraState'
+import {
+  cameraState,
+  lockToPlayer,
+  notePlay,
+  subscribeCamera,
+  unlockPlayer,
+} from './camera/cameraState'
+import { watchLabel } from './ui/watchLabel'
+import { AssignSlots } from './viewer/AssignSlots'
+import { useViewerAccess } from './viewer/useViewerAccess'
 import { Scrubber } from './ui/Scrubber'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
@@ -185,7 +194,29 @@ export function App() {
   }, [])
   const gfx = !webglOk || loss.failed || forceFlat ? 'failed' : loss.lost ? 'lost' : 'ok'
 
-  if (loaded.status === 'loading') {
+  const playId = input.kind === 'id' ? input.playId : null
+  const readyPlay = loaded.status === 'ready' ? loaded.play : null
+  const access = useViewerAccess(playId, readyPlay?.ids ?? null)
+  const lockIndex = access.kind === 'locked' ? access.index : -1
+
+  // Lock before paint so a locked player never sees another player's view.
+  useLayoutEffect(() => {
+    if (readyPlay == null || lockIndex < 0) {
+      unlockPlayer()
+      return
+    }
+    const qb = readyPlay.positions.indexOf('QB')
+    notePlay(readyPlay.meta.id, qb >= 0 ? qb : 0)
+    lockToPlayer(lockIndex)
+    // Wake the demand frameloop so the camera glides onto the locked player.
+    const frame = requestAnimationFrame(() => onFrameloop('always'))
+    return () => {
+      cancelAnimationFrame(frame)
+      unlockPlayer()
+    }
+  }, [readyPlay, lockIndex, onFrameloop])
+
+  if (loaded.status === 'loading' || (loaded.status === 'ready' && access.kind === 'loading')) {
     return (
       <p className="fallback loading-line" data-testid="loading">
         Loading play…
@@ -242,7 +273,19 @@ export function App() {
         <RendererProbe onLost={handleLost} onRestored={handleRestored} />
       </Canvas>
       <div className="hud">
-        <CameraBar play={loaded.play} onFrameloop={onFrameloop} />
+        <CameraBar
+          play={loaded.play}
+          onFrameloop={onFrameloop}
+          lockedLabel={
+            lockIndex >= 0
+              ? watchLabel(
+                  loaded.play.ids[lockIndex] ?? '',
+                  loaded.play.positions[lockIndex] ?? '',
+                  loaded.play.jerseys[lockIndex] ?? 0,
+                )
+              : undefined
+          }
+        />
         <div className="scrub-row">
           <HopChips play={loaded.play} onFrameloop={onFrameloop} />
           <Scrubber
@@ -273,6 +316,14 @@ export function App() {
       <button type="button" className="btn route-toggle" onClick={() => setShowRoutes((v) => !v)}>
         {showRoutes ? 'Hide routes' : 'Show routes'}
       </button>
+      {access.kind === 'free' && access.staff && isSavedPlayId(playId) && access.teamId != null && (
+        <AssignSlots play={loaded.play} playId={playId} teamId={access.teamId} />
+      )}
+      {access.kind === 'unassigned' && (
+        <p className="player-note" role="status" data-testid="unassigned-note">
+          Your coach hasn&apos;t given you a position on this play yet. You can watch any player.
+        </p>
+      )}
       {loaded.warnings.length > 0 && (
         <details className="banner" data-testid="warnings">
           <summary className="banner-summary">{loaded.warnings.length} warnings</summary>

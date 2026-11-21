@@ -25,9 +25,12 @@ const MODES: { mode: CamMode; label: string; short: string }[] = [
 export function CameraBar({
   play,
   onFrameloop,
+  lockedLabel,
 }: {
   play: CompiledPlay
   onFrameloop: (mode: 'always' | 'demand' | 'never') => void
+  /** Set for a player locked to their slot: shows who they watch instead of Watch as. */
+  lockedLabel?: string
 }) {
   const qb = play.positions.indexOf('QB')
   const qbIndex = qb >= 0 ? qb : 0
@@ -137,13 +140,19 @@ export function CameraBar({
         </button>
       ))}
       <div className="watch-row">
-        <WatchAs
-          play={play}
-          qbIndex={qbIndex}
-          onFrameloop={onFrameloop}
-          openRef={watchOpen}
-          closeRef={closeWatch}
-        />
+        {lockedLabel != null ? (
+          <span className="btn watch-locked" data-testid="watch-locked">
+            Your position: {lockedLabel}
+          </span>
+        ) : (
+          <WatchAs
+            play={play}
+            qbIndex={qbIndex}
+            onFrameloop={onFrameloop}
+            openRef={watchOpen}
+            closeRef={closeWatch}
+          />
+        )}
         {mode === 'pov' && (
           <button
             type="button"
@@ -191,7 +200,7 @@ export function HopChips({
     return () => query.removeEventListener('change', onChange)
   }, [])
 
-  if (!coarse || attached < 0) return null
+  if (!coarse || attached < 0 || cameraState.lockedTo >= 0) return null
 
   const hop = (dir: 1 | -1) => {
     if (cameraState.attached < 0) return

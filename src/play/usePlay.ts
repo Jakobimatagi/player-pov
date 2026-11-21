@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { compileChart } from '../editor/compileAdapter'
-import { fetchPlay, parseJson, playUrlFromSearch, SAMPLE_PLAY_URL } from './load'
+import { loadPlay } from '../data/plays'
+import { supabase } from '../data/supabase'
+import { compilePlay } from './compile'
+import { fetchPlay, parseJson, playUrlFromSearch, SAMPLE_PLAY_URL, validatePlay } from './load'
 import { collectWarnings, zodIssuesToErrors } from './schema'
 import { LookSourceSchema, PlaySourceSchema } from './sourceSchema'
 import type { CompiledPlay, PlayLoadError, PlayWarning } from './types'
@@ -40,6 +43,26 @@ function inputUrl(input: PlayInput): string {
   return `/watch/draft/${input.key}`
 }
 
+/** Saved plays are uuids. RLS decides whether the caller may read one. */
+const SAVED_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function isSavedPlayId(id: string | null): id is string {
+  return id != null && SAVED_ID.test(id)
+}
+
+async function loadSavedPlay(playId: string, version?: number): Promise<Loaded> {
+  const url = `/watch/${playId}`
+  try {
+    const saved = await loadPlay(playId, version)
+    const validated = validatePlay(saved.compiled)
+    if (!validated.ok) return { ok: false, url, errors: validated.errors }
+    return { ok: true, url, play: compilePlay(validated.play), warnings: validated.warnings }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'load failed'
+    return { ok: false, url, errors: [{ kind: 'network', path: url, message }] }
+  }
+}
+
 type Loaded =
   | { ok: true; url: string; play: CompiledPlay; warnings: PlayWarning[] }
   | { ok: false; url: string; errors: PlayLoadError[] }
@@ -55,6 +78,9 @@ export async function loadPlayInput(input: PlayInput): Promise<Loaded> {
   if (input.kind === 'url') return fetchPlay(input.url)
   if (input.kind === 'id') {
     const url = fixtureUrl(input.playId)
+    if (url == null && supabase != null && SAVED_ID.test(input.playId)) {
+      return loadSavedPlay(input.playId, input.version)
+    }
     if (url == null) {
       const missing = `/watch/${input.playId}`
       return {

@@ -404,6 +404,27 @@ export type Database = {
         }
         Relationships: []
       }
+      player_slots: {
+        Row: {
+          team_id: string
+          play_id: string
+          user_id: string
+          slot: string
+        }
+        Insert: {
+          team_id: string
+          play_id: string
+          user_id: string
+          slot: string
+        }
+        Update: {
+          team_id?: string
+          play_id?: string
+          user_id?: string
+          slot?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       roster_public: {
