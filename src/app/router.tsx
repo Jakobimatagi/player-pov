@@ -8,6 +8,8 @@ import {
 } from '../auth/pages'
 import { HomePage, SessionLayout, WatchPage } from './HomeGate'
 import { PlaybookPage } from '../playbook/PlaybookPage'
+import { DepthChartPage } from '../team/DepthChartPage'
+import { RosterSheetPage } from '../team/RosterSheetPage'
 import { TeamPage } from '../team/TeamPage'
 
 /** Dev-only editor harness (C5). Production builds drop it. */
@@ -36,6 +38,8 @@ const router = createBrowserRouter([
       { path: '/watch/draft/:draftKey', element: <WatchPage /> },
       { path: '/watch/:playId', element: <WatchPage /> },
       { path: '/team', element: <TeamPage /> },
+      { path: '/team/roster', element: <RosterSheetPage /> },
+      { path: '/team/depth', element: <DepthChartPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
       ...devRoutes,
     ],

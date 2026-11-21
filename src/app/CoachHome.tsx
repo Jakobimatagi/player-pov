@@ -12,7 +12,9 @@ interface Destination {
 function destinations(dev: boolean): Destination[] {
   const list: Destination[] = [
     { to: '/playbook', label: 'Playbook', blurb: 'Plays, playbooks and opponent folders' },
-    { to: '/team', label: 'Team', blurb: 'Roster, coaches and invites' },
+    { to: '/team', label: 'Team', blurb: 'Coaches, players and invites' },
+    { to: '/team/depth', label: 'Depth chart', blurb: 'Who starts at every position' },
+    { to: '/team/roster', label: 'Roster sheet', blurb: 'Numbers, positions, sizes and notes' },
   ]
   if (dev) {
     list.push({ to: '/dev/editor', label: 'Draw a play', blurb: 'Draw board preview (dev only)' })

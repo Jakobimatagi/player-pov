@@ -465,6 +465,65 @@ export type Database = {
         }
         Relationships: []
       }
+      roster_players: {
+        Row: {
+          id: string
+          team_id: string
+          user_id: string | null
+          name: string
+          jersey: number | null
+          position: PositionCode | null
+          alt_positions: PositionCode[]
+          grad_year: number | null
+          height_in: number | null
+          weight_lb: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          user_id?: string | null
+          name: string
+          jersey?: number | null
+          position?: PositionCode | null
+          alt_positions?: PositionCode[]
+          grad_year?: number | null
+          height_in?: number | null
+          weight_lb?: number | null
+          notes?: string | null
+        }
+        Update: {
+          user_id?: string | null
+          name?: string
+          jersey?: number | null
+          position?: PositionCode | null
+          alt_positions?: PositionCode[]
+          grad_year?: number | null
+          height_in?: number | null
+          weight_lb?: number | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      depth_chart: {
+        Row: {
+          team_id: string
+          slot: string
+          rank: number
+          roster_player_id: string
+          updated_at: string
+        }
+        Insert: {
+          team_id: string
+          slot: string
+          rank: number
+          roster_player_id: string
+        }
+        Update: Record<string, never>
+        Relationships: []
+      }
     }
     Views: {
       roster_public: {
@@ -537,6 +596,14 @@ export type Database = {
           p_role: TeamRole
           p_position: PositionCode | null
         }
+        Returns: undefined
+      }
+      set_depth: {
+        Args: { p_team: string; p_slot: string; p_players: string[] }
+        Returns: undefined
+      }
+      merge_roster_players: {
+        Args: { p_keep: string; p_drop: string }
         Returns: undefined
       }
       position_group_of: {

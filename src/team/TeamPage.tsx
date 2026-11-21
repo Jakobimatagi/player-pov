@@ -6,6 +6,8 @@ import { SIDE_LABEL, staffTitle } from '../auth/sides'
 import type { PositionCode, Side, TeamRole } from '../data/database.types'
 import { supabase } from '../data/supabase'
 import { AccountMenu } from '../app/AccountMenu'
+import { TeamTabs } from './TeamShell'
+import './team.css'
 
 type Row = {
   id: string
@@ -348,7 +350,7 @@ export function TeamPage() {
           ) : null}
           <AccountMenu name={playerView ? 'Player' : (snap.session?.user.email ?? 'Coach Kim')} />
         </header>
-        {playerView ? <p>Names and positions only.</p> : null}
+        {playerView ? <p>Names and positions only.</p> : <TeamTabs />}
         <div className="roster-filters" role="tablist">
           {(['All', 'Coaches', 'Players', 'Pending'] as const).map((item) => (
             <button
