@@ -12,6 +12,8 @@ export const cameraState = {
   watchAs: -1,
   /** Play id Watch as last bound to. A change drops the old attach. */
   playId: '',
+  /** Player a locked viewer must watch. -1 means unlocked. Attach and detach ignore other picks. */
+  lockedTo: -1,
   transitionUntil: 0,
   movingRef: { current: false },
 }
@@ -48,6 +50,7 @@ export function selectMode(
 
 /** Attach, keep the current mode, and glide the frame toward that player. */
 export function attachPlayer(index: number, nowSeconds = performance.now() / 1000): void {
+  if (cameraState.lockedTo >= 0 && index !== cameraState.lockedTo) return
   const same = cameraState.attached === index
   if (same && cameraState.watchAs === index) return
   cameraState.attached = index
@@ -61,6 +64,7 @@ export function attachPlayer(index: number, nowSeconds = performance.now() / 100
 }
 
 export function detachPlayer(): void {
+  if (cameraState.lockedTo >= 0) return
   if (cameraState.attached < 0 && cameraState.watchAs < 0) return
   const changed = cameraState.attached >= 0
   cameraState.attached = -1
@@ -75,6 +79,7 @@ export function watchPlayer(
   qbIndex: number,
   nowSeconds = performance.now() / 1000,
 ): void {
+  if (cameraState.lockedTo >= 0 && index !== cameraState.lockedTo) return
   attachPlayer(index, nowSeconds)
   resetLook()
   cameraState.movingRef.current = true
@@ -85,6 +90,7 @@ export function watchPlayer(
 export function notePlay(id: string, qbIndex: number): void {
   if (cameraState.playId === id) return
   cameraState.playId = id
+  cameraState.lockedTo = -1
   cameraState.povSubject = qbIndex
   detachPlayer()
 }
@@ -98,4 +104,26 @@ export function povAttached(qbIndex: number, nowSeconds = performance.now() / 10
     cameraState.movingRef.current = true
     emit()
   }
+}
+
+/**
+ * Lock the viewer to one player: attach them, look through their helmet, and refuse
+ * every other attach. Broadcast and Top-down stay available and follow this player.
+ */
+export function lockToPlayer(index: number, nowSeconds = performance.now() / 1000): void {
+  if (index < 0) return
+  cameraState.lockedTo = -1
+  attachPlayer(index, nowSeconds)
+  cameraState.lockedTo = index
+  cameraState.povSubject = index
+  resetLook()
+  cameraState.movingRef.current = true
+  if (cameraState.mode !== 'pov') selectMode('pov', index, nowSeconds)
+  else emit()
+}
+
+export function unlockPlayer(): void {
+  if (cameraState.lockedTo < 0) return
+  cameraState.lockedTo = -1
+  emit()
 }

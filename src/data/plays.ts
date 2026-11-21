@@ -2,7 +2,7 @@ import { checksumSource, compileChart } from '../editor/compileAdapter'
 import type { LookSource, PlaySource } from '../play/sourceTypes'
 import type { PlayFile } from '../play/types'
 import type { Folder, FolderKind, FolderLink } from '../playbook/folders'
-import type { Json } from './database.types'
+import type { Json, StaffSide } from './database.types'
 import { supabase } from './supabase'
 
 export interface PlayRow {
@@ -292,6 +292,7 @@ function asFolder(row: {
   parent_id: string | null
   kind: string
   archived_at: string | null
+  side: string | null
 }): Folder {
   return {
     id: row.id,
@@ -299,10 +300,12 @@ function asFolder(row: {
     parentId: row.parent_id,
     kind: row.kind === 'opponent' ? 'opponent' : 'playbook',
     archived: row.archived_at != null,
+    side:
+      row.side === 'offense' || row.side === 'defense' || row.side === 'special' ? row.side : null,
   }
 }
 
-const FOLDER_COLUMNS = 'id, name, parent_id, kind, archived_at'
+const FOLDER_COLUMNS = 'id, name, parent_id, kind, archived_at, side'
 
 /** Every folder the caller can see, archived ones included for staff, plus what is filed where. */
 export async function listFolders(
@@ -334,6 +337,7 @@ export async function createFolder(input: {
   name: string
   parentId: string | null
   kind: FolderKind
+  side?: StaffSide | null
 }): Promise<Folder> {
   const db = client()
   const { data, error } = await db
@@ -343,6 +347,7 @@ export async function createFolder(input: {
       name: input.name.trim(),
       parent_id: input.parentId,
       kind: input.kind,
+      side: input.side ?? null,
     })
     .select(FOLDER_COLUMNS)
     .maybeSingle()

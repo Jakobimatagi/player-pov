@@ -1,4 +1,6 @@
 import { useId, useRef, useState, type FormEvent } from 'react'
+import { SIDE_LABEL } from '../auth/sides'
+import type { StaffSide } from '../data/database.types'
 import type { PlayRow } from '../data/plays'
 import { folderNameError, KIND_LABEL, type FolderKind } from './folders'
 import type { PlaybookTemplate } from './playbooks'
@@ -10,11 +12,19 @@ function message(error: unknown, fallback: string): string {
 export function NewFolderForm(props: {
   parentName: string | null
   initialKind: FolderKind
-  onCreate: (name: string, kind: FolderKind) => Promise<void>
+  /** Sides offered at the top level. Empty: the folder takes its parent's side. */
+  sides?: readonly (StaffSide | null)[]
+  initialSide?: StaffSide | null
+  onCreate: (name: string, kind: FolderKind, side: StaffSide | null) => Promise<void>
   onCancel: () => void
 }) {
   const [name, setName] = useState('')
   const [kind, setKind] = useState<FolderKind>(props.initialKind)
+  const sides = props.sides ?? []
+  const [side, setSide] = useState<StaffSide | null>(
+    sides.includes(props.initialSide ?? null) ? (props.initialSide ?? null) : (sides[0] ?? null),
+  )
+  const sideName = useId()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const kindName = useId()
@@ -28,7 +38,7 @@ export function NewFolderForm(props: {
     }
     setBusy(true)
     try {
-      await props.onCreate(name.trim(), kind)
+      await props.onCreate(name.trim(), kind, side)
     } catch (caught) {
       setError(message(caught, 'Could not create the folder'))
       setBusy(false)
@@ -61,6 +71,23 @@ export function NewFolderForm(props: {
           </label>
         ))}
       </fieldset>
+      {sides.length > 0 ? (
+        <fieldset className="kind-pick">
+          <legend>Side of the ball</legend>
+          {sides.map((option) => (
+            <label key={option ?? 'shared'} className="kind-option">
+              <input
+                type="radio"
+                name={sideName}
+                value={option ?? ''}
+                checked={side === option}
+                onChange={() => setSide(option)}
+              />
+              {option == null ? 'Shared' : SIDE_LABEL[option]}
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
       {error ? (
         <p className="auth-error" role="alert">
           {error}

@@ -4,6 +4,9 @@ export type TeamRole = 'head_coach' | 'coach' | 'player'
 export type PositionCode =
   'QB' | 'RB' | 'FB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'CB' | 'S' | 'K' | 'ATH'
 export type PositionGroup = 'QB' | 'RB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'DB' | 'ST'
+export type Side = 'offense' | 'defense'
+/** Coordinator side and playbook side: a side of the ball, or special teams. */
+export type StaffSide = Side | 'special'
 
 export type Database = {
   public: {
@@ -65,6 +68,7 @@ export type Database = {
           user_id: string
           role: TeamRole
           position: PositionCode | null
+          coordinates: StaffSide | null
           created_at: string
         }
         Insert: {
@@ -72,6 +76,7 @@ export type Database = {
           user_id: string
           role: TeamRole
           position?: PositionCode | null
+          coordinates?: StaffSide | null
           created_at?: string
         }
         Update: {
@@ -79,6 +84,7 @@ export type Database = {
           user_id?: string
           role?: TeamRole
           position?: PositionCode | null
+          coordinates?: StaffSide | null
           created_at?: string
         }
         Relationships: []
@@ -323,6 +329,7 @@ export type Database = {
           archived_at: string | null
           parent_id: string | null
           kind: 'playbook' | 'opponent'
+          side: StaffSide | null
           created_by: string | null
           created_at: string
         }
@@ -334,6 +341,7 @@ export type Database = {
           archived_at?: string | null
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
+          side?: StaffSide | null
           created_by?: string | null
           created_at?: string
         }
@@ -345,6 +353,7 @@ export type Database = {
           archived_at?: string | null
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
+          side?: StaffSide | null
           created_by?: string | null
           created_at?: string
         }
@@ -402,6 +411,119 @@ export type Database = {
           created_by?: string | null
           created_at?: string
         }
+        Relationships: []
+      }
+      player_slots: {
+        Row: {
+          team_id: string
+          play_id: string
+          user_id: string
+          slot: string
+        }
+        Insert: {
+          team_id: string
+          play_id: string
+          user_id: string
+          slot: string
+        }
+        Update: {
+          team_id?: string
+          play_id?: string
+          user_id?: string
+          slot?: string
+        }
+        Relationships: []
+      }
+      position_rules: {
+        Row: {
+          play_id: string
+          slot: string
+          team_id: string
+          side: Side
+          alignment: string | null
+          assignment: string | null
+          key_read: string | null
+          notes: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          play_id: string
+          slot: string
+          team_id: string
+          side: Side
+          alignment?: string | null
+          assignment?: string | null
+          key_read?: string | null
+          notes?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alignment?: string | null
+          assignment?: string | null
+          key_read?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      roster_players: {
+        Row: {
+          id: string
+          team_id: string
+          user_id: string | null
+          name: string
+          jersey: number | null
+          position: PositionCode | null
+          alt_positions: PositionCode[]
+          grad_year: number | null
+          height_in: number | null
+          weight_lb: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          user_id?: string | null
+          name: string
+          jersey?: number | null
+          position?: PositionCode | null
+          alt_positions?: PositionCode[]
+          grad_year?: number | null
+          height_in?: number | null
+          weight_lb?: number | null
+          notes?: string | null
+        }
+        Update: {
+          user_id?: string | null
+          name?: string
+          jersey?: number | null
+          position?: PositionCode | null
+          alt_positions?: PositionCode[]
+          grad_year?: number | null
+          height_in?: number | null
+          weight_lb?: number | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      depth_chart: {
+        Row: {
+          team_id: string
+          slot: string
+          rank: number
+          roster_player_id: string
+          updated_at: string
+        }
+        Insert: {
+          team_id: string
+          slot: string
+          rank: number
+          roster_player_id: string
+        }
+        Update: Record<string, never>
         Relationships: []
       }
     }
@@ -476,6 +598,14 @@ export type Database = {
           p_role: TeamRole
           p_position: PositionCode | null
         }
+        Returns: undefined
+      }
+      set_depth: {
+        Args: { p_team: string; p_slot: string; p_players: string[] }
+        Returns: undefined
+      }
+      merge_roster_players: {
+        Args: { p_keep: string; p_drop: string }
         Returns: undefined
       }
       position_group_of: {

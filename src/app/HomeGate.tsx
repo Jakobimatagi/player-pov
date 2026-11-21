@@ -15,6 +15,7 @@ import {
 import { supabase } from '../data/supabase'
 import { AccountMenu } from './AccountMenu'
 import { CoachHome } from './CoachHome'
+import { PlayerHome } from './PlayerHome'
 
 function useAuth() {
   return useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
@@ -91,9 +92,11 @@ export function HomePage() {
   }
   if (kind === 'player') {
     return (
-      <Shell title="Player Home">
-        <p>Nothing assigned yet. Check with your coach.</p>
-      </Shell>
+      <PlayerHome
+        name={snap.session?.user.email ?? 'Account'}
+        teamId={snap.teamId}
+        userId={snap.session?.user.id ?? null}
+      />
     )
   }
   if (kind === 'staff') {
