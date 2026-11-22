@@ -26,6 +26,7 @@ const legSchema = z.object({
   interp: z.enum(['smooth', 'linear']).optional(),
   face: z.number().optional(),
   label: z.string().optional(),
+  kind: z.enum(['route', 'block', 'motion', 'path']).optional(),
 })
 
 const alignSchema = z.union([
