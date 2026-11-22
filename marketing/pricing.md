@@ -145,20 +145,38 @@ Paid setup ($45 a month hosting) for a 3-month season, at about 20 GB of film pe
 
 ## 4. What we charge (customer plans)
 
-> **Status: not set.** There's no billing in the app yet. Fill this in once plans are decided.
+> **Status: prices confirmed 2026-11-22, set up in Stripe test mode only.** No live products yet, and the app does not charge anyone yet (issue #63). Full reasoning in [plans.md](plans.md).
 
-| Plan           | Price | Billing | Who it's for | What's included | Film storage | Status |
-| -------------- | ----- | ------- | ------------ | --------------- | ------------ | ------ |
-| _e.g. Free_    |       |         |              |                 |              | Draft  |
-| _e.g. Team_    |       |         |              |                 |              | Draft  |
-| _e.g. Program_ |       |         |              |                 |              | Draft  |
+| Plan        | Price       | Billing      | Who it's for                 | Film storage     | Stripe lookup key  |
+| ----------- | ----------- | ------------ | ---------------------------- | ---------------- | ------------------ |
+| Starter     | Free        | None         | A coach trying it out        | None             | None (no checkout) |
+| Team        | $499 / year | Card, yearly | One team                     | 10 GB            | `team_yearly`      |
+| Program     | $899 / year | Card, yearly | Up to 4 teams in one program | 10 GB per team   | `program_yearly`   |
+| Film add-on | $49 / year  | Card, yearly | Any paid team                | +50 GB per block | `film_50gb_yearly` |
 
-**Questions to settle:**
+### Stripe setup
 
-- Per team, per program (varsity + JV + freshman), or per school?
-- Per season or per month? Most programs budget per season.
-- Is game film part of a paid plan, or an add-on with its own storage size?
-- What does a free plan keep, if anything, so coaches can try it first?
+| What               | Where                                                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Live account       | "New business" (`acct_1OvgzyDHhqGj7jZS`). Not activated: charges and payouts are off until onboarding is finished in the Dashboard.                    |
+| Test sandbox       | "Player POV" (`acct_1UeiKXDVIFuq3nJs`), where steps 2 to 4 of #63 are built and tested.                                                                |
+| Products (sandbox) | Team `prod_Vg4WKF08V1mVnI`, Program `prod_Vg4WFdqSaVllmd`, Extra film `prod_Vg4WpcqogMl1b6`                                                            |
+| Prices (sandbox)   | `team_yearly` `price_1UeiNdDVIFuq3nJscHjdSDAB`, `program_yearly` `price_1UeiNdDVIFuq3nJsIP8UMNH0`, `film_50gb_yearly` `price_1UeiNeDVIFuq3nJsChuF5KkU` |
+
+The code should find prices by lookup key, not by ID, so the same code works in the sandbox and in live mode once live prices are created with the same keys. Each product and price carries `metadata.plan` (`team`, `program`) or `metadata.addon` (`film_50gb`), matching `public.plans.id`.
+
+**Not set up yet:**
+
+- Stripe Tax. Prices have `tax_behavior: unspecified`, which can be set once later. Many schools are tax-exempt (#63 open question 8).
+- The founding coach coupon (50% off, 10 teams) (#63 open question 5).
+- A free trial (#63 open question 6).
+- Live products and prices. Create them with the same lookup keys after the live account is activated.
+
+### Before the first real charge
+
+- Finish Stripe onboarding on the live account: accept the terms, add a bank account, add a product description, support phone and website.
+- Set the business name and statement descriptor. Today a card statement would read "JOSEPH MATAGI".
+- Move Vercel to Pro (Hobby forbids commercial use).
 
 ### Break-even check
 
@@ -176,5 +194,6 @@ The paid setup costs about **$135 a season** before film. Plan prices only need 
 
 | Date       | Change                                                                                                                                                                             |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | Filled in section 4: confirmed plans and prices, Stripe sandbox products and prices, and what is left before the first real charge.                                                |
 | 2026-11-22 | Added Resend, a domain name and GitHub after checking the code for every outside service. Added "Enrolling one team". Production today: 2 users, 2 teams, 13 MB database, 0 films. |
 | 2026-11-22 | Created. Vendor prices checked: Supabase, Vercel, Cloudflare R2. Game film launched on the free setup for a proof of concept.                                                      |
