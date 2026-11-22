@@ -22,7 +22,7 @@ The page sends whole seconds every 30 seconds, when the tab hides, and on page h
 
 ## Data
 
-`activity_daily`: one row per team, player, day (the player's local day), play, kind and slot, upserted, never one row per heartbeat. Writes go only through `record_activity` (security definer): the caller is `auth.uid()`, they must be a player on the team who can view the play (published and assigned), seconds are capped at 120 per call and runs at 5, and the day must be within a day of the server's. Clients have no insert, update or delete grant.
+`activity_daily`: one row per team, player, day (the player's local day), play, kind and slot, upserted, never one row per heartbeat. Writes go only through `record_activity` (security definer): the caller is `auth.uid()`, they must be a player on the team who can view the play (published and assigned), seconds are capped at 120 per call and runs at 5, and the day must be within a day of the server's. A play's day is also capped at 40 started and 20 completed runs, summed across every kind and slot, so calling the RPC over and over (or switching slot or camera) can't pad the rep count; runs past the cap are dropped without an error. Clients have no insert, update or delete grant.
 
 Reads: every coach on the team reads the team's rows; a player reads only their own; other teams read nothing. `activity_summary` and `assignment_progress` do the rollups in the database (security invoker, so the same rules apply) so the browser never downloads the team's raw rows. Removing a member (`remove_member`, `delete_member_data`, or a direct delete) deletes their activity on that team.
 
@@ -95,7 +95,7 @@ Only in-app study is kept: no device, location or per-click data, and no third-p
 
 ## Scenario 9 — Privacy rules
 
-**Expected (pgTAP, `supabase/tests/activity.test.sql`):** a player reads only their rows and their own summary and assignment progress; another team reads nothing; any coach reads the team; players cannot insert, update or delete rows; `record_activity` rejects other teams' plays, unassigned or draft plays, unknown kinds, a slot outside POV, negative seconds, far-off days, coaches and signed-out callers, and caps seconds at 120; removing a member deletes their rows.
+**Expected (pgTAP, `supabase/tests/activity.test.sql`):** a player reads only their rows and their own summary and assignment progress; another team reads nothing; any coach reads the team; players cannot insert, update or delete rows; `record_activity` rejects other teams' plays, unassigned or draft plays, unknown kinds, a slot outside POV, negative seconds, far-off days, coaches and signed-out callers, and caps seconds at 120; removing a member deletes their rows. `supabase/tests/activity_rep_cap.test.sql`: repeated calls stop at 40 started and 20 completed runs per play per day, another slot or camera shares that cap, and another play has its own.
 
 ## Scenario 10 — Demo mode
 
