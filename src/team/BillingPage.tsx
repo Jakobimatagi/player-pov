@@ -14,6 +14,7 @@ import {
 import { supabase } from '../data/supabase'
 import { formatBytes } from '../film/uploadPlan'
 import {
+  CHECKOUT_ENABLED,
   DEMO_BILLING,
   PAID_PLANS,
   PLAN_NAMES,
@@ -56,7 +57,7 @@ const TONE: Record<StatusTone, string> = {
  * coach) Upgrade and Manage billing, both on Stripe's own pages. Assistant coaches see the
  * plan and are told to ask the head coach. Players are sent back to /team by TeamShell.
  */
-export function BillingPage() {
+export function BillingPage({ checkoutEnabled = CHECKOUT_ENABLED }: { checkoutEnabled?: boolean }) {
   const snap = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
   const demo = supabase == null
   const teamId = snap.teamId
@@ -142,7 +143,12 @@ export function BillingPage() {
           <p>Only coaches on this team can see its plan.</p>
         ) : null}
         {load.status === 'ready' && load.billing != null ? (
-          <BillingBody billing={load.billing} busy={busy} onGo={go} />
+          <BillingBody
+            billing={load.billing}
+            busy={busy}
+            onGo={go}
+            checkoutEnabled={checkoutEnabled}
+          />
         ) : null}
       </div>
     </TeamShell>
@@ -169,10 +175,12 @@ function BillingBody({
   billing,
   busy,
   onGo,
+  checkoutEnabled,
 }: {
   billing: TeamBilling
   busy: PaidPlan | 'portal' | null
   onGo: (action: PaidPlan | 'portal') => void
+  checkoutEnabled: boolean
 }) {
   const line = statusLine(billing)
   const running = hasRunningPlan(billing)
@@ -227,7 +235,11 @@ function BillingBody({
                   <p className="text-lg font-semibold">{p.price}</p>
                 </div>
                 <p className="flex-1 text-sm text-muted-foreground">{p.blurb}</p>
-                {billing.isHeadCoach ? (
+                {billing.isHeadCoach && !checkoutEnabled ? (
+                  <Button size="lg" variant="secondary" disabled>
+                    Coming soon
+                  </Button>
+                ) : billing.isHeadCoach ? (
                   <Button size="lg" disabled={busy != null} onClick={() => onGo(p.id)}>
                     {busy === p.id ? 'Opening checkout…' : `Upgrade to ${PLAN_NAMES[p.id]}`}
                     <ExternalLink />
@@ -236,7 +248,11 @@ function BillingBody({
               </div>
             ))}
           </div>
-          {billing.isHeadCoach ? (
+          {!checkoutEnabled ? (
+            <p className="text-sm text-muted-foreground">
+              Paid plans are coming soon. Your team keeps everything it has today in the meantime.
+            </p>
+          ) : billing.isHeadCoach ? (
             <p className="text-sm text-muted-foreground">
               You pay on Stripe’s secure page. Plans renew yearly, and you can cancel any time.
             </p>

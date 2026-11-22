@@ -7,7 +7,10 @@
 // the stripe-webhook function hears from Stripe, never from here. Prices are found by
 // lookup key (team_yearly, program_yearly), so test and live mode run the same code.
 //
-// Secrets: STRIPE_SECRET_KEY, APP_URL. SUPABASE_URL, SUPABASE_ANON_KEY and
+// Checkout is off until CHECKOUT_ENABLED=true is set as a function secret: until launch it
+// answers 503 "Paid plans are coming soon". The portal keeps working for existing customers.
+//
+// Secrets: STRIPE_SECRET_KEY, APP_URL, CHECKOUT_ENABLED. SUPABASE_URL, SUPABASE_ANON_KEY and
 // SUPABASE_SERVICE_ROLE_KEY are provided.
 import Stripe from 'npm:stripe@18.5.0'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1'
@@ -17,6 +20,7 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
 })
 const APP_URL = (Deno.env.get('APP_URL') ?? '').replace(/\/$/, '')
 const ACTIVE = ['active', 'trialing', 'past_due']
+const CHECKOUT_ENABLED = Deno.env.get('CHECKOUT_ENABLED') === 'true'
 
 const ORIGINS = new Set(
   [
@@ -63,6 +67,9 @@ async function handle(req: Request): Promise<{ url: string }> {
     throw new HttpError(400, 'Unknown action')
   }
   if (typeof body.teamId !== 'string') throw new HttpError(400, 'teamId is required')
+  if (body.action === 'checkout' && !CHECKOUT_ENABLED) {
+    throw new HttpError(503, 'Paid plans are coming soon')
+  }
 
   const url = Deno.env.get('SUPABASE_URL') ?? ''
   const user = createClient(url, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
