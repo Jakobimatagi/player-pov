@@ -409,6 +409,42 @@ export type Database = {
         }
         Relationships: []
       }
+      formation_templates: {
+        Row: {
+          id: string
+          team_id: string
+          side: Side
+          name: string
+          spots: Json
+          created_by: string | null
+          created_at: string
+          updated_at: string
+          archived_at: string | null
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          side: Side
+          name: string
+          spots: Json
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+          archived_at?: string | null
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          side?: Side
+          name?: string
+          spots?: Json
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+          archived_at?: string | null
+        }
+        Relationships: []
+      }
       assignments: {
         Row: {
           id: string
