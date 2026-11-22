@@ -80,22 +80,22 @@ select is(pg_temp.apply('evt_1', 10, 'active', 0, current_setting('test.account'
 select is(app.plan_of('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01'), 'team', 'the team is on Team');
 select is((select film_quota_bytes from public.teams where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01'),
           10737418240::bigint, 'Team gets 10 GiB of film');
-select is((select stripe_customer_id from public.billing_accounts), 'cus_1', 'the Stripe customer is stored');
+select is((select stripe_customer_id from public.billing_accounts where id = current_setting('test.account')::uuid), 'cus_1', 'the Stripe customer is stored');
 
 select is(pg_temp.apply('evt_1', 10, 'canceled'), 'duplicate', 'a repeated event id is a no-op');
 select is(pg_temp.apply('evt_old', 5, 'canceled'), 'stale', 'an event older than the last one is skipped');
-select is((select status from public.billing_accounts), 'active', 'a stale event changes nothing');
+select is((select status from public.billing_accounts where id = current_setting('test.account')::uuid), 'active', 'a stale event changes nothing');
 
 -- With no account id in the metadata, the subscription id finds it.
 select is(pg_temp.apply('evt_2', 20, 'past_due'), 'applied', 'the subscription id finds the account');
-select is((select past_due_since from public.billing_accounts), '2026-11-01 12:20+00'::timestamptz,
+select is((select past_due_since from public.billing_accounts where id = current_setting('test.account')::uuid), '2026-11-01 12:20+00'::timestamptz,
           'going past_due starts the grace clock');
 select pg_temp.apply('evt_3', 30, 'past_due');
-select is((select past_due_since from public.billing_accounts), '2026-11-01 12:20+00'::timestamptz,
+select is((select past_due_since from public.billing_accounts where id = current_setting('test.account')::uuid), '2026-11-01 12:20+00'::timestamptz,
           'a later past_due event keeps the first time');
 
 select pg_temp.apply('evt_4', 40, 'active', 2);
-select is((select past_due_since from public.billing_accounts), null::timestamptz,
+select is((select past_due_since from public.billing_accounts where id = current_setting('test.account')::uuid), null::timestamptz,
           'paying again clears the grace clock');
 select is((select film_quota_bytes from public.teams where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01'),
           (10737418240 + 2 * 53687091200)::bigint, 'two film add-ons add 100 GiB');
