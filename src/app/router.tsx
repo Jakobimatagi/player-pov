@@ -9,6 +9,8 @@ import {
 import { HomePage, SessionLayout, WatchPage } from './HomeGate'
 import { PlaybookPage } from '../playbook/PlaybookPage'
 import { PlaySheetPage } from '../playsheet/PlaySheetPage'
+import { HomeworkPage } from '../reps/HomeworkPage'
+import { RepsPage } from '../reps/RepsPage'
 import { ActivityPage } from '../team/ActivityPage'
 import { DepthChartPage } from '../team/DepthChartPage'
 import { RosterSheetPage } from '../team/RosterSheetPage'
@@ -38,6 +40,8 @@ const router = createBrowserRouter([
       { path: '/team/activity', element: <ActivityPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
       { path: '/plays/:playId', element: <PlaySheetPage /> },
+      { path: '/plays/:playId/reps', element: <RepsPage /> },
+      { path: '/homework/:assignmentId', element: <HomeworkPage /> },
       // Draw a play, optionally into a playbook: /diagram?playbook=<folder id>.
       {
         path: '/diagram',

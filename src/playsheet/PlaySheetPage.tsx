@@ -488,6 +488,11 @@ export function PlaySheetPage() {
               >
                 Watch in 3D
               </Link>
+              {staff ? (
+                <Link className="btn" to={`/plays/${ready.id}/reps`} data-testid="sheet-reps">
+                  Scout reps
+                </Link>
+              ) : null}
               {canPublish ? (
                 <button
                   type="button"
