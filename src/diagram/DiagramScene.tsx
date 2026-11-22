@@ -11,6 +11,7 @@ const END_ZONE = '#e7e9eb'
 const YARD = '#c9cbce'
 const NUMBER = '#d7d9db'
 const LOS = '#4a5fd9'
+const GRID = '#dcdee0'
 
 export interface Ghost {
   from: Pt
@@ -198,7 +199,7 @@ function Strokes({
   ghost?: boolean
 }) {
   const shape = lineShape(type, from, to, unit)
-  const width = Math.max(1.6, unit * (selected ? 0.5 : 0.34))
+  const width = Math.max(1.5, unit * (selected ? 0.3 : 0.19))
   const stroke = ghost ? SELECT : selected ? SELECT : color
   return (
     <>
@@ -308,6 +309,21 @@ export const DiagramScene = memo(function DiagramScene({
             fill={END_ZONE}
           />
         ))}
+        {width >= 300
+          ? Array.from({ length: Math.ceil((width * 3) / (width * 0.0355)) }, (_, i) => (
+              <Line
+                key={`g${i}`}
+                points={[
+                  -width + i * width * 0.0355,
+                  -height,
+                  -width + i * width * 0.0355,
+                  height * 2,
+                ]}
+                stroke={GRID}
+                strokeWidth={1}
+              />
+            ))
+          : null}
         {field.marks.map((mark) => (
           <Group key={mark.y}>
             <Line
@@ -319,17 +335,19 @@ export const DiagramScene = memo(function DiagramScene({
               <>
                 <Text
                   text={String(mark.label)}
-                  x={width * 0.04}
-                  y={mark.y * height - unit * 0.7}
-                  fontSize={unit * 1.5}
+                  x={width * 0.155}
+                  y={mark.y * height - width * 0.031 * 1.1}
+                  fontSize={width * 0.031}
                   fontStyle="bold"
                   fill={NUMBER}
                 />
                 <Text
                   text={String(mark.label)}
-                  x={width * 0.96 - unit * 1.6}
-                  y={mark.y * height - unit * 0.7}
-                  fontSize={unit * 1.5}
+                  x={width * 0.845 - width * 0.031 * 1.6}
+                  y={mark.y * height - width * 0.031 * 1.1}
+                  width={width * 0.031 * 1.6}
+                  align="right"
+                  fontSize={width * 0.031}
                   fontStyle="bold"
                   fill={NUMBER}
                 />

@@ -46,7 +46,7 @@ interface NavSection {
 }
 
 /** The one coach nav. Every coach page renders it, so links can't drift apart again. */
-function coachSections(dev: boolean): NavSection[] {
+function coachSections(): NavSection[] {
   const sections: NavSection[] = [
     {
       label: 'Coach',
@@ -64,23 +64,21 @@ function coachSections(dev: boolean): NavSection[] {
       ],
     },
   ]
-  if (dev) {
-    sections.push({
-      label: 'Tools',
-      items: [{ to: '/dev/editor', label: 'Draw a play', icon: PenLine }],
-    })
-  }
+  sections.push({
+    label: 'Tools',
+    items: [{ to: '/diagram', label: 'Draw a play', icon: PenLine }],
+  })
   return sections
 }
 
 /** Phone tab bar: top-level places only. Team stays lit on its sub-pages. */
-function tabItems(dev: boolean): NavItem[] {
+function tabItems(): NavItem[] {
   const items: NavItem[] = [
     { to: '/', label: 'Home', icon: House, end: true },
     { to: '/playbook', label: 'Playbook', icon: BookOpen },
     { to: '/team', label: 'Team', icon: Users },
   ]
-  if (dev) items.push({ to: '/dev/editor', label: 'Draw', icon: PenLine })
+  items.push({ to: '/diagram', label: 'Draw', icon: PenLine })
   return items
 }
 
@@ -112,7 +110,7 @@ function Brand() {
   )
 }
 
-function CoachSidebar({ account, dev }: { account: string; dev: boolean }) {
+function CoachSidebar({ account }: { account: string }) {
   const { pathname } = useLocation()
   const { isMobile, setOpenMobile } = useSidebar()
   const close = () => {
@@ -125,7 +123,7 @@ function CoachSidebar({ account, dev }: { account: string; dev: boolean }) {
       </SidebarHeader>
       <SidebarContent>
         <nav aria-label="Coach">
-          {coachSections(dev).map((section) => (
+          {coachSections().map((section) => (
             <SidebarGroup key={section.label}>
               <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -166,13 +164,13 @@ function CoachSidebar({ account, dev }: { account: string; dev: boolean }) {
   )
 }
 
-function TabBar({ dev }: { dev: boolean }) {
+function TabBar() {
   return (
     <nav
       aria-label="Coach"
       className="fixed inset-x-0 bottom-0 z-20 flex h-16 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
     >
-      {tabItems(dev).map((item) => (
+      {tabItems().map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
@@ -203,7 +201,6 @@ export function CoachLayout({
   className,
   subnav,
   children,
-  dev = import.meta.env.DEV,
 }: {
   title: ReactNode
   /** Small label above the title. */
@@ -220,7 +217,6 @@ export function CoachLayout({
   /** Tabs under the title (Team pages). */
   subnav?: ReactNode
   children: ReactNode
-  dev?: boolean
 }) {
   // Wide pages (roster, depth chart, play sheet) still stop at 1400px.
   const width = wide ? 'max-w-[1400px]' : 'max-w-6xl'
@@ -282,12 +278,12 @@ export function CoachLayout({
   return (
     <TooltipProvider delayDuration={200}>
       <SidebarProvider defaultOpen={sidebarWasOpen()}>
-        <CoachSidebar account={account} dev={dev} />
+        <CoachSidebar account={account} />
         <SidebarInset className="min-w-0 md:border md:border-sidebar-border">
           {header}
           {content}
         </SidebarInset>
-        <TabBar dev={dev} />
+        <TabBar />
       </SidebarProvider>
     </TooltipProvider>
   )

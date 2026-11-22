@@ -190,8 +190,9 @@ function DiagramEditor({
     if (el == null) return
     const observer = new ResizeObserver(([entry]) => {
       if (entry == null) return
-      const width = Math.max(240, Math.min(760, Math.floor(entry.contentRect.width)))
-      setSize({ width, height: Math.round(width * 0.66) })
+      // Full width of the card, 1100 x 460 at most, like the reference canvas.
+      const width = Math.max(240, Math.min(1100, Math.floor(entry.contentRect.width)))
+      setSize({ width, height: Math.round(Math.min(460, Math.max(300, width * 0.418))) })
     })
     observer.observe(el)
     return () => observer.disconnect()
@@ -429,6 +430,7 @@ function DiagramEditor({
             <input
               className="dge-name"
               aria-label="Play name"
+              style={{ width: `${Math.min(28, Math.max(6, (play?.name.length ?? 0) + 1))}ch` }}
               value={play?.name ?? ''}
               onChange={(event) => setSaved(renameCurrent(script, event.target.value))}
             />

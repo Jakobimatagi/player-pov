@@ -8,7 +8,6 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { CoachLayout } from './CoachLayout'
 
@@ -17,11 +16,10 @@ interface Destination {
   label: string
   blurb: string
   icon: LucideIcon
-  dev?: boolean
 }
 
-/** Only places that exist. The draw board is a dev preview until C7 adds /plays/new. */
-function destinations(dev: boolean): Destination[] {
+/** Only places that exist. */
+function destinations(): Destination[] {
   const list: Destination[] = [
     {
       to: '/playbook',
@@ -43,15 +41,12 @@ function destinations(dev: boolean): Destination[] {
       icon: SheetIcon,
     },
   ]
-  if (dev) {
-    list.push({
-      to: '/dev/editor',
-      label: 'Draw a play',
-      blurb: 'Draw board preview',
-      icon: PenLine,
-      dev: true,
-    })
-  }
+  list.push({
+    to: '/diagram',
+    label: 'Draw a play',
+    blurb: 'Tokens, routes and blocks on a field',
+    icon: PenLine,
+  })
   return list
 }
 
@@ -61,16 +56,11 @@ function greeting(hour: number): string {
   return 'Good evening'
 }
 
-export function CoachHome({ name, dev = import.meta.env.DEV }: { name: string; dev?: boolean }) {
-  const places = destinations(dev)
+export function CoachHome({ name }: { name: string }) {
+  const places = destinations()
   const [feature, ...rest] = places
   return (
-    <CoachLayout
-      title={greeting(new Date().getHours())}
-      eyebrow="Coach home"
-      account={name}
-      dev={dev}
-    >
+    <CoachLayout title={greeting(new Date().getHours())} eyebrow="Coach home" account={name}>
       <p className="mb-6 text-sm text-muted-foreground">Jump back into your playbook or team.</p>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {feature ? (
@@ -114,11 +104,6 @@ function HomeCard({ place, featured = false }: { place: Destination; featured?: 
           <span className={cn('font-semibold tracking-tight', featured && 'text-lg')}>
             {place.label}
           </span>
-          {place.dev ? (
-            <Badge variant="outline" className="text-[0.65rem]">
-              Dev
-            </Badge>
-          ) : null}
         </div>
         <p className="text-sm text-muted-foreground">{place.blurb}</p>
       </div>

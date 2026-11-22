@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router'
+import { createBrowserRouter, Navigate, RouterProvider, useLocation } from 'react-router'
 import {
   AcceptInvitePage,
   ForgotPasswordPage,
@@ -13,16 +13,11 @@ import { DepthChartPage } from '../team/DepthChartPage'
 import { RosterSheetPage } from '../team/RosterSheetPage'
 import { TeamPage } from '../team/TeamPage'
 
-const editorRoute = (path: string): RouteObject => ({
-  path,
-  lazy: async () => {
-    const { EditorPreviewPage } = await import('../editor/EditorPreviewPage')
-    return { Component: EditorPreviewPage }
-  },
-})
-
-/** Dev-only editor harness (C5). Production builds drop it. */
-const devRoutes: RouteObject[] = import.meta.env.DEV ? [editorRoute('/dev/editor')] : []
+/** The old SVG draw board lived at /dev/editor and /draw. Both now open the diagram editor. */
+function ToDiagram() {
+  const { search } = useLocation()
+  return <Navigate to={`/diagram${search}`} replace />
+}
 
 const router = createBrowserRouter([
   {
@@ -41,8 +36,7 @@ const router = createBrowserRouter([
       { path: '/team/depth', element: <DepthChartPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
       { path: '/plays/:playId', element: <PlaySheetPage /> },
-      // Draw a new play into a playbook: /draw?playbook=<folder id>.
-      editorRoute('/draw'),
+      // Draw a play, optionally into a playbook: /diagram?playbook=<folder id>.
       {
         path: '/diagram',
         lazy: async () => {
@@ -50,7 +44,8 @@ const router = createBrowserRouter([
           return { Component: DiagramEditorPage }
         },
       },
-      ...devRoutes,
+      { path: '/draw', element: <ToDiagram /> },
+      { path: '/dev/editor', element: <ToDiagram /> },
     ],
   },
 ])

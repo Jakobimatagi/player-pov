@@ -60,21 +60,22 @@ export function lineShape(type: LineType, from: Pt, to: Pt, unit: number): LineS
   const uy = d.y / total
   const a: Pt = { x: from.x + ux * unit * 1.05, y: from.y + uy * unit * 1.05 }
   const b = to
+  // A slim arrowhead: about 12px long and 10 wide next to a 13px-radius token.
   const head = unit * 0.95
   const arrowAt = (): number[] => {
-    const bx = b.x - ux * head * 1.5
-    const by = b.y - uy * head * 1.5
+    const bx = b.x - ux * head
+    const by = b.y - uy * head
     return [
       b.x,
       b.y,
-      bx - uy * head * 0.8,
-      by + ux * head * 0.8,
-      bx + uy * head * 0.8,
-      by - ux * head * 0.8,
+      bx - uy * head * 0.42,
+      by + ux * head * 0.42,
+      bx + uy * head * 0.42,
+      by - ux * head * 0.42,
     ]
   }
-  // The shaft stops at the base of the arrowhead so a thick line doesn't poke through it.
-  const shaftEnd: Pt = { x: b.x - ux * head * 1.3, y: b.y - uy * head * 1.3 }
+  // The shaft stops inside the arrowhead so a thick line doesn't poke through it.
+  const shaftEnd: Pt = { x: b.x - ux * head * 0.8, y: b.y - uy * head * 0.8 }
   switch (type) {
     case 'route':
       return { parts: [{ points: [a.x, a.y, shaftEnd.x, shaftEnd.y] }], arrow: arrowAt() }
@@ -206,5 +207,6 @@ export function fromStage(p: Pt, v: Pick<ViewState, 'width' | 'height' | 'flip'>
 
 /** Token radius in px for a field this wide. */
 export function tokenRadius(width: number): number {
-  return Math.max(3, width * 0.019)
+  // 26px across on a full-width canvas, like the reference; smaller only for thumbnails.
+  return Math.min(13, Math.max(3, width * 0.019))
 }
