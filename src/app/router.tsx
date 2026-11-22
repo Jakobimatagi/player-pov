@@ -7,6 +7,7 @@ import {
   SignupPage,
 } from '../auth/pages'
 import { HomePage, SessionLayout, WatchPage } from './HomeGate'
+import { FilmPage } from '../film/FilmPage'
 import { PlaybookPage } from '../playbook/PlaybookPage'
 import { PlaySheetPage } from '../playsheet/PlaySheetPage'
 import { HomeworkPage } from '../reps/HomeworkPage'
@@ -39,6 +40,7 @@ const router = createBrowserRouter([
       { path: '/team/depth', element: <DepthChartPage /> },
       { path: '/team/activity', element: <ActivityPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
+      { path: '/film', element: <FilmPage /> },
       { path: '/plays/:playId', element: <PlaySheetPage /> },
       { path: '/plays/:playId/reps', element: <RepsPage /> },
       { path: '/homework/:assignmentId', element: <HomeworkPage /> },

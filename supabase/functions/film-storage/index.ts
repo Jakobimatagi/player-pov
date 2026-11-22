@@ -15,10 +15,28 @@ const MAX_SIGN_PARTS = 100
 const MAX_DURATION_MS = 6 * 60 * 60 * 1000
 const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-m4v', 'video/webm']
 
-const CORS = {
-  'Access-Control-Allow-Origin': Deno.env.get('APP_URL') || '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// Browsers may call this from the app (APP_URL), local dev, and any extra origins listed
+// in ALLOWED_ORIGINS (comma separated). Anything else gets no CORS headers.
+const ORIGINS = new Set(
+  [
+    Deno.env.get('APP_URL') ?? '',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    ...(Deno.env.get('ALLOWED_ORIGINS') ?? '').split(','),
+  ]
+    .map((o) => o.trim().replace(/\/$/, ''))
+    .filter(Boolean),
+)
+
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') ?? ''
+  if (!ORIGINS.has(origin)) return {}
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  }
 }
 
 type Body = {
@@ -49,7 +67,7 @@ class HttpError extends Error {
   }
 }
 
-const json = (body: unknown, status = 200) => Response.json(body, { status, headers: CORS })
+const json = (body: unknown, status = 200) => Response.json(body, { status })
 
 // Same rule as the client: parts of at least 16 MiB, and never more than 9,000 of them
 // (S3 allows 10,000). Every part but the last has this size.
@@ -281,8 +299,7 @@ async function handle(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+async function respond(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
   try {
     return await handle(req)
@@ -291,4 +308,12 @@ Deno.serve(async (req) => {
     console.error(err)
     return json({ error: 'Something went wrong' }, 500)
   }
+}
+
+Deno.serve(async (req) => {
+  const cors = corsFor(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  const res = await respond(req)
+  for (const [k, v] of Object.entries(cors)) res.headers.set(k, v)
+  return res
 })

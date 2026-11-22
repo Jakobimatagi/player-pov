@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowLeft,
   BookOpen,
+  Clapperboard,
   House,
   ListOrdered,
   PenLine,
@@ -54,6 +55,7 @@ function coachSections(): NavSection[] {
       items: [
         { to: '/', label: 'Home', icon: House, end: true },
         { to: '/playbook', label: 'Playbook', icon: BookOpen },
+        { to: '/film', label: 'Game film', icon: Clapperboard },
       ],
     },
     {
