@@ -1,4 +1,4 @@
-# SchemeHQ
+# Scheme HQ
 
 Replay a football play in 3D from any player's helmet camera.
 

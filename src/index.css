@@ -8,7 +8,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* SchemeHQ theme: Friday night under the lights. Stadium-navy surfaces, pylon-orange primary,
+/* Scheme HQ theme: Friday night under the lights. Stadium-navy surfaces, pylon-orange primary,
    scoreboard gold, turf green, chalk-white text. Dark is the default; the light values are ready
    for a light mode, which is switched on once every hard-coded colour reads from these tokens. */
 :root {
