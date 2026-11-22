@@ -6,6 +6,7 @@ import {
   povAttached,
   selectMode,
   subscribeCamera,
+  watchPlayer,
 } from '../camera/cameraState'
 import { hopInTeam, nearestOpponent } from '../camera/hop'
 import { lookState, resetLook, setHoldLook } from '../camera/look'
@@ -25,12 +26,15 @@ const MODES: { mode: CamMode; label: string; short: string }[] = [
 export function CameraBar({
   play,
   onFrameloop,
-  lockedLabel,
+  mine = -1,
+  mineLabel,
 }: {
   play: CompiledPlay
   onFrameloop: (mode: 'always' | 'demand' | 'never') => void
-  /** Set for a player locked to their slot: shows who they watch instead of Watch as. */
-  lockedLabel?: string
+  /** A player's own slot index (they open on it), or -1. */
+  mine?: number
+  /** Their slot's label, shown on the "My position" button that brings them back. */
+  mineLabel?: string
 }) {
   const qb = play.positions.indexOf('QB')
   const qbIndex = qb >= 0 ? qb : 0
@@ -140,19 +144,27 @@ export function CameraBar({
         </button>
       ))}
       <div className="watch-row">
-        {lockedLabel != null ? (
-          <span className="btn watch-locked" data-testid="watch-locked">
-            Your position: {lockedLabel}
-          </span>
-        ) : (
-          <WatchAs
-            play={play}
-            qbIndex={qbIndex}
-            onFrameloop={onFrameloop}
-            openRef={watchOpen}
-            closeRef={closeWatch}
-          />
-        )}
+        <WatchAs
+          play={play}
+          qbIndex={qbIndex}
+          onFrameloop={onFrameloop}
+          openRef={watchOpen}
+          closeRef={closeWatch}
+        />
+        {mine >= 0 && mineLabel != null ? (
+          <button
+            type="button"
+            className={attached === mine ? 'btn my-position is-on' : 'btn my-position'}
+            data-testid="my-position"
+            aria-pressed={attached === mine}
+            onClick={() => {
+              watchPlayer(mine, qbIndex)
+              onFrameloop('always')
+            }}
+          >
+            {attached === mine ? `Your position: ${mineLabel}` : 'Back to my position'}
+          </button>
+        ) : null}
         {mode === 'pov' && (
           <button
             type="button"

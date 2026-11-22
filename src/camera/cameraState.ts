@@ -122,6 +122,22 @@ export function lockToPlayer(index: number, nowSeconds = performance.now() / 100
   else emit()
 }
 
+/**
+ * Open the play on one player: attach them and look through their helmet, like a Watch as
+ * pick, but leave every other control free. A player opening their own play starts here,
+ * on their slot, and can still pick anyone from Watch as.
+ */
+export function startAsPlayer(index: number, nowSeconds = performance.now() / 1000): void {
+  if (index < 0) return
+  cameraState.lockedTo = -1
+  attachPlayer(index, nowSeconds)
+  cameraState.povSubject = index
+  resetLook()
+  cameraState.movingRef.current = true
+  if (cameraState.mode !== 'pov') selectMode('pov', index, nowSeconds)
+  else emit()
+}
+
 export function unlockPlayer(): void {
   if (cameraState.lockedTo < 0) return
   cameraState.lockedTo = -1

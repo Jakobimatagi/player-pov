@@ -1262,16 +1262,60 @@
     color: #111;
   }
 
-  /* Locked player: their position replaces Watch as. */
-  .watch-locked {
-    display: inline-flex;
-    align-items: center;
+  /* A player opens on their own slot; this brings them back to it after Watch as. */
+  .my-position {
     flex: 1 1 8rem;
+    min-width: 44px;
+    min-height: 44px;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    cursor: default;
+  }
+
+  .my-position.is-on {
+    border-color: var(--primary);
+  }
+
+  /* Which scout look the play runs against. Play sheet and viewer. */
+  .look-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .look-select-label {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+
+  .look-select select {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    flex: 1 1 auto;
+    padding: 0 0.6rem;
+    border: 1px solid var(--input);
+    border-radius: 0.6rem;
+    background: var(--card);
+    color: var(--foreground);
+    font: inherit;
+    text-overflow: ellipsis;
+  }
+
+  .look-switch {
+    display: flex;
+    background: var(--card);
+    border: 1px solid var(--input);
+    border-radius: 0.6rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .look-switch .look-select {
+    width: 100%;
   }
 
   .viewer-notes {

@@ -14,13 +14,14 @@ import { watchLabel } from '../ui/watchLabel'
 export function RuleCard({
   play,
   rules,
-  locked,
+  mine,
   variants = [],
   facing = null,
 }: {
   play: CompiledPlay
   rules: readonly PositionRule[]
-  locked: boolean
+  /** The viewer's own player index, or -1. Their card reads "Your job". */
+  mine: number
   variants?: readonly RuleVariant[]
   facing?: Facing | null
 }) {
@@ -28,6 +29,7 @@ export function RuleCard({
   useEffect(() => subscribeCamera(() => setAttached(cameraState.attached)), [])
 
   if (attached < 0) return null
+  const locked = mine >= 0 && attached === mine
   const slot = play.ids[attached] ?? ''
   const base = rules.find((item) => item.slot === slot)
   const resolved = resolveRule(base, variants, slot, facing)
