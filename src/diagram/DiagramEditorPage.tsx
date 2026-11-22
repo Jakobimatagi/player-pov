@@ -2,7 +2,6 @@ import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore 
 import { Link, useSearchParams } from 'react-router'
 import { CoachLayout } from '../app/CoachLayout'
 import { getAuthSnap, subscribeAuth } from '../auth/session'
-import { offenseFormations } from '../editor/formations'
 import { COLOR_HEX } from './colors'
 import { DiagramScene, type Ghost } from './DiagramScene'
 import {
@@ -50,6 +49,8 @@ import {
   type Pt,
 } from './types'
 import { diagramFromFormation } from './formations'
+import { FormationPicker } from './FormationPicker'
+import { applyPreset, BLANK_LINE, clearSide, PRESETS, type Preset } from './presets'
 import { useBook, type BookState } from './useBook'
 import { useScenePalette } from './useScenePalette'
 import type { SaveStatus } from './saver'
@@ -407,22 +408,20 @@ function DiagramEditor({
     if (kind != null) setLastDraw(kind)
   }
 
-  // Typing a formation name in the search box lines the play up in it. One undo step.
-  const formations = useMemo(
-    () => [
-      ...offenseFormations().map(([key, name]) => ({ key, name })),
-      { key: '', name: 'Blank line' },
-    ],
-    [],
-  )
+  // One click sets a formation: from the picker, or by typing its name in the search box.
+  // It is one undo step, and the other side and any notes stay.
+  const presetNames = useMemo(() => [...PRESETS, BLANK_LINE], [])
+  function applyFormation(preset: Preset) {
+    dispatch({ type: 'replace', diagram: applyPreset(state.diagram, preset) })
+  }
   function pickFormation(text: string) {
-    const match = formations.find((f) => f.name.toLowerCase() === text.trim().toLowerCase())
+    const match = presetNames.find((p) => p.name.toLowerCase() === text.trim().toLowerCase())
     if (match == null) return false
-    const next = diagramFromFormation(match.key === '' ? null : match.key)
-    dispatch({ type: 'replace', diagram: { ...next, notes: state.diagram.notes } })
+    applyFormation(match)
     return true
   }
   const [search, setSearch] = useState('')
+  const [formationsOpen, setFormationsOpen] = useState(false)
 
   const play = script.plays[script.index]
   const tool = state.tool
@@ -504,10 +503,19 @@ function DiagramEditor({
             }}
           />
           <datalist id="dge-formations">
-            {formations.map((f) => (
-              <option key={f.name} value={f.name} />
+            {presetNames.map((p) => (
+              <option key={p.key} value={p.name} />
             ))}
           </datalist>
+          <button
+            type="button"
+            className="dge-dropdown dge-flip"
+            aria-expanded={formationsOpen}
+            aria-controls="dge-formations-panel"
+            onClick={() => setFormationsOpen(!formationsOpen)}
+          >
+            Formations
+          </button>
           <select
             className="dge-dropdown"
             aria-label="Field position"
@@ -544,6 +552,22 @@ function DiagramEditor({
             Flip Play
           </button>
         </div>
+
+        {formationsOpen ? (
+          <div id="dge-formations-panel">
+            <FormationPicker
+              palette={palette}
+              hasOffense={state.diagram.players.some(
+                (p) => p.side !== 'defense' && p.shape !== 'text',
+              )}
+              hasDefense={state.diagram.players.some((p) => p.side === 'defense')}
+              onApply={applyFormation}
+              onClear={(side) =>
+                dispatch({ type: 'replace', diagram: clearSide(state.diagram, side) })
+              }
+            />
+          </div>
+        ) : null}
 
         <div ref={box} className="dge-canvas">
           <div className="dge-scene" style={{ width: size.width, height: size.height }}>

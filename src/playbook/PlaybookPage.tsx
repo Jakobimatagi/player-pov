@@ -23,7 +23,7 @@ import {
   restorePlay,
   setFolderFormation,
 } from '../data/plays'
-import { offenseFormations } from '../editor/formations'
+import { OFFENSE_PRESETS } from '../diagram/presets'
 import { drawnDemoRows } from './drawnDemo'
 import { supabase } from '../data/supabase'
 import {
@@ -639,9 +639,9 @@ export function PlaybookPage() {
             <option value="">
               {effectiveFormation(live, here.id) != null ? 'Inherited' : 'Not set'}
             </option>
-            {offenseFormations().map(([key, name]) => (
-              <option key={key} value={key}>
-                {name}
+            {OFFENSE_PRESETS.map((preset) => (
+              <option key={preset.key} value={preset.key}>
+                {preset.name}
               </option>
             ))}
           </select>

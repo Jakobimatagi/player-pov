@@ -482,3 +482,95 @@
     display: none;
   }
 }
+
+.dge-formations {
+  padding: 12px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+
+.dge-formations-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.dge-tabs {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 6px;
+  background: var(--muted);
+}
+
+.dge-tab {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dge-tab[aria-selected='true'] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.dge-formations-hint {
+  flex: 1;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.dge-presets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.dge-presets button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--foreground);
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dge-presets button:hover {
+  border-color: var(--primary);
+}
+
+.dge-preview {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+/* Konva sizes its own container in px, so pin that to the box and stretch it to fit. */
+.dge-preview .konvajs-content {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.dge-preview canvas {
+  width: 100% !important;
+  height: 100% !important;
+}

@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { diagramFromFormation } from '../src/diagram/formations'
+import {
+  applyPreset,
+  BLANK_LINE,
+  clearSide,
+  DEFENSE_PRESETS,
+  findPreset,
+  OFFENSE_PRESETS,
+  PRESETS,
+  presetDiagram,
+} from '../src/diagram/presets'
 import { COLOR_HEX, lineHex, onHex } from '../src/diagram/colors'
 import {
   fieldView,
@@ -27,6 +37,7 @@ import {
   positionLabel,
   putDiagram,
   removeAt,
+  parseScript,
   saveScript,
   savedScript,
 } from '../src/diagram/script'
@@ -316,5 +327,117 @@ describe('replace and colours', () => {
     expect(lineHex('blue')).toBe(COLOR_HEX.blue)
     expect(onHex('white')).toBe('#1f2328')
     expect(onHex('purple')).toBe('#ffffff')
+  })
+})
+
+describe('formation presets', () => {
+  it('has 11 players per formation, unique slots and keys, and every spot on the field', () => {
+    expect(OFFENSE_PRESETS.length).toBeGreaterThanOrEqual(8)
+    expect(DEFENSE_PRESETS.length).toBeGreaterThanOrEqual(6)
+    expect(new Set(PRESETS.map((p) => p.key)).size).toBe(PRESETS.length)
+    for (const preset of PRESETS) {
+      expect(preset.spots, preset.name).toHaveLength(11)
+      expect(new Set(preset.spots.map((spot) => spot.slot)).size, preset.name).toBe(11)
+      const d = presetDiagram(preset)
+      expect(new Set(d.players.map((p) => p.id)).size).toBe(11)
+      for (const p of d.players) {
+        expect(p.x).toBeGreaterThan(0)
+        expect(p.x).toBeLessThan(1)
+        expect(p.y).toBeGreaterThan(0)
+        expect(p.y).toBeLessThan(1)
+      }
+    }
+  })
+
+  it('puts offense at or behind the line of scrimmage and defense in front of it', () => {
+    for (const preset of OFFENSE_PRESETS) {
+      expect(
+        presetDiagram(preset).players.every((p) => p.y >= LOS_Y),
+        preset.name,
+      ).toBe(true)
+    }
+    for (const preset of DEFENSE_PRESETS) {
+      expect(
+        presetDiagram(preset).players.every((p) => p.y < LOS_Y),
+        preset.name,
+      ).toBe(true)
+    }
+  })
+
+  it('keeps the old base-alignment keys, and Trips Left is Trips Right mirrored', () => {
+    for (const key of ['trips-rt', 'gun-spread', 'pro-rt']) {
+      expect(findPreset(key)?.side).toBe('offense')
+    }
+    const right = presetDiagram(findPreset('trips-rt')!).players
+    const left = presetDiagram(findPreset('trips-lt')!).players
+    right.forEach((p, i) => expect(left[i]?.x).toBeCloseTo(1 - p.x))
+  })
+
+  it('draws linemen plain with a square center, and defenders as dark labelled tokens', () => {
+    const offense = presetDiagram(findPreset('i-form')!).players
+    expect(offense.filter((p) => p.square)).toHaveLength(1)
+    expect(offense.find((p) => p.id === 'p1')).not.toHaveProperty('label')
+    expect(offense.every((p) => p.side === 'offense')).toBe(true)
+    const defense = presetDiagram(findPreset('d-43')!).players
+    expect(defense.every((p) => p.color === 'black' && p.side === 'defense')).toBe(true)
+    expect(defense.every((p) => p.label != null && p.label.length <= 2)).toBe(true)
+  })
+
+  it('setting an offense replaces the offense but keeps the defense, text and notes', () => {
+    const withDefense = applyPreset(blankDiagram(), findPreset('d-34')!)
+    expect(withDefense.players).toHaveLength(5 + 11)
+    let s = run(createState(withDefense), {
+      type: 'addToken',
+      shape: 'text',
+      at: { x: 0.5, y: 0.1 },
+    })
+    s = run(s, { type: 'addNote', at: { x: 0.2, y: 0.2 } })
+    const next = applyPreset(s.diagram, findPreset('gun-spread')!)
+    expect(next.players.filter((p) => p.side === 'defense')).toHaveLength(11)
+    expect(next.players.filter((p) => p.side === 'offense')).toHaveLength(11)
+    expect(next.players.filter((p) => p.shape === 'text')).toHaveLength(1)
+    expect(next.notes).toHaveLength(1)
+    expect(next.formation).toBe('Gun Spread')
+    expect(new Set([...next.players, ...next.lines, ...next.notes].map((i) => i.id)).size).toBe(
+      next.players.length + next.lines.length + next.notes.length,
+    )
+  })
+
+  it('setting a defense replaces only the defense, and removed players take their lines', () => {
+    let s = run(createState(blankDiagram()), {
+      type: 'addLine',
+      playerId: 'p1',
+      lineType: 'block',
+      to: { x: 0.3, y: 0.4 },
+    })
+    s = run(s, { type: 'replace', diagram: applyPreset(s.diagram, findPreset('d-43')!) })
+    s = run(s, { type: 'replace', diagram: applyPreset(s.diagram, findPreset('d-cover2')!) })
+    expect(s.diagram.players.filter((p) => p.side === 'defense')).toHaveLength(11)
+    expect(s.diagram.players.filter((p) => p.side !== 'defense')).toHaveLength(5)
+    expect(s.diagram.lines).toHaveLength(1)
+    const offenseAgain = applyPreset(s.diagram, findPreset('ace')!)
+    expect(offenseAgain.lines).toHaveLength(0)
+  })
+
+  it('applies as one undo step and can clear a side', () => {
+    const s = run(createState(blankDiagram()), {
+      type: 'replace',
+      diagram: applyPreset(blankDiagram(), findPreset('d-425')!),
+    })
+    expect(run(s, { type: 'undo' }).diagram.players).toHaveLength(5)
+    const cleared = clearSide(s.diagram, 'defense')
+    expect(cleared.players).toHaveLength(5)
+    expect(clearSide(cleared, 'defense')).toBe(cleared)
+    expect(clearSide(s.diagram, 'offense').players).toHaveLength(11)
+  })
+
+  it('blank line is five linemen, and a stored side survives a save and load', () => {
+    expect(
+      applyPreset({ formation: '', players: [], lines: [], notes: [] }, BLANK_LINE).players,
+    ).toHaveLength(5)
+    const d = applyPreset(blankDiagram(), findPreset('d-44')!)
+    const script = { plays: [{ id: 'play-1', name: 'x', diagram: d }], index: 0 }
+    const back = parseScript(JSON.parse(JSON.stringify(script)))
+    expect(back?.plays[0]?.diagram.players.filter((p) => p.side === 'defense')).toHaveLength(11)
   })
 })

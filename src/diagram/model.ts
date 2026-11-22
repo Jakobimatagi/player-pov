@@ -46,6 +46,7 @@ export function blankDiagram(): Diagram {
       fillStyle: 'solid',
       x,
       y,
+      side: 'offense' as const,
       ...(i === 2 ? { square: true } : {}),
     })),
     lines: [],

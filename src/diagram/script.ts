@@ -30,6 +30,7 @@ const DiagramSchema = z.object({
       y: z.number().min(0).max(1),
       label: z.string().optional(),
       square: z.boolean().optional(),
+      side: z.enum(['offense', 'defense']).optional(),
     }),
   ),
   lines: z.array(

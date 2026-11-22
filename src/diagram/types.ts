@@ -27,6 +27,8 @@ export interface DPlayer {
   label?: string
   /** Drawn square instead of round: the center on a blank line. Circles only. */
   square?: boolean
+  /** Which side a formation preset put this token on. Tokens a coach places have none. */
+  side?: 'offense' | 'defense'
 }
 
 export interface DLine {
