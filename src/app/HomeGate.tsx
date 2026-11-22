@@ -13,7 +13,7 @@ import {
   subscribeAuth,
 } from '../auth/session'
 import { supabase } from '../data/supabase'
-import { AccountMenu } from './AccountMenu'
+import { CoachLayout } from './CoachLayout'
 import { CoachHome } from './CoachHome'
 import { PlayerHome } from './PlayerHome'
 
@@ -47,16 +47,9 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
   const snap = useAuth()
   const name = snap.session?.user.email ?? 'Account'
   return (
-    <div className="app-shell">
-      <header className="app-topbar">
-        <p className="wordmark">POV Playbook</p>
-        <AccountMenu name={name} />
-      </header>
-      <main className="app-main">
-        <h1>{title}</h1>
-        {children}
-      </main>
-    </div>
+    <CoachLayout title={title} account={name} nav={false}>
+      {children}
+    </CoachLayout>
   )
 }
 

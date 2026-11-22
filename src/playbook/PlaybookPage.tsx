@@ -3,7 +3,9 @@ import { useSyncExternalStore } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
 import type { StaffSide } from '../data/database.types'
-import { AccountMenu } from '../app/AccountMenu'
+import { Search } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { CoachLayout } from '../app/CoachLayout'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import type { PlayRow } from '../data/plays'
 import {
@@ -65,8 +67,6 @@ import {
 } from './folders'
 import { blankPlay, nameFromFile, parsePlayUpload, type NewPlay } from './newPlays'
 
-const TABS = ['Team', 'Playbooks', 'Plays', 'Scout', 'Homework'] as const
-
 type Panel =
   | { kind: 'folder' }
   | { kind: 'add'; mode: AddMode }
@@ -76,12 +76,6 @@ type Panel =
 
 function useAuth() {
   return useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
-}
-
-function tabHref(tab: (typeof TABS)[number]): string {
-  if (tab === 'Team') return '/team'
-  if (tab === 'Playbooks') return '/playbook'
-  return '/team'
 }
 
 let demoSerial = 0
@@ -143,7 +137,6 @@ export function PlaybookPage() {
   const [panel, setPanel] = useState<Panel>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [settledKey, setSettledKey] = useState<string | null>(null)
   const viewingArchived = staff && list === 'archived'
   const fetchKey =
@@ -507,447 +500,410 @@ export function PlaybookPage() {
   const candidates = current == null ? [] : plays.filter((play) => !folderPlayIds.has(play.id))
 
   return (
-    <div className="coach-frame playbook-page">
-      {playerView ? null : (
-        <nav className="side-nav" aria-label="Coach">
-          {TABS.map((tab) => (
-            <Link key={tab} to={tabHref(tab)}>
-              {tab}
-            </Link>
-          ))}
-        </nav>
-      )}
-      <div className="coach-main">
-        <header className="roster-head">
-          {playerView ? null : (
-            <button
-              type="button"
-              className="nav-toggle"
-              aria-label="Menu"
-              onClick={() => setMenuOpen(true)}
-            >
-              Menu
-            </button>
-          )}
-          <h1>Playbook</h1>
-          <AccountMenu name={playerView ? 'Player' : (snap.session?.user.email ?? 'Coach Kim')} />
-        </header>
-        <input
-          className="playbook-search"
+    <CoachLayout
+      title="Playbook"
+      eyebrow={playerView ? undefined : 'Coach'}
+      nav={!playerView}
+      account={playerView ? 'Player' : (snap.session?.user.email ?? 'Coach Kim')}
+      className="playbook-page"
+    >
+      <div className="relative mb-4">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
           type="search"
           aria-label="Search plays"
           placeholder="Search all plays"
+          className="h-11 pl-9 text-base md:text-sm"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        {staff ? (
-          <div className="roster-filters" role="group" aria-label="Show">
-            <button type="button" aria-pressed={!viewingArchived} onClick={() => setList('active')}>
-              Folders
-            </button>
+      </div>
+      {staff ? (
+        <div className="roster-filters" role="group" aria-label="Show">
+          <button type="button" aria-pressed={!viewingArchived} onClick={() => setList('active')}>
+            Folders
+          </button>
+          <button
+            type="button"
+            aria-pressed={viewingArchived}
+            onClick={() => {
+              setList('archived')
+              setPanel(null)
+              setRenaming(null)
+            }}
+          >
+            Archived
+          </button>
+        </div>
+      ) : null}
+
+      {staff && !viewingArchived && !searching && current == null ? (
+        <div className="roster-filters" role="group" aria-label="Side of the ball">
+          {(['all', 'offense', 'defense', 'special'] as const).map((option) => (
             <button
+              key={option}
               type="button"
-              aria-pressed={viewingArchived}
-              onClick={() => {
-                setList('archived')
-                setPanel(null)
-                setRenaming(null)
-              }}
+              aria-pressed={sideFilter === option}
+              onClick={() => setSidePick(option)}
             >
-              Archived
+              {option === 'all' ? 'All' : SIDE_LABEL[option]}
             </button>
-          </div>
-        ) : null}
+          ))}
+        </div>
+      ) : null}
 
-        {staff && !viewingArchived && !searching && current == null ? (
-          <div className="roster-filters" role="group" aria-label="Side of the ball">
-            {(['all', 'offense', 'defense', 'special'] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={sideFilter === option}
-                onClick={() => setSidePick(option)}
-              >
-                {option === 'all' ? 'All' : SIDE_LABEL[option]}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        {!viewingArchived && !searching ? (
-          <nav className="folder-crumbs" aria-label="Folder path">
-            <ol>
-              <li>
-                {current == null ? (
-                  <span aria-current="page">All plays</span>
+      {!viewingArchived && !searching ? (
+        <nav className="folder-crumbs" aria-label="Folder path">
+          <ol>
+            <li>
+              {current == null ? (
+                <span aria-current="page">All plays</span>
+              ) : (
+                <button type="button" onClick={() => openFolder(null)}>
+                  All plays
+                </button>
+              )}
+            </li>
+            {path.map((folder, index) => (
+              <li key={folder.id}>
+                {index === path.length - 1 ? (
+                  <span aria-current="page">{folder.name}</span>
                 ) : (
-                  <button type="button" onClick={() => openFolder(null)}>
-                    All plays
+                  <button type="button" onClick={() => openFolder(folder.id)}>
+                    {folder.name}
                   </button>
                 )}
               </li>
-              {path.map((folder, index) => (
-                <li key={folder.id}>
-                  {index === path.length - 1 ? (
-                    <span aria-current="page">{folder.name}</span>
-                  ) : (
-                    <button type="button" onClick={() => openFolder(folder.id)}>
-                      {folder.name}
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ol>
-            {here != null ? (
-              <span className="folder-kind" data-kind={here.kind}>
-                {KIND_LABEL[here.kind]}
-                {hereSide != null ? ` · ${SIDE_LABEL[hereSide]}` : ''}
-              </span>
-            ) : null}
-          </nav>
-        ) : null}
+            ))}
+          </ol>
+          {here != null ? (
+            <span className="folder-kind" data-kind={here.kind}>
+              {KIND_LABEL[here.kind]}
+              {hereSide != null ? ` · ${SIDE_LABEL[hereSide]}` : ''}
+            </span>
+          ) : null}
+        </nav>
+      ) : null}
 
-        {editHere && !viewingArchived && !searching ? (
-          <div className="folder-toolbar">
-            {canAddSubfolder(live, current) ? (
-              <button
-                type="button"
-                className="playbook-action"
-                aria-expanded={panel?.kind === 'folder'}
-                onClick={() => setPanel(panel?.kind === 'folder' ? null : { kind: 'folder' })}
-              >
-                New folder
-              </button>
-            ) : null}
-            {canAddSubfolder(live, current) && starters.length > 0 ? (
-              <button
-                type="button"
-                className="playbook-action"
-                aria-expanded={panel?.kind === 'generate'}
-                onClick={() => setPanel(panel?.kind === 'generate' ? null : { kind: 'generate' })}
-              >
-                Generate playbook
-              </button>
-            ) : null}
+      {editHere && !viewingArchived && !searching ? (
+        <div className="folder-toolbar">
+          {canAddSubfolder(live, current) ? (
             <button
               type="button"
-              className="playbook-action primary"
-              aria-expanded={panel?.kind === 'add'}
-              onClick={() =>
-                setPanel(
-                  panel?.kind === 'add'
-                    ? null
-                    : { kind: 'add', mode: current == null ? 'upload' : 'existing' },
-                )
-              }
+              className="playbook-action"
+              aria-expanded={panel?.kind === 'folder'}
+              onClick={() => setPanel(panel?.kind === 'folder' ? null : { kind: 'folder' })}
             >
-              Add plays
+              New folder
             </button>
-          </div>
-        ) : null}
-
-        {panel?.kind === 'folder' ? (
-          <NewFolderForm
-            parentName={here?.name ?? null}
-            initialKind={defaultKind(live, current)}
-            sides={newFolderSides}
-            initialSide={mySide ?? (sideFilter === 'all' ? null : sideFilter)}
-            onCreate={createSubfolder}
-            onCancel={() => setPanel(null)}
-          />
-        ) : null}
-        {panel?.kind === 'generate' ? (
-          <GeneratePlaybookPanel
-            parentName={here?.name ?? null}
-            templates={starters}
-            onGenerate={generate}
-            onCancel={() => setPanel(null)}
-          />
-        ) : null}
-        {panel?.kind === 'assign'
-          ? (() => {
-              const folder = live.find((item) => item.id === panel.folderId)
-              if (folder == null) return null
-              const inside = subtreeIds(live, folder.id)
-              const playIds = new Set(
-                links.filter((link) => inside.has(link.folderId)).map((link) => link.playId),
+          ) : null}
+          {canAddSubfolder(live, current) && starters.length > 0 ? (
+            <button
+              type="button"
+              className="playbook-action"
+              aria-expanded={panel?.kind === 'generate'}
+              onClick={() => setPanel(panel?.kind === 'generate' ? null : { kind: 'generate' })}
+            >
+              Generate playbook
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="playbook-action primary"
+            aria-expanded={panel?.kind === 'add'}
+            onClick={() =>
+              setPanel(
+                panel?.kind === 'add'
+                  ? null
+                  : { kind: 'add', mode: current == null ? 'upload' : 'existing' },
               )
-              const inFolder = plays.filter((play) => playIds.has(play.id))
-              const above = breadcrumb(live, folder.id).slice(0, -1)
-              return (
-                <AssignPanel
-                  key={folder.id}
-                  folderName={folder.name}
-                  side={effectiveSide(live, folder.id)}
-                  own={assignments.filter((item) => item.playbookId === folder.id)}
-                  inherited={above.flatMap((parent) =>
-                    assignments
-                      .filter((item) => item.playbookId === parent.id)
-                      .map((item) => ({ ...item, from: parent.name })),
-                  )}
-                  players={teamPlayers}
-                  playCount={inFolder.length}
-                  draftCount={inFolder.filter((play) => play.published_at == null).length}
-                  canEdit={canEdit(effectiveSide(live, folder.id))}
-                  onAssign={(input) => assign(folder.id, input)}
-                  onRemove={unassign}
-                  onClose={() => setPanel(null)}
-                />
-              )
-            })()
-          : null}
-        {panel?.kind === 'add' ? (
-          <AddPlaysPanel
-            key={current ?? 'root'}
-            folderName={here?.name ?? null}
-            candidates={candidates}
-            initialMode={panel.mode}
-            onAddExisting={addExisting}
-            onUpload={upload}
-            onBlank={addBlank}
-            onClose={() => setPanel(null)}
-          />
-        ) : null}
+            }
+          >
+            Add plays
+          </button>
+        </div>
+      ) : null}
 
-        {success ? (
-          <p className="playbook-success" role="status">
-            {success}
-          </p>
-        ) : null}
-        {notice ? (
-          <p className="auth-error" role="alert">
-            {notice}
-          </p>
-        ) : null}
-
-        {subfolders.length > 0 ? (
-          <ul className="playbook-list folder-list" aria-label="Folders">
-            {subfolders.map((folder) => (
-              <li key={folder.id} className="playbook-row folder-row">
-                {renaming === folder.id ? (
-                  <form
-                    className="playbook-rename"
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      void commitFolderRename(folder.id)
-                    }}
-                  >
-                    <input
-                      aria-label={`Name for ${folder.name}`}
-                      value={draftName}
-                      onChange={(event) => setDraftName(event.target.value)}
-                    />
-                    <button type="submit" className="playbook-action">
-                      Save name
-                    </button>
-                    <button
-                      type="button"
-                      className="playbook-action"
-                      onClick={() => setRenaming(null)}
-                    >
-                      Cancel
-                    </button>
-                  </form>
-                ) : confirmDelete === folder.id ? (
-                  <div className="folder-confirm" role="group" aria-label={`Delete ${folder.name}`}>
-                    <span className="playbook-name">
-                      Delete {folder.name} and its subfolders? Plays stay in All plays.
-                    </span>
-                    <span className="playbook-actions">
-                      <button
-                        type="button"
-                        className="playbook-action danger"
-                        onClick={() => void commitFolderDelete(folder)}
-                      >
-                        Delete folder
-                      </button>
-                      <button
-                        type="button"
-                        className="playbook-action"
-                        onClick={() => setConfirmDelete(null)}
-                      >
-                        Cancel
-                      </button>
-                    </span>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="folder-open"
-                      onClick={() => openFolder(folder.id)}
-                    >
-                      <FolderGlyph kind={folder.kind} />
-                      <span className="playbook-name">{folder.name}</span>
-                      <span className="folder-meta">
-                        {(() => {
-                          const side = effectiveSide(live, folder.id)
-                          return side != null && current == null ? `${SIDE_LABEL[side]} · ` : ''
-                        })()}
-                        {folder.kind === 'opponent' ? 'Opponent · ' : ''}
-                        {(() => {
-                          const count = subtreePlayCount(live, links, folder.id)
-                          return count === 1 ? '1 play' : `${count} plays`
-                        })()}
-                        {(() => {
-                          const mine = assignments.filter((item) => item.playbookId === folder.id)
-                          return staff && mine.length > 0
-                            ? ` · Assigned: ${assignedSummary(mine, teamPlayers)}`
-                            : ''
-                        })()}
-                      </span>
-                    </button>
-                    {staff && canEdit(effectiveSide(live, folder.id)) ? (
-                      <span className="playbook-actions">
-                        <button
-                          type="button"
-                          className="playbook-action"
-                          aria-expanded={panel?.kind === 'assign' && panel.folderId === folder.id}
-                          onClick={() =>
-                            setPanel(
-                              panel?.kind === 'assign' && panel.folderId === folder.id
-                                ? null
-                                : { kind: 'assign', folderId: folder.id },
-                            )
-                          }
-                        >
-                          Assign
-                        </button>
-                        <button
-                          type="button"
-                          className="playbook-action"
-                          onClick={() => {
-                            setRenaming(folder.id)
-                            setDraftName(folder.name)
-                          }}
-                        >
-                          Rename
-                        </button>
-                        <button
-                          type="button"
-                          className="playbook-action"
-                          onClick={() => setConfirmDelete(folder.id)}
-                        >
-                          Delete
-                        </button>
-                      </span>
-                    ) : null}
-                  </>
+      {panel?.kind === 'folder' ? (
+        <NewFolderForm
+          parentName={here?.name ?? null}
+          initialKind={defaultKind(live, current)}
+          sides={newFolderSides}
+          initialSide={mySide ?? (sideFilter === 'all' ? null : sideFilter)}
+          onCreate={createSubfolder}
+          onCancel={() => setPanel(null)}
+        />
+      ) : null}
+      {panel?.kind === 'generate' ? (
+        <GeneratePlaybookPanel
+          parentName={here?.name ?? null}
+          templates={starters}
+          onGenerate={generate}
+          onCancel={() => setPanel(null)}
+        />
+      ) : null}
+      {panel?.kind === 'assign'
+        ? (() => {
+            const folder = live.find((item) => item.id === panel.folderId)
+            if (folder == null) return null
+            const inside = subtreeIds(live, folder.id)
+            const playIds = new Set(
+              links.filter((link) => inside.has(link.folderId)).map((link) => link.playId),
+            )
+            const inFolder = plays.filter((play) => playIds.has(play.id))
+            const above = breadcrumb(live, folder.id).slice(0, -1)
+            return (
+              <AssignPanel
+                key={folder.id}
+                folderName={folder.name}
+                side={effectiveSide(live, folder.id)}
+                own={assignments.filter((item) => item.playbookId === folder.id)}
+                inherited={above.flatMap((parent) =>
+                  assignments
+                    .filter((item) => item.playbookId === parent.id)
+                    .map((item) => ({ ...item, from: parent.name })),
                 )}
-              </li>
-            ))}
-          </ul>
-        ) : null}
+                players={teamPlayers}
+                playCount={inFolder.length}
+                draftCount={inFolder.filter((play) => play.published_at == null).length}
+                canEdit={canEdit(effectiveSide(live, folder.id))}
+                onAssign={(input) => assign(folder.id, input)}
+                onRemove={unassign}
+                onClose={() => setPanel(null)}
+              />
+            )
+          })()
+        : null}
+      {panel?.kind === 'add' ? (
+        <AddPlaysPanel
+          key={current ?? 'root'}
+          folderName={here?.name ?? null}
+          candidates={candidates}
+          initialMode={panel.mode}
+          onAddExisting={addExisting}
+          onUpload={upload}
+          onBlank={addBlank}
+          onClose={() => setPanel(null)}
+        />
+      ) : null}
 
-        {emptyFolder ? <p className={loading ? 'loading-line' : undefined}>{emptyFolder}</p> : null}
-        {current == null && !searching && !viewingArchived && shown.length > 0 ? (
-          <h2 className="folder-heading">Not in a folder</h2>
-        ) : null}
-        <ul className="playbook-list" aria-label="Plays">
-          {shown.map((play) => (
-            <li key={play.id} className="playbook-row">
-              <span className="playbook-name">
-                {viewingArchived ? (
-                  play.name
-                ) : (
-                  <Link className="playbook-open" to={`/plays/${play.id}`}>
-                    {play.name}
-                  </Link>
-                )}
-                {staff && !viewingArchived ? (
-                  <span
-                    className="play-state"
-                    data-state={play.published_at != null ? 'published' : 'draft'}
-                  >
-                    {play.published_at != null ? 'Published' : 'Draft'}
-                  </span>
-                ) : null}
-              </span>
-              {renaming === play.id ? (
+      {success ? (
+        <p className="playbook-success" role="status">
+          {success}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="auth-error" role="alert">
+          {notice}
+        </p>
+      ) : null}
+
+      {subfolders.length > 0 ? (
+        <ul className="playbook-list folder-list" aria-label="Folders">
+          {subfolders.map((folder) => (
+            <li key={folder.id} className="playbook-row folder-row">
+              {renaming === folder.id ? (
                 <form
                   className="playbook-rename"
                   onSubmit={(event) => {
                     event.preventDefault()
-                    void commitRename(play.id)
+                    void commitFolderRename(folder.id)
                   }}
                 >
                   <input
-                    aria-label={`Name for ${play.name}`}
+                    aria-label={`Name for ${folder.name}`}
                     value={draftName}
                     onChange={(event) => setDraftName(event.target.value)}
                   />
                   <button type="submit" className="playbook-action">
                     Save name
                   </button>
+                  <button
+                    type="button"
+                    className="playbook-action"
+                    onClick={() => setRenaming(null)}
+                  >
+                    Cancel
+                  </button>
                 </form>
+              ) : confirmDelete === folder.id ? (
+                <div className="folder-confirm" role="group" aria-label={`Delete ${folder.name}`}>
+                  <span className="playbook-name">
+                    Delete {folder.name} and its subfolders? Plays stay in All plays.
+                  </span>
+                  <span className="playbook-actions">
+                    <button
+                      type="button"
+                      className="playbook-action danger"
+                      onClick={() => void commitFolderDelete(folder)}
+                    >
+                      Delete folder
+                    </button>
+                    <button
+                      type="button"
+                      className="playbook-action"
+                      onClick={() => setConfirmDelete(null)}
+                    >
+                      Cancel
+                    </button>
+                  </span>
+                </div>
               ) : (
-                <span className="playbook-actions">
-                  {staff && viewingArchived ? (
-                    <button
-                      type="button"
-                      className="playbook-action"
-                      onClick={() => void commitRestore(play.id)}
-                    >
-                      Restore
-                    </button>
+                <>
+                  <button
+                    type="button"
+                    className="folder-open"
+                    onClick={() => openFolder(folder.id)}
+                  >
+                    <FolderGlyph kind={folder.kind} />
+                    <span className="playbook-name">{folder.name}</span>
+                    <span className="folder-meta">
+                      {(() => {
+                        const side = effectiveSide(live, folder.id)
+                        return side != null && current == null ? `${SIDE_LABEL[side]} · ` : ''
+                      })()}
+                      {folder.kind === 'opponent' ? 'Opponent · ' : ''}
+                      {(() => {
+                        const count = subtreePlayCount(live, links, folder.id)
+                        return count === 1 ? '1 play' : `${count} plays`
+                      })()}
+                      {(() => {
+                        const mine = assignments.filter((item) => item.playbookId === folder.id)
+                        return staff && mine.length > 0
+                          ? ` · Assigned: ${assignedSummary(mine, teamPlayers)}`
+                          : ''
+                      })()}
+                    </span>
+                  </button>
+                  {staff && canEdit(effectiveSide(live, folder.id)) ? (
+                    <span className="playbook-actions">
+                      <button
+                        type="button"
+                        className="playbook-action"
+                        aria-expanded={panel?.kind === 'assign' && panel.folderId === folder.id}
+                        onClick={() =>
+                          setPanel(
+                            panel?.kind === 'assign' && panel.folderId === folder.id
+                              ? null
+                              : { kind: 'assign', folderId: folder.id },
+                          )
+                        }
+                      >
+                        Assign
+                      </button>
+                      <button
+                        type="button"
+                        className="playbook-action"
+                        onClick={() => {
+                          setRenaming(folder.id)
+                          setDraftName(folder.name)
+                        }}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        className="playbook-action"
+                        onClick={() => setConfirmDelete(folder.id)}
+                      >
+                        Delete
+                      </button>
+                    </span>
                   ) : null}
-                  {staff && !viewingArchived ? (
-                    <button
-                      type="button"
-                      className="playbook-action"
-                      onClick={() => {
-                        setRenaming(play.id)
-                        setDraftName(play.name)
-                      }}
-                    >
-                      Rename
-                    </button>
-                  ) : null}
-                  {staff && !viewingArchived && !searching && current != null ? (
-                    <button
-                      type="button"
-                      className="playbook-action"
-                      onClick={() => void commitRemove(play.id)}
-                    >
-                      Remove from folder
-                    </button>
-                  ) : null}
-                  {staff && !viewingArchived ? (
-                    <button
-                      type="button"
-                      className="playbook-action"
-                      onClick={() => void commitDelete(play.id)}
-                    >
-                      Delete
-                    </button>
-                  ) : null}
-                </span>
+                </>
               )}
             </li>
           ))}
         </ul>
-      </div>
-      {playerView ? null : (
-        <nav className="tab-bar" aria-label="Coach">
-          {TABS.map((tab) => (
-            <Link key={tab} to={tabHref(tab)}>
-              {tab}
-            </Link>
-          ))}
-        </nav>
-      )}
-      {menuOpen ? (
-        <div className="nav-drawer">
-          <button type="button" className="nav-toggle" onClick={() => setMenuOpen(false)}>
-            Close
-          </button>
-          {TABS.map((tab) => (
-            <Link key={tab} to={tabHref(tab)} onClick={() => setMenuOpen(false)}>
-              {tab}
-            </Link>
-          ))}
-        </div>
       ) : null}
-    </div>
+
+      {emptyFolder ? <p className={loading ? 'loading-line' : undefined}>{emptyFolder}</p> : null}
+      {current == null && !searching && !viewingArchived && shown.length > 0 ? (
+        <h2 className="folder-heading">Not in a folder</h2>
+      ) : null}
+      <ul className="playbook-list" aria-label="Plays">
+        {shown.map((play) => (
+          <li key={play.id} className="playbook-row">
+            <span className="playbook-name">
+              {viewingArchived ? (
+                play.name
+              ) : (
+                <Link className="playbook-open" to={`/plays/${play.id}`}>
+                  {play.name}
+                </Link>
+              )}
+              {staff && !viewingArchived ? (
+                <span
+                  className="play-state"
+                  data-state={play.published_at != null ? 'published' : 'draft'}
+                >
+                  {play.published_at != null ? 'Published' : 'Draft'}
+                </span>
+              ) : null}
+            </span>
+            {renaming === play.id ? (
+              <form
+                className="playbook-rename"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void commitRename(play.id)
+                }}
+              >
+                <input
+                  aria-label={`Name for ${play.name}`}
+                  value={draftName}
+                  onChange={(event) => setDraftName(event.target.value)}
+                />
+                <button type="submit" className="playbook-action">
+                  Save name
+                </button>
+              </form>
+            ) : (
+              <span className="playbook-actions">
+                {staff && viewingArchived ? (
+                  <button
+                    type="button"
+                    className="playbook-action"
+                    onClick={() => void commitRestore(play.id)}
+                  >
+                    Restore
+                  </button>
+                ) : null}
+                {staff && !viewingArchived ? (
+                  <button
+                    type="button"
+                    className="playbook-action"
+                    onClick={() => {
+                      setRenaming(play.id)
+                      setDraftName(play.name)
+                    }}
+                  >
+                    Rename
+                  </button>
+                ) : null}
+                {staff && !viewingArchived && !searching && current != null ? (
+                  <button
+                    type="button"
+                    className="playbook-action"
+                    onClick={() => void commitRemove(play.id)}
+                  >
+                    Remove from folder
+                  </button>
+                ) : null}
+                {staff && !viewingArchived ? (
+                  <button
+                    type="button"
+                    className="playbook-action"
+                    onClick={() => void commitDelete(play.id)}
+                  >
+                    Delete
+                  </button>
+                ) : null}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </CoachLayout>
   )
 }
