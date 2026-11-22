@@ -133,7 +133,9 @@ describe('position rules', () => {
 
   function card(attached: number, locked: boolean): string {
     cameraState.attached = attached
-    return renderToStaticMarkup(createElement(RuleCard, { play, rules, locked }))
+    return renderToStaticMarkup(
+      createElement(RuleCard, { play, rules, mine: locked ? attached : -1 }),
+    )
   }
 
   it("shows the followed player's rules", () => {
@@ -151,7 +153,7 @@ describe('position rules', () => {
       createElement(RuleCard, {
         play,
         rules,
-        locked: true,
+        mine: 1,
         facing: {
           id: 'lib:gun-trips-rt',
           name: 'Gun Trips Right',

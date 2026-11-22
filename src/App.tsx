@@ -33,20 +33,18 @@ import { Players } from './scene/Players'
 import { RouteLines } from './scene/RouteLines'
 import { CameraBar, HopChips } from './ui/CameraBar'
 import { FacemaskOverlay } from './ui/FacemaskOverlay'
-import {
-  cameraState,
-  lockToPlayer,
-  notePlay,
-  subscribeCamera,
-  unlockPlayer,
-} from './camera/cameraState'
+import { cameraState, notePlay, startAsPlayer, subscribeCamera } from './camera/cameraState'
 import { watchLabel } from './ui/watchLabel'
+import { watchUrl } from './play/lookChoice'
+import { startIndex } from './viewer/access'
 import { AssignSlots } from './viewer/AssignSlots'
+import { LookSelect } from './viewer/LookSelect'
 import { RuleCard } from './viewer/RuleCard'
 import { RulesPanel } from './viewer/RulesPanel'
 import { useExceptions } from './viewer/useExceptions'
 import { useRules } from './viewer/useRules'
 import { useViewerAccess } from './viewer/useViewerAccess'
+import { useWatchLooks } from './viewer/useWatchLooks'
 import { Scrubber } from './ui/Scrubber'
 import { useActivityCapture } from './activity/useActivityCapture'
 import type { ViewerSample } from './activity/meter'
@@ -113,8 +111,10 @@ export function App() {
     draftKey: params.draftKey,
   })
   const loaded = usePlayInput(input)
+  // Switching looks replaces the entry, so remember the key the viewer was opened with.
+  const openedKey = (location.state as { openedKey?: string } | null)?.openedKey ?? location.key
   const backToPlays = () => {
-    const target = playsBackTarget(location.key)
+    const target = playsBackTarget(openedKey)
     if (target === -1) void navigate(-1)
     else void navigate(target)
   }
@@ -204,7 +204,14 @@ export function App() {
   const playId = input.kind === 'id' ? input.playId : null
   const readyPlay = loaded.status === 'ready' ? loaded.play : null
   const access = useViewerAccess(playId, readyPlay?.ids ?? null)
-  const lockIndex = access.kind === 'locked' ? access.index : -1
+  // A player with a slot starts on it; Watch as stays open to everyone else.
+  const myIndex = startIndex(access)
+  const watched = loaded.status === 'ready' ? loaded.look : null
+  const lookChoices = useWatchLooks({
+    teamId: watched?.teamId ?? null,
+    playSide: watched?.playSide ?? null,
+    defaultLookId: watched?.defaultLookId ?? null,
+  })
   const savedId = isSavedPlayId(playId) ? playId : null
   const { rules, version: rulesVersion, replace: replaceRule } = useRules(savedId)
   const exceptions = useExceptions(savedId)
@@ -230,22 +237,16 @@ export function App() {
     readViewer,
   })
 
-  // Lock before paint so a locked player never sees another player's view.
+  // Start on the player's own slot before paint, so the first frame is their helmet.
   useLayoutEffect(() => {
-    if (readyPlay == null || lockIndex < 0) {
-      unlockPlayer()
-      return
-    }
+    if (readyPlay == null || myIndex < 0) return
     const qb = readyPlay.positions.indexOf('QB')
     notePlay(readyPlay.meta.id, qb >= 0 ? qb : 0)
-    lockToPlayer(lockIndex)
-    // Wake the demand frameloop so the camera glides onto the locked player.
+    startAsPlayer(myIndex)
+    // Wake the demand frameloop so the camera glides onto the player.
     const frame = requestAnimationFrame(() => onFrameloop('always'))
-    return () => {
-      cancelAnimationFrame(frame)
-      unlockPlayer()
-    }
-  }, [readyPlay, lockIndex, onFrameloop])
+    return () => cancelAnimationFrame(frame)
+  }, [readyPlay, myIndex, onFrameloop])
 
   if (loaded.status === 'ready' && access.kind === 'error') {
     return (
@@ -271,6 +272,7 @@ export function App() {
       <LoadError
         errors={loaded.errors}
         url={loaded.url}
+        heading={loaded.heading}
         onRetry={loaded.retry}
         onBack={input.kind === 'id' ? backToPlays : undefined}
       />
@@ -318,12 +320,13 @@ export function App() {
         <CameraBar
           play={loaded.play}
           onFrameloop={onFrameloop}
-          lockedLabel={
-            lockIndex >= 0
+          mine={myIndex}
+          mineLabel={
+            myIndex >= 0
               ? watchLabel(
-                  loaded.play.ids[lockIndex] ?? '',
-                  loaded.play.positions[lockIndex] ?? '',
-                  loaded.play.jerseys[lockIndex] ?? 0,
+                  loaded.play.ids[myIndex] ?? '',
+                  loaded.play.positions[myIndex] ?? '',
+                  loaded.play.jerseys[myIndex] ?? 0,
                 )
               : undefined
           }
@@ -382,6 +385,22 @@ export function App() {
         </>
       )}
       <div className="viewer-notes">
+        {savedId != null && watched?.playSide != null && lookChoices.looks.length > 0 && (
+          <div className="look-switch" data-testid="look-switch">
+            <LookSelect
+              playSide={watched.playSide}
+              looks={lookChoices.looks}
+              value={watched.id}
+              testId="viewer-look-select"
+              onChange={(lookId) => {
+                void navigate(watchUrl(savedId, lookId, watched.defaultLookId), {
+                  replace: true,
+                  state: { openedKey },
+                })
+              }}
+            />
+          </div>
+        )}
         {access.kind === 'unassigned' && (
           <p className="player-note" role="status" data-testid="unassigned-note">
             Your coach hasn&apos;t given you a position on this play yet. You can watch any player.
@@ -391,7 +410,7 @@ export function App() {
           <RuleCard
             play={loaded.play}
             rules={rules}
-            locked={lockIndex >= 0}
+            mine={myIndex}
             variants={exceptions.variants}
             facing={exceptions.facing}
           />
