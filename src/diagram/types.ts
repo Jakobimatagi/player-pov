@@ -29,6 +29,8 @@ export interface DPlayer {
   square?: boolean
   /** Which side a formation preset put this token on. Tokens a coach places have none. */
   side?: 'offense' | 'defense'
+  /** The formation slot a preset or saved formation put this token in ('lt', 'x', 'fs'). */
+  slot?: string
 }
 
 export interface DLine {

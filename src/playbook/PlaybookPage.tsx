@@ -24,6 +24,8 @@ import {
   setFolderFormation,
 } from '../data/plays'
 import { OFFENSE_PRESETS } from '../diagram/presets'
+import { baseAlignmentTemplates, templateIdOf, templateKey } from '../diagram/templates'
+import { useFormationTemplates } from '../diagram/useFormationTemplates'
 import { supabase } from '../data/supabase'
 import {
   afterRestore,
@@ -191,6 +193,11 @@ export function PlaybookPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [settledKey, setSettledKey] = useState<string | null>(null)
+  // The team's saved offense formations, offered as a base alignment after the built-ins.
+  const formationTemplates = useFormationTemplates(
+    staff && !fixture ? snap.teamId : null,
+    staff && fixture,
+  )
   const viewingArchived = staff && list === 'archived'
   const fetchKey =
     fixture || supabase == null || snap.session == null || snap.teamId == null
@@ -794,11 +801,27 @@ export function PlaybookPage() {
             <option value="">
               {effectiveFormation(live, here.id) != null ? 'Inherited' : 'Not set'}
             </option>
-            {OFFENSE_PRESETS.map((preset) => (
-              <option key={preset.key} value={preset.key}>
-                {preset.name}
-              </option>
-            ))}
+            <optgroup label="Built-in">
+              {OFFENSE_PRESETS.map((preset) => (
+                <option key={preset.key} value={preset.key}>
+                  {preset.name}
+                </option>
+              ))}
+            </optgroup>
+            {baseAlignmentTemplates(formationTemplates.templates, here.baseFormation).length > 0 ? (
+              <optgroup label="My formations">
+                {baseAlignmentTemplates(formationTemplates.templates, here.baseFormation).map(
+                  (template) => (
+                    <option key={template.id} value={templateKey(template.id)}>
+                      {template.archivedAt != null ? `${template.name} (deleted)` : template.name}
+                    </option>
+                  ),
+                )}
+              </optgroup>
+            ) : templateIdOf(here.baseFormation) != null ? (
+              // Not loaded yet, or another coach's view of a template we can't read.
+              <option value={here.baseFormation ?? ''}>Saved formation</option>
+            ) : null}
           </select>
         </label>
       ) : null}

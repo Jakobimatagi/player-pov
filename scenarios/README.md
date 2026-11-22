@@ -72,6 +72,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `scout-packs.md`               | Opponent packs, delegation, coach rooms    |
 | `playbook.md`                  | Play list, rename, delete, player view     |
 | `editor.md`                    | Editor core: render, select, undo          |
+| `formation-templates.md`       | Save, reuse, base alignment, side rules    |
 
 Play picker, share, and deep links are not in this engine pass. Do not look for those screens.
 
