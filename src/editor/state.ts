@@ -1,23 +1,12 @@
 import { fieldConfig, type FieldConfig } from '../field/fieldConfig'
 import { alignOrigins } from '../play/compileSource'
-import { legEnd } from './routeKinds'
-import type {
-  Leg,
-  LookPlayer,
-  LookSource,
-  PlaySource,
-  RouteEnd,
-  RouteKind,
-  SourcePlayer,
-} from '../play/sourceTypes'
+import type { Leg, LookPlayer, LookSource, PlaySource, SourcePlayer } from '../play/sourceTypes'
 import type { Position } from '../play/types'
 
 /** = MAX_WAYPOINTS (12) - 1. Each leg adds one waypoint after the alignment point. */
 export const MAX_LEGS = 11
 /** Undo keeps at most this many snapshots. */
 export const UNDO_CAP = 50
-/** A football side fields 11. The editor won't add a twelfth. */
-export const MAX_PLAYERS = 11
 /** Snap grids in yards. The fine grid is held by a modifier or a 2-finger hold (C6). */
 export const GRID = { coarse: 1, fine: 0.5 } as const
 
@@ -31,8 +20,8 @@ export interface PlayerRef {
 export interface LegRef extends PlayerRef {
   leg: number
 }
-/** assign = block/man/zone tag on a leg via Leg.label. player = drop a new offensive player. */
-export type Tool = 'select' | 'route' | 'assign' | 'player'
+/** assign = block/man/zone tag on a leg via Leg.label. */
+export type Tool = 'select' | 'route' | 'assign'
 export type Snap = keyof typeof GRID | 'off'
 
 export interface EditorIssue {
@@ -51,10 +40,6 @@ export interface EditorState {
   lookBaseVersion: number | null
   selection: PlayerRef | LegRef | null
   tool: Tool
-  /** What the route tool draws: route, block, motion or path. */
-  routeKind: RouteKind
-  /** End the route tool gives the next line. Null = the default for the line type. */
-  routeEnd: RouteEnd | null
   snap: Snap
   dirty: boolean
   /** True between beginDrag and endDrag, so a whole drag is one undo entry. */
@@ -87,8 +72,6 @@ export function createEditorState(init: EditorInit): EditorState {
     lookBaseVersion: init.lookBaseVersion ?? null,
     selection: null,
     tool: 'select',
-    routeKind: 'route',
-    routeEnd: null,
     snap: 'coarse',
     dirty: false,
     dragging: false,
@@ -142,12 +125,6 @@ export interface ChartPlayer {
   /** points[0] is the alignment; points[i + 1] is the end of legs[i]. Absolute yards. */
   points: { x: number; y: number }[]
   labels: (string | undefined)[]
-  /** kinds[i] is how leg i is drawn. */
-  kinds: RouteKind[]
-  /** ends[i] is what ends leg i. Only the last one is drawn. */
-  ends: RouteEnd[]
-  /** Text for the circle, when the coach set one. */
-  mark: string | undefined
 }
 
 export interface ChartLayout {
@@ -177,9 +154,6 @@ export function chartLayout(
           : player.legs,
       ),
       labels: player.legs.map((leg) => leg.label),
-      kinds: player.legs.map((leg) => leg.kind ?? 'route'),
-      ends: player.legs.map((leg) => legEnd(leg)),
-      mark: player.mark,
     })
   }
   for (const player of s.source.players) add('ours', player)

@@ -16,6 +16,7 @@ import {
   fromStage,
   lineShape,
   LOS_Y,
+  MIN_LINE_RADII,
   pointInPolygon,
   pointInRect,
   stagePlacement,
@@ -89,14 +90,18 @@ describe('tokens', () => {
     expect(s.diagram.players[6]).toMatchObject({ color: 'blue', fillStyle: 'solid' })
   })
 
-  it('edits text and clears an emptied circle label but keeps a text token non-empty', () => {
+  it('edits text, clears an emptied circle label, and removes an emptied text token', () => {
     let s = run(fresh(), { type: 'setText', id: 'p1', text: ' 81 ' })
     expect(s.diagram.players[0]?.label).toBe('81')
     s = run(s, { type: 'setText', id: 'p1', text: '' })
     expect(s.diagram.players[0]).not.toHaveProperty('label')
     s = run(s, { type: 'addToken', shape: 'text', at: { x: 0.5, y: 0.5 } })
-    s = run(s, { type: 'setText', id: 'p6', text: '' })
-    expect(s.diagram.players[5]?.label).toBe('')
+    expect(s.diagram.players).toHaveLength(6)
+    s = run(s, { type: 'setText', id: 'p6', text: '   ' })
+    // Nothing left to draw or click, so the token goes, as one undo step.
+    expect(s.diagram.players).toHaveLength(5)
+    expect(s.selection).toEqual([])
+    expect(run(s, { type: 'undo' }).diagram.players).toHaveLength(6)
   })
 })
 
@@ -156,8 +161,9 @@ describe('select, move, delete, undo', () => {
     s = run(
       s,
       { type: 'moveBegin' },
+      // Each event carries the total move since the press.
       { type: 'moveBy', ids: ['p1'], dx: 0.05, dy: -0.1 },
-      { type: 'moveBy', ids: ['p1'], dx: 0.05, dy: -0.1 },
+      { type: 'moveBy', ids: ['p1'], dx: 0.1, dy: -0.2 },
       { type: 'moveEnd' },
     )
     expect(s.diagram.players[0]?.x).toBeCloseTo((start?.x ?? 0) + 0.1)
@@ -439,5 +445,68 @@ describe('formation presets', () => {
     const script = { plays: [{ id: 'play-1', name: 'x', diagram: d }], index: 0 }
     const back = parseScript(JSON.parse(JSON.stringify(script)))
     expect(back?.plays[0]?.diagram.players.filter((p) => p.side === 'defense')).toHaveLength(11)
+  })
+})
+
+describe('moving at the field edge', () => {
+  const drag = (s: DiagramState, ids: string[], ...moves: [number, number][]) =>
+    run(
+      s,
+      { type: 'moveBegin' },
+      ...moves.map(([dx, dy]): DiagramAction => ({ type: 'moveBy', ids, dx, dy })),
+      { type: 'moveEnd' },
+    )
+
+  it('keeps a group in shape when part of it hits the edge', () => {
+    const before = fresh().diagram.players
+    const s = drag(fresh(), ['p1', 'p2', 'p3', 'p4', 'p5'], [0.9, 0])
+    const after = s.diagram.players
+    // The rightmost token stops at the edge and the rest stop with it, spacing intact.
+    expect(Math.max(...after.map((p) => p.x))).toBeCloseTo(1)
+    for (let i = 1; i < 5; i += 1) {
+      expect((after[i]?.x ?? 0) - (after[i - 1]?.x ?? 0)).toBeCloseTo(
+        (before[i]?.x ?? 0) - (before[i - 1]?.x ?? 0),
+      )
+    }
+  })
+
+  it('brings a token back with the cursor instead of leaving it behind', () => {
+    const start = fresh().diagram.players[0]?.x ?? 0
+    // Push well past the edge, then come back to 0.1 right of where the press began.
+    const s = drag(fresh(), ['p1'], [2, 0], [0.1, 0])
+    expect(s.diagram.players[0]?.x).toBeCloseTo(start + 0.1)
+  })
+
+  it('moves a route with its player and clamps them together', () => {
+    let s = run(fresh(), {
+      type: 'addLine',
+      playerId: 'p5',
+      lineType: 'route',
+      to: { x: 0.9, y: 0.2 },
+    })
+    s = drag(s, ['p5'], [0.5, 0])
+    const player = s.diagram.players[4]
+    const end = s.diagram.lines[0]?.points[0]
+    expect(Math.max(player?.x ?? 0, end?.x ?? 0)).toBeCloseTo(1)
+    expect((end?.x ?? 0) - (player?.x ?? 0)).toBeCloseTo(0.9 - 0.62)
+  })
+})
+
+describe('line length', () => {
+  it('draws nothing under the shared minimum, so the editor can refuse to add one', () => {
+    const unit = 13
+    const below = unit * MIN_LINE_RADII * 0.95
+    const above = unit * MIN_LINE_RADII * 1.05
+    expect(lineShape('route', { x: 0, y: 0 }, { x: below, y: 0 }, unit).parts).toEqual([])
+    expect(
+      lineShape('route', { x: 0, y: 0 }, { x: 0, y: above }, unit).parts.length,
+    ).toBeGreaterThan(0)
+  })
+})
+
+describe('preset previews', () => {
+  it('hand back the same diagram each time so a preview can skip re-rendering', () => {
+    const preset = findPreset('d-43')!
+    expect(presetDiagram(preset)).toBe(presetDiagram(preset))
   })
 })

@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router'
 import { CoachLayout } from '../app/CoachLayout'
 import { getAuthSnap, subscribeAuth } from '../auth/session'
+import { supabase } from '../data/supabase'
+import { honorDemoRoster } from '../playbook/archive'
 import { COLOR_HEX } from './colors'
 import { DiagramScene, type Ghost } from './DiagramScene'
 import {
+  MIN_LINE_RADII,
   pointInPolygon,
   pointInRect,
   toScreen,
@@ -73,7 +76,7 @@ const SHORTCUTS: [string, string][] = [
 ]
 
 type Gesture =
-  | { kind: 'move'; ids: string[]; last: Pt }
+  | { kind: 'move'; ids: string[]; start: Pt }
   | { kind: 'line'; playerId: string; type: LineType }
   | { kind: 'area'; a: Pt }
   | { kind: 'lasso'; pts: Pt[] }
@@ -101,7 +104,8 @@ const SHORTCUT_TOOLS: Record<string, Tool> = {
   ...Object.fromEntries(LINE_TYPES.map((type, i) => [String(i + 1), `draw:${type}` as Tool])),
 }
 
-const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y)
+const pixelDistance = (a: Pt, b: Pt, box: { width: number; height: number }) =>
+  Math.hypot((a.x - b.x) * box.width, (a.y - b.y) * box.height)
 
 /**
  * The Hudl-style diagrammer: tokens, seven line endings, notes, select tools and a practice
@@ -114,6 +118,8 @@ export function DiagramEditorPage() {
   const snap = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
   // The base alignment and any saved script must be known before the first play is laid out.
   const lookup = useBook(playbookId, roster)
+  const { pathname, search } = useLocation()
+  const demo = supabase == null || honorDemoRoster(roster, true, import.meta.env.DEV)
   const rosterQuery = roster === 'demo' ? '&roster=demo' : ''
   const back =
     playbookId != null
@@ -122,6 +128,11 @@ export function DiagramEditorPage() {
           label: lookup.book?.name ?? 'Playbook',
         }
       : { to: '/playbook', label: 'Playbook' }
+  // Signed-out visitors go to log in and come back; players have no draw tool.
+  if (!demo && snap.ready && snap.session == null) {
+    return <Navigate to={`/login?next=${encodeURIComponent(pathname + search)}`} replace />
+  }
+  if (!demo && snap.role === 'player') return <Navigate to="/" replace />
   // Same app shell as every other coach page: sidebar, account menu, theme.
   return (
     <CoachLayout
@@ -195,10 +206,26 @@ function DiagramEditor({
   const gesture = useRef<Gesture | null>(null)
   const lastPoint = useRef<Pt>({ x: 0, y: 0 })
 
-  // Every edit also writes through to this device, so nothing is lost if the network is.
+  // Every edit also lands on this device, so nothing is lost if the network is. A drag changes
+  // the script on every pointer move, so the write waits for it to settle, and is flushed
+  // when the page is hidden or the editor closes.
+  const latest = useRef(script)
   useEffect(() => {
-    saveScript(key, script, browserStore())
+    latest.current = script
+    const timer = setTimeout(() => saveScript(key, script, browserStore()), 250)
+    return () => clearTimeout(timer)
   }, [key, script])
+  useEffect(() => {
+    const flush = () => saveScript(key, latest.current, browserStore())
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    document.addEventListener('visibilitychange', onHide)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      flush()
+    }
+  }, [key])
 
   useEffect(() => {
     const el = box.current
@@ -282,7 +309,7 @@ function DiagramEditor({
     if (!already || additive) dispatch({ type: 'select', ids })
     if (isLine || additive) return
     // A press on a token or note is a drag: the first click selects, the move drags.
-    gesture.current = { kind: 'move', ids, last: at }
+    gesture.current = { kind: 'move', ids, start: at }
     dispatch({ type: 'moveBegin' })
   }
 
@@ -308,8 +335,8 @@ function DiagramEditor({
     if (g == null) return
     if (phase === 'move') {
       if (g.kind === 'move') {
-        dispatch({ type: 'moveBy', ids: g.ids, dx: at.x - g.last.x, dy: at.y - g.last.y })
-        g.last = at
+        // Total move since the press, so the group can be clamped as one and follow the cursor.
+        dispatch({ type: 'moveBy', ids: g.ids, dx: at.x - g.start.x, dy: at.y - g.start.y })
       } else if (g.kind === 'line') {
         const p = findPlayer(g.playerId)
         if (p != null) {
@@ -335,7 +362,12 @@ function DiagramEditor({
       dispatch({ type: 'moveEnd' })
     } else if (g.kind === 'line') {
       const p = findPlayer(g.playerId)
-      if (p != null && dist(p, at) > 0.03) {
+      // Measured in pixels: normalized x and y are different lengths, and lineShape draws
+      // nothing under this length, so a shorter drag would leave an invisible line.
+      if (
+        p != null &&
+        pixelDistance(p, at, size) > tokenRadius(size.width) * MIN_LINE_RADII * 1.1
+      ) {
         dispatch({ type: 'addLine', playerId: g.playerId, lineType: g.type, to: at })
       }
     } else {

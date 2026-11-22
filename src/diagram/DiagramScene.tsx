@@ -1,10 +1,24 @@
 import type Konva from 'konva'
 import { memo } from 'react'
-import { Circle, Group, Layer, Line, Rect, RegularPolygon, Stage, Text, Wedge } from 'react-konva'
+import {
+  Circle,
+  Group,
+  Layer,
+  Line,
+  Rect,
+  RegularPolygon,
+  Shape,
+  Stage,
+  Text,
+  Wedge,
+} from 'react-konva'
 import { COLOR_HEX, lineHex, onHex } from './colors'
 import { fieldView, fromStage, lineShape, LOS_Y, stagePlacement, tokenRadius } from './geometry'
 import { DEFAULT_PALETTE, type ScenePalette } from './theme'
 import type { Diagram, DLine, DNote, DPlayer, FieldPreset, LineType, Pt } from './types'
+
+/** Stable default so a scene drawn without a selection can skip re-rendering. */
+const NO_IDS: readonly string[] = []
 
 export interface Ghost {
   from: Pt
@@ -160,7 +174,8 @@ function Note({
   hidden: boolean
   palette: ScenePalette
 }) {
-  const size = Math.max(8, w * 0.026)
+  // Capped like the tokens, so a comment never dwarfs the players on a wide canvas.
+  const size = Math.min(14, Math.max(8, w * 0.026))
   const boxW = Math.min(w * 0.4, Math.max(size * 5, note.text.length * size * 0.62 + size * 1.4))
   return (
     <Group id={note.id} x={note.x * w} y={note.y * h} opacity={hidden ? 0 : 1}>
@@ -244,7 +259,7 @@ export const DiagramScene = memo(function DiagramScene({
   flip = false,
   zoom = 1,
   interactive = true,
-  selection = [],
+  selection = NO_IDS,
   ghost = null,
   marquee = null,
   lasso = null,
@@ -316,21 +331,22 @@ export const DiagramScene = memo(function DiagramScene({
             fill={palette.endZone}
           />
         ))}
-        {width >= 300
-          ? Array.from({ length: Math.ceil((width * 3) / (width * 0.0355)) }, (_, i) => (
-              <Line
-                key={`g${i}`}
-                points={[
-                  -width + i * width * 0.0355,
-                  -height,
-                  -width + i * width * 0.0355,
-                  height * 2,
-                ]}
-                stroke={palette.grid}
-                strokeWidth={1}
-              />
-            ))
-          : null}
+        {width >= 300 ? (
+          // One shape for every column, so a redraw doesn't rebuild ~85 line nodes.
+          <Shape
+            sceneFunc={(ctx, shape) => {
+              const step = width * 0.0355
+              ctx.beginPath()
+              for (let x = -width; x <= width * 2; x += step) {
+                ctx.moveTo(x, -height)
+                ctx.lineTo(x, height * 2)
+              }
+              ctx.strokeShape(shape)
+            }}
+            stroke={palette.grid}
+            strokeWidth={1}
+          />
+        ) : null}
         {field.marks.map((mark) => (
           <Group key={mark.y}>
             <Line

@@ -1,14 +1,5 @@
 import { alignOrigins } from '../play/compileSource'
-import type {
-  Leg,
-  LookPlayer,
-  LookSource,
-  PlaySource,
-  RouteEnd,
-  RouteKind,
-  SourcePlayer,
-} from '../play/sourceTypes'
-import type { Position } from '../play/types'
+import type { Leg, LookPlayer, LookSource, PlaySource, SourcePlayer } from '../play/sourceTypes'
 import { FORMATIONS } from './formations'
 import {
   createEditorState,
@@ -16,7 +7,6 @@ import {
   GRID,
   isLegRef,
   MAX_LEGS,
-  MAX_PLAYERS,
   UNDO_CAP,
   type EditorIssue,
   type EditorSnapshot,
@@ -52,26 +42,16 @@ export type EditorAction =
   | { type: 'select'; target: PlayerRef | LegRef | null }
   | { type: 'setTool'; tool: Tool }
   | { type: 'setSnap'; snap: Snap }
-  /** The kind the route tool draws next. */
-  | { type: 'setDrawKind'; kind: RouteKind }
-  /** The end the route tool gives the next line; null = the line type's default. */
-  | { type: 'setDrawEnd'; end: RouteEnd | null }
-  /** Redraw every leg of a player's route as `kind`. */
-  | { type: 'setRouteKind'; ref: PlayerRef; kind: RouteKind }
-  | { type: 'clearRoute'; ref: PlayerRef }
-  /** Our side only. Ball-relative yards. Rejected at MAX_PLAYERS. */
-  | { type: 'addPlayer'; position: Position; at: Point }
-  | { type: 'removePlayer'; ref: PlayerRef }
   | { type: 'moveAlign'; ref: PlayerRef; dx: number; dy: number }
   /** Rejected (state unchanged) once the player has MAX_LEGS legs. */
-  | { type: 'addLeg'; ref: PlayerRef; to: Point; at?: number; kind?: RouteKind; end?: RouteEnd }
+  | { type: 'addLeg'; ref: PlayerRef; to: Point; at?: number }
   | { type: 'moveLeg'; ref: LegRef; to: Point }
   | { type: 'setLeg'; ref: LegRef; patch: Partial<Omit<Leg, 'to'>> }
   | { type: 'removeLeg'; ref: LegRef }
   | {
       type: 'setPlayer'
       ref: PlayerRef
-      patch: Partial<Pick<SourcePlayer, 'position' | 'jersey' | 'role' | 'mark'>>
+      patch: Partial<Pick<SourcePlayer, 'position' | 'jersey' | 'role'>>
     }
   | { type: 'applyFormation'; side: SideKey; preset: string }
   | { type: 'setBall'; ball: PlaySource['ball'] }
@@ -205,14 +185,7 @@ function moveAlign(s: EditorState, ref: PlayerRef, target: Point): EditorState {
   })
 }
 
-function addLeg(
-  s: EditorState,
-  ref: PlayerRef,
-  target: Point,
-  at?: number,
-  kind?: RouteKind,
-  end?: RouteEnd,
-): EditorState {
+function addLeg(s: EditorState, ref: PlayerRef, target: Point, at?: number): EditorState {
   const to = snapPoint(target, s.snap)
   const mirror = mirrorOf(s, ref)
   return updatePlayer(s, ref, (player) => {
@@ -227,12 +200,7 @@ function addLeg(
     const split = legs[index]
     const nextLegs = [...legs]
     if (split == null) {
-      nextLegs.push({
-        to: delta,
-        speed: DEFAULT_SPEED,
-        ...(kind != null && kind !== 'route' ? { kind } : {}),
-        ...(end != null ? { end } : {}),
-      })
+      nextLegs.push({ to: delta, speed: DEFAULT_SPEED })
     } else {
       // Inserting inside a route: the leg being split keeps its end point and its total time.
       const rest = sub(split.to, delta)
@@ -248,8 +216,6 @@ function addLeg(
         inserted.speed = split.speed ?? DEFAULT_SPEED
       }
       if (split.interp != null) inserted.interp = split.interp
-      if (split.kind != null) inserted.kind = split.kind
-      if (split.end != null) inserted.end = split.end
       nextLegs.splice(index, 1, inserted, remaining)
     }
     return { ...player, legs: toField(nextLegs, mirror) }
@@ -282,7 +248,7 @@ function setLeg(s: EditorState, ref: LegRef, patch: Partial<Omit<Leg, 'to'>>): E
     const leg = player.legs[ref.leg]
     if (leg == null) return null
     const next: Leg = { ...leg }
-    for (const key of ['dur', 'speed', 'interp', 'face', 'label', 'kind', 'end'] as const) {
+    for (const key of ['dur', 'speed', 'interp', 'face', 'label'] as const) {
       if (!(key in patch)) continue
       const value = patch[key]
       if (value === undefined) delete next[key]
@@ -319,47 +285,10 @@ function removeLeg(s: EditorState, ref: LegRef): EditorState {
   })
 }
 
-function setRouteKind(s: EditorState, ref: PlayerRef, kind: RouteKind): EditorState {
-  return updatePlayer(s, ref, (player) => {
-    const next = (leg: Leg): Leg => {
-      const out: Leg = { ...leg }
-      if (kind === 'route') delete out.kind
-      else out.kind = kind
-      // A new line type brings its own end back.
-      delete out.end
-      return out
-    }
-    if (player.legs.every((leg) => (leg.kind ?? 'route') === kind)) return null
-    return { ...player, legs: player.legs.map(next) }
-  })
-}
-
-/** Slot names a new player takes, first free one wins. */
-const SPARE_SLOTS = ['x', 'z', 'y', 'h', 's', 'f', 'a', 'b'] as const
-
-function addPlayer(s: EditorState, position: Position, at: Point): EditorState {
-  const players = s.source.players
-  if (players.length >= MAX_PLAYERS) return s
-  const taken = new Set(players.map((p) => p.slot))
-  let slot: string | undefined = SPARE_SLOTS.find((name) => !taken.has(name))
-  for (let n = 1; slot == null; n += 1) if (!taken.has(`p${n}`)) slot = `p${n}`
-  const to = snapPoint(at, s.snap)
-  const player: SourcePlayer = { slot, position, align: { dx: to.dx, dy: to.dy }, legs: [] }
-  const next = commit(s, { source: { ...s.source, players: [...players, player] } })
-  return { ...next, selection: { side: 'ours', slot } }
-}
-
-function removePlayer(s: EditorState, ref: PlayerRef): EditorState {
-  if (ref.side !== 'ours') return s
-  if (!s.source.players.some((p) => p.slot === ref.slot)) return s
-  const players = s.source.players.filter((p) => p.slot !== ref.slot)
-  return commit(s, { source: { ...s.source, players } })
-}
-
 function setPlayer(
   s: EditorState,
   ref: PlayerRef,
-  patch: Partial<Pick<SourcePlayer, 'position' | 'jersey' | 'role' | 'mark'>>,
+  patch: Partial<Pick<SourcePlayer, 'position' | 'jersey' | 'role'>>,
 ): EditorState {
   return updatePlayer(s, ref, (player) => {
     const next = { ...player }
@@ -367,11 +296,6 @@ function setPlayer(
     if ('jersey' in patch) {
       if (patch.jersey === undefined) delete next.jersey
       else next.jersey = patch.jersey
-    }
-    if ('mark' in patch) {
-      const mark = patch.mark?.trim()
-      if (mark == null || mark.length === 0) delete next.mark
-      else next.mark = mark
     }
     if ('role' in patch) {
       if (patch.role === undefined) delete next.role
@@ -435,21 +359,7 @@ export function editorReducer(s: EditorState, a: EditorAction): EditorState {
     case 'moveAlign':
       return moveAlign(s, a.ref, { dx: a.dx, dy: a.dy })
     case 'addLeg':
-      return addLeg(s, a.ref, a.to, a.at, a.kind, a.end)
-    case 'setDrawEnd':
-      return a.end === s.routeEnd ? s : { ...s, routeEnd: a.end }
-    case 'setDrawKind':
-      return a.kind === s.routeKind ? s : { ...s, routeKind: a.kind }
-    case 'setRouteKind':
-      return setRouteKind(s, a.ref, a.kind)
-    case 'clearRoute':
-      return updatePlayer(s, a.ref, (player) =>
-        player.legs.length === 0 ? null : { ...player, legs: [] },
-      )
-    case 'addPlayer':
-      return addPlayer(s, a.position, a.at)
-    case 'removePlayer':
-      return removePlayer(s, a.ref)
+      return addLeg(s, a.ref, a.to, a.at)
     case 'moveLeg':
       return moveLeg(s, a.ref, a.to)
     case 'setLeg':

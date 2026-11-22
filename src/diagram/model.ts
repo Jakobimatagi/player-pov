@@ -31,6 +31,8 @@ export interface DiagramState {
   past: Diagram[]
   future: Diagram[]
   dragging: boolean
+  /** The diagram as it was when the drag began. Moves are measured from it, not step by step. */
+  dragFrom: Diagram | null
 }
 
 /** A blank play: five linemen in a row on the line of scrimmage, four round and a square center. */
@@ -63,6 +65,7 @@ export function createState(diagram: Diagram = blankDiagram()): DiagramState {
     past: [],
     future: [],
     dragging: false,
+    dragFrom: null,
   }
 }
 
@@ -78,6 +81,7 @@ export type DiagramAction =
   | { type: 'setText'; id: string; text: string }
   | { type: 'addLine'; playerId: string; lineType: LineType; to: Pt }
   | { type: 'moveBegin' }
+  /** dx and dy are the total move since moveBegin, not since the last event. */
   | { type: 'moveBy'; ids: string[]; dx: number; dy: number }
   | { type: 'moveEnd' }
   | { type: 'delete' }
@@ -168,13 +172,19 @@ function setText(s: DiagramState, id: string, text: string): DiagramState {
   const player = s.diagram.players.find((p) => p.id === id)
   if (player != null) {
     const value = text.trim()
+    // A text token with no text has nothing to draw or click, so clearing it removes it.
+    if (player.shape === 'text' && value.length === 0) {
+      return tidy(
+        commit(s, { ...s.diagram, players: s.diagram.players.filter((p) => p.id !== id) }),
+      )
+    }
     if ((player.label ?? '') === value) return s
     return commit(s, {
       ...s.diagram,
       players: s.diagram.players.map((p) => {
         if (p.id !== id) return p
         const next: DPlayer = { ...p }
-        if (value.length > 0 || p.shape === 'text') next.label = value
+        if (value.length > 0) next.label = value
         else delete next.label
         return next
       }),
@@ -203,15 +213,30 @@ function addLine(s: DiagramState, playerId: string, type: LineType, to: Pt): Dia
   return commit(s, { ...s.diagram, lines }, { selection: [line.id] })
 }
 
+/**
+ * Move the selection by (dx, dy) from where the drag began. The move is clamped once for the
+ * whole group, so the group keeps its shape at the field edge and a token comes back with the
+ * cursor instead of being left behind.
+ */
 function moveBy(s: DiagramState, ids: string[], dx: number, dy: number): DiagramState {
+  const from = s.dragFrom ?? s.diagram
   const set = new Set(ids)
-  const shift = (p: Pt): Pt => ({ x: clamp01(p.x + dx), y: clamp01(p.y + dy) })
+  const moving: Pt[] = []
+  for (const p of from.players) if (set.has(p.id)) moving.push(p)
+  for (const n of from.notes) if (set.has(n.id)) moving.push(n)
+  for (const l of from.lines) if (set.has(l.playerId) || set.has(l.id)) moving.push(...l.points)
+  if (moving.length === 0) return s
+  const xs = moving.map((p) => p.x)
+  const ys = moving.map((p) => p.y)
+  const cx = Math.min(1 - Math.max(...xs), Math.max(-Math.min(...xs), dx))
+  const cy = Math.min(1 - Math.max(...ys), Math.max(-Math.min(...ys), dy))
+  const shift = (p: Pt): Pt => ({ x: p.x + cx, y: p.y + cy })
   const diagram: Diagram = {
-    ...s.diagram,
-    players: s.diagram.players.map((p) => (set.has(p.id) ? { ...p, ...shift(p) } : p)),
-    notes: s.diagram.notes.map((n) => (set.has(n.id) ? { ...n, ...shift(n) } : n)),
+    ...from,
+    players: from.players.map((p) => (set.has(p.id) ? { ...p, ...shift(p) } : p)),
+    notes: from.notes.map((n) => (set.has(n.id) ? { ...n, ...shift(n) } : n)),
     // A route travels with its player.
-    lines: s.diagram.lines.map((l) =>
+    lines: from.lines.map((l) =>
       set.has(l.playerId) || set.has(l.id) ? { ...l, points: l.points.map(shift) } : l,
     ),
   }
@@ -280,14 +305,21 @@ export function diagramReducer(s: DiagramState, a: DiagramAction): DiagramState 
     case 'addLine':
       return addLine(s, a.playerId, a.lineType, a.to)
     case 'moveBegin':
-      return s.dragging ? s : { ...s, dragging: true, past: push(s.past, s.diagram) }
+      return s.dragging
+        ? s
+        : { ...s, dragging: true, dragFrom: s.diagram, past: push(s.past, s.diagram) }
     case 'moveBy':
       return s.dragging ? moveBy(s, a.ids, a.dx, a.dy) : s
     case 'moveEnd': {
       if (!s.dragging) return s
       const top = s.past[s.past.length - 1]
       // A drag that moved nothing leaves no undo entry.
-      return { ...s, dragging: false, past: top === s.diagram ? s.past.slice(0, -1) : s.past }
+      return {
+        ...s,
+        dragging: false,
+        dragFrom: null,
+        past: top === s.diagram ? s.past.slice(0, -1) : s.past,
+      }
     }
     case 'delete':
       return remove(s)

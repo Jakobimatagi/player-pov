@@ -1,140 +1,12 @@
-.dg-page {
-  padding: 12px var(--page-pad, 16px);
-  max-width: 100%;
-  overflow-x: clip;
-}
-.dg-bar,
-.dg-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.dg-group {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding-right: 8px;
-  border-right: 1px solid var(--border, #333);
-}
-.dg-back {
-  color: var(--muted-foreground);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.dg-name,
-.dg-select {
-  min-height: 32px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid var(--input, #333);
-  background: transparent;
-  color: var(--foreground);
-}
-.dg-name {
-  flex: 1 1 140px;
-}
-.dg-saved {
-  color: var(--muted-foreground);
-  font-size: 0.8rem;
-}
-.dg-stage {
-  position: relative;
-  width: 100%;
-  max-width: 560px;
-  border-radius: 8px;
-  overflow: hidden;
-  touch-action: none;
-}
-.dg-popover {
-  position: absolute;
-  z-index: 5;
-  padding: 8px;
-  border-radius: 10px;
-  background: #1b1b1b;
-  border: 1px solid #3a3a3a;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-}
-.dg-swatches {
-  display: grid;
-  grid-template-columns: repeat(7, 22px);
-  gap: 6px;
-}
-.dg-swatch {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 2px solid #555;
-  cursor: pointer;
-}
-.dg-swatch[aria-pressed='true'] {
-  border-color: #ffd84a;
-}
-.dg-fills {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-.dg-fills button {
-  flex: 1;
-  min-height: 28px;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background: transparent;
-  color: #eee;
-  font-size: 0.8rem;
-}
-.dg-fills button[aria-pressed='true'] {
-  border-color: #ffd84a;
-  background: #ffd84a22;
-}
-.dg-edit {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  z-index: 6;
-  width: 110px;
-  height: 30px;
-  text-align: center;
-  font-weight: 700;
-  border-radius: 8px;
-  border: 2px solid #ffd84a;
-  background: #141414;
-  color: #fff;
-}
+/* Thumbnails of a play, in the playbook's Diagrams strip. The editor itself is in editor-ui.css. */
 .dg-script {
   list-style: none;
-  margin: 16px 0 0;
+  margin: 0;
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 8px;
   max-width: 560px;
-}
-.dg-script button,
-.dg-script .dg-card {
-  display: grid;
-  gap: 4px;
-  width: 100%;
-  padding: 6px;
-  border-radius: 8px;
-  border: 1px solid var(--input, #333);
-  background: transparent;
-  color: var(--foreground);
-  text-align: left;
-  font-size: 0.8rem;
-}
-.dg-script li[data-current='true'] button {
-  border-color: #ffd84a;
-  box-shadow: 0 0 0 2px #ffd84a55;
-}
-.dg-script canvas {
-  width: 100% !important;
-  height: auto !important;
-  border-radius: 4px;
-}
-.dg-num {
-  font-weight: 700;
 }
 
 .dg-card {
@@ -146,4 +18,14 @@
   color: var(--foreground);
   text-decoration: none;
   font-size: 0.8rem;
+}
+
+.dg-script canvas {
+  width: 100% !important;
+  height: auto !important;
+  border-radius: 4px;
+}
+
+.dg-num {
+  font-weight: 700;
 }

@@ -335,7 +335,14 @@ export function clearSide(d: Diagram, side: PresetSide): Diagram {
   }
 }
 
-/** A preset on its own, for its preview card. */
+const previews = new WeakMap<Preset, Diagram>()
+
+/** A preset on its own, for its preview card. The same object each time, so previews can memoize. */
 export function presetDiagram(preset: Preset): Diagram {
-  return { formation: preset.name, players: presetPlayers(preset), lines: [], notes: [] }
+  let d = previews.get(preset)
+  if (d == null) {
+    d = { formation: preset.name, players: presetPlayers(preset), lines: [], notes: [] }
+    previews.set(preset, d)
+  }
+  return d
 }

@@ -24,7 +24,6 @@ import {
   setFolderFormation,
 } from '../data/plays'
 import { OFFENSE_PRESETS } from '../diagram/presets'
-import { drawnDemoRows } from './drawnDemo'
 import { supabase } from '../data/supabase'
 import {
   afterRestore,
@@ -122,23 +121,18 @@ export function PlaybookPage() {
 
   const [plays, setPlays] = useState<PlayRow[]>(() =>
     fixture
-      ? [
-          ...DEMO_PLAYS.filter((play) =>
-            playerView
-              ? DEMO_LINKS.some((link) => link.folderId === 'base' && link.playId === play.id)
-              : true,
-          ),
-          ...(playerView ? [] : drawnDemoRows().rows),
-        ]
+      ? DEMO_PLAYS.filter((play) =>
+          playerView
+            ? DEMO_LINKS.some((link) => link.folderId === 'base' && link.playId === play.id)
+            : true,
+        )
       : [],
   )
   const [archived, setArchived] = useState<PlayRow[]>(() => (fixture && staff ? DEMO_ARCHIVED : []))
   const [folders, setFolders] = useState<Folder[]>(() =>
     fixture ? (playerView ? DEMO_FOLDERS.filter((f) => f.id === 'base') : DEMO_FOLDERS) : [],
   )
-  const [links, setLinks] = useState<FolderLink[]>(
-    fixture ? [...DEMO_LINKS, ...(playerView ? [] : drawnDemoRows().links)] : [],
-  )
+  const [links, setLinks] = useState<FolderLink[]>(fixture ? DEMO_LINKS : [])
   const [assignments, setAssignments] = useState<Assignment[]>(() =>
     fixture && !playerView ? DEMO_ASSIGNMENTS : [],
   )
@@ -986,7 +980,7 @@ export function PlaybookPage() {
           </li>
         ) : null}
       </ul>
-      {here != null && here.kind === 'playbook' && !viewingArchived && !searching ? (
+      {staff && here != null && here.kind === 'playbook' && !viewingArchived && !searching ? (
         <Suspense fallback={null}>
           <DiagramStrip
             key={here.id}

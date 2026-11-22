@@ -6,12 +6,6 @@ export type AnchorName = 'ball' | 'strong#1' | 'strong#2' | 'weak#1' | 'weak#2'
 /** Anchors for our own defenders: the look's anchors, plus the ball set to the strength. */
 export type DefenderAnchor = AnchorName | 'strong' | 'weak'
 
-/** How a leg is drawn on the chart. Only the editor reads it; the compiler ignores it. Default `route`. */
-export type RouteKind = 'route' | 'block' | 'motion' | 'path'
-
-/** What ends a leg's line on the chart: an arrowhead, a flat block cap, or nothing. Default follows `kind`. */
-export type RouteEnd = 'arrow' | 'block' | 'none'
-
 export interface Leg {
   to: { dx: number; dy: number }
   dur?: number
@@ -19,14 +13,10 @@ export interface Leg {
   interp?: 'smooth' | 'linear'
   face?: number
   label?: string
-  kind?: RouteKind
-  end?: RouteEnd
 }
 
 export interface SourcePlayer {
   slot: string
-  /** Text on the chart circle. Default is derived from the slot or position. */
-  mark?: string
   position: Position
   jersey?: number
   role?: string
@@ -72,7 +62,6 @@ export type LookAlign = { dx: number; dy: number } | { anchor: AnchorName; dx: n
 
 export interface LookPlayer {
   slot: string
-  mark?: string
   position: Position
   jersey?: number
   role?: string

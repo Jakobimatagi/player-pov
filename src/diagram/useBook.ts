@@ -29,12 +29,14 @@ export function useBook(playbookId: string | null, roster: string | null): BookS
   const auth = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
   const demo = supabase == null || honorDemoRoster(roster, true, import.meta.env.DEV)
   const synced = !demo && playbookId != null
-  const [state, setState] = useState<Omit<BookState, 'synced'>>({
-    book: null,
-    remote: null,
-    settled: playbookId == null,
-    error: null,
-  })
+  const [found, setFound] = useState<(Omit<BookState, 'synced'> & { forId: string | null }) | null>(
+    null,
+  )
+  // A result only counts for the playbook it was fetched for.
+  const state: Omit<BookState, 'synced'> =
+    found != null && found.forId === playbookId
+      ? found
+      : { book: null, remote: null, settled: playbookId == null, error: null }
 
   useEffect(() => {
     startAuth()
@@ -50,7 +52,8 @@ export function useBook(playbookId: string | null, roster: string | null): BookS
         const folder = folders.find((item) => item.id === playbookId)
         const remote = demo ? null : await loadRemoteScript(playbookId)
         if (dead) return
-        setState({
+        setFound({
+          forId: playbookId,
           book:
             folder == null
               ? null
@@ -61,7 +64,8 @@ export function useBook(playbookId: string | null, roster: string | null): BookS
         })
       } catch (error) {
         if (!dead) {
-          setState({
+          setFound({
+            forId: playbookId,
             book: null,
             remote: null,
             settled: true,

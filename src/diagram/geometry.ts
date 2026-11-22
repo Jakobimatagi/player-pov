@@ -6,6 +6,9 @@ export const LOS_Y = 0.62
 /** Yards the view shows top to bottom. */
 export const VIEW_YARDS = 32
 
+/** A line shorter than this many token radii is not drawn, so none is ever added that short. */
+export const MIN_LINE_RADII = 1.2
+
 export interface LinePart {
   points: number[]
   dash?: number[]
@@ -55,7 +58,7 @@ function zigzag(a: Pt, b: Pt, amp: number, wave: number): number[] {
 export function lineShape(type: LineType, from: Pt, to: Pt, unit: number): LineShape {
   const d = sub(to, from)
   const total = len(d)
-  if (total < unit * 1.2) return { parts: [] }
+  if (total < unit * MIN_LINE_RADII) return { parts: [] }
   const ux = d.x / total
   const uy = d.y / total
   const a: Pt = { x: from.x + ux * unit * 1.05, y: from.y + uy * unit * 1.05 }

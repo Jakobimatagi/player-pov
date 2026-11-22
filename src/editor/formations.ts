@@ -93,10 +93,3 @@ export const FORMATIONS: Readonly<Record<string, Formation>> = {
   'pro-rt': PRO_RT,
   'cover-2': COVER_2,
 }
-
-/** Offense presets a playbook can use as its base alignment, as [key, display name]. */
-export function offenseFormations(): [string, string][] {
-  return Object.entries(FORMATIONS)
-    .filter(([, formation]) => formation.side === 'ours')
-    .map(([key, formation]) => [key, formation.name])
-}
