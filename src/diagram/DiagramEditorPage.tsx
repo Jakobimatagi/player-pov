@@ -29,7 +29,9 @@ import {
   type Pt,
 } from './types'
 import { diagramFromFormation } from './formations'
-import { useBook, type BookInfo } from './useBook'
+import { useBook, type BookState } from './useBook'
+import type { SaveStatus } from './saver'
+import { useRemoteSave } from './useRemoteSave'
 import './diagram.css'
 
 const TOOL_GROUPS: { label: string; tools: { tool: Tool; label: string }[] }[] = [
@@ -58,6 +60,20 @@ type Gesture =
   | { kind: 'area'; a: Pt }
   | { kind: 'lasso'; pts: Pt[] }
 
+function saveLabel(synced: boolean, status: SaveStatus): string {
+  if (!synced) return 'Saved on this device only'
+  switch (status) {
+    case 'saving':
+      return 'Saving…'
+    case 'error':
+      return 'Could not save. Retrying…'
+    case 'conflict':
+      return 'Changed elsewhere, or you can’t edit this book. Reload to see the saved version.'
+    case 'saved':
+      return 'Saved'
+  }
+}
+
 const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y)
 
 /**
@@ -68,12 +84,21 @@ export function DiagramEditorPage() {
   const [params] = useSearchParams()
   const playbookId = params.get('playbook')
   const roster = params.get('roster')
-  // The base alignment must be known before the first play is laid out.
-  const { book, settled } = useBook(playbookId, roster)
-  if (!settled) {
+  // The base alignment and any saved script must be known before the first play is laid out.
+  const lookup = useBook(playbookId, roster)
+  if (!lookup.settled) {
     return (
       <main className="dg-page">
         <p className="loading-line">Loading…</p>
+      </main>
+    )
+  }
+  if (lookup.error != null) {
+    return (
+      <main className="dg-page">
+        <p className="auth-error" role="alert">
+          {lookup.error}
+        </p>
       </main>
     )
   }
@@ -82,7 +107,7 @@ export function DiagramEditorPage() {
       key={playbookId ?? 'sandbox'}
       playbookId={playbookId}
       roster={roster}
-      book={book}
+      lookup={lookup}
     />
   )
 }
@@ -90,23 +115,33 @@ export function DiagramEditorPage() {
 function DiagramEditor({
   playbookId,
   roster,
-  book,
+  lookup,
 }: {
   playbookId: string | null
   roster: string | null
-  book: BookInfo | null
+  lookup: BookState
 }) {
+  const { book, remote, synced } = lookup
   const key = storageKey(playbookId)
   const rosterQuery = roster === 'demo' ? '&roster=demo' : ''
   const base = useMemo(() => diagramFromFormation(book?.formation ?? null), [book])
+  // Where the first script comes from: the database, else a draft left on this device
+  // (which gets pushed up), else the base alignment.
+  const [start] = useState(() => {
+    if (remote != null)
+      return { script: remote.script, loaded: { version: remote.version, script: remote.script } }
+    const local = savedScript(key, browserStore())
+    if (local != null) return { script: local, loaded: { version: null, script: null } }
+    const fresh = newScript(playbookId == null ? undefined : base)
+    return { script: fresh, loaded: { version: null, script: fresh } }
+  })
   // `saved` is the script as last arranged; the open play's live diagram is layered on top.
-  const [saved, setSaved] = useState<DiagramScript>(
-    () => savedScript(key, browserStore()) ?? newScript(playbookId == null ? undefined : base),
-  )
+  const [saved, setSaved] = useState<DiagramScript>(start.script)
   const [state, dispatch] = useReducer(diagramReducer, undefined, () =>
     createState(saved.plays[saved.index]?.diagram),
   )
   const script = useMemo(() => putDiagram(saved, state.diagram), [saved, state.diagram])
+  const saveStatus = useRemoteSave(playbookId, synced, script, start.loaded)
   const [preset, setPreset] = useState<FieldPreset | null>(null)
   const [size, setSize] = useState({ width: 420, height: 560 })
   const [ghost, setGhost] = useState<Ghost | null>(null)
@@ -117,11 +152,10 @@ function DiagramEditor({
   const gesture = useRef<Gesture | null>(null)
   const lastPoint = useRef<Pt>({ x: 0, y: 0 })
 
-  // Every edit writes through to this device's storage.
+  // Every edit also writes through to this device, so nothing is lost if the network is.
   useEffect(() => {
     saveScript(key, script, browserStore())
   }, [key, script])
-  const stored = browserStore() != null
 
   useEffect(() => {
     const el = box.current
@@ -361,9 +395,19 @@ function DiagramEditor({
         >
           Remove
         </Button>
-        <span className="dg-saved" data-testid="autosave">
-          {stored ? 'Saved on this device' : 'Not saved: storage is blocked'}
+        <span
+          className="dg-saved"
+          data-testid="autosave"
+          data-status={synced ? saveStatus : 'device'}
+          role="status"
+        >
+          {saveLabel(synced, saveStatus)}
         </span>
+        {saveStatus === 'conflict' ? (
+          <Button size="sm" onClick={() => window.location.reload()}>
+            Reload
+          </Button>
+        ) : null}
       </div>
 
       <div className="dg-toolbar" role="toolbar" aria-label="Tools">

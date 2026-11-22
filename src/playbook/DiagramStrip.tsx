@@ -1,13 +1,41 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import { loadRemoteScript } from '../data/diagrams'
 import { DiagramScene } from '../diagram/DiagramScene'
-import { browserStore, savedScript, storageKey } from '../diagram/script'
+import { browserStore, savedScript, storageKey, type DiagramScript } from '../diagram/script'
 
 /**
- * The diagrams drawn into a playbook, as thumbnails. They come from this device's storage
- * for now, and each opens the editor on that play. Nothing shows until something is drawn.
+ * The diagrams drawn into a playbook, as thumbnails, each opening the editor. They come from
+ * the database, or from this device in the demo. Nothing shows until something is drawn.
  */
-export function DiagramStrip({ folderId, rosterQuery }: { folderId: string; rosterQuery: string }) {
-  const script = savedScript(storageKey(folderId), browserStore())
+export function DiagramStrip({
+  folderId,
+  rosterQuery,
+  remote,
+}: {
+  folderId: string
+  rosterQuery: string
+  remote: boolean
+}) {
+  const [script, setScript] = useState<DiagramScript | null>(() =>
+    remote ? null : savedScript(storageKey(folderId), browserStore()),
+  )
+
+  useEffect(() => {
+    if (!remote) return
+    let dead = false
+    loadRemoteScript(folderId)
+      .then((found) => {
+        if (!dead) setScript(found?.script ?? null)
+      })
+      .catch(() => {
+        // The strip is a convenience: if it cannot load, the playbook still works.
+      })
+    return () => {
+      dead = true
+    }
+  }, [folderId, remote])
+
   if (script == null) return null
   const drawn = script.plays.some(
     (play) => play.diagram.lines.length > 0 || play.diagram.notes.length > 0,

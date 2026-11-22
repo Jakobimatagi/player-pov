@@ -385,6 +385,30 @@ export type Database = {
         }
         Relationships: []
       }
+      playbook_scripts: {
+        Row: {
+          playbook_id: string
+          script: Json
+          version: number
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          playbook_id: string
+          script: Json
+          version?: number
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          playbook_id?: string
+          script?: Json
+          version?: number
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assignments: {
         Row: {
           id: string

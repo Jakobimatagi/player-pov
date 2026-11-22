@@ -44,7 +44,7 @@ const DiagramSchema = z.object({
   notes: z.array(z.object({ id: z.string(), x: z.number(), y: z.number(), text: z.string() })),
 })
 
-const ScriptSchema = z.object({
+export const ScriptSchema = z.object({
   plays: z.array(z.object({ id: z.string(), name: z.string(), diagram: DiagramSchema })).min(1),
   index: z.number().int().min(0),
 })
@@ -112,6 +112,14 @@ export function storageKey(playbookId: string | null): string {
   return `pov:diagram-script:${playbookId ?? 'sandbox'}`
 }
 
+/** A script read from storage or the database, or null when it is not a valid one. */
+export function parseScript(value: unknown): DiagramScript | null {
+  const parsed = ScriptSchema.safeParse(value)
+  if (!parsed.success) return null
+  const script = parsed.data as DiagramScript
+  return { ...script, index: clamp(script.index, 0, script.plays.length - 1) }
+}
+
 type Store = Pick<Storage, 'getItem' | 'setItem'>
 
 /** The saved script, or a fresh one when nothing is saved or it is unreadable. */
@@ -119,11 +127,8 @@ export function loadScript(key: string, store: Store | null): DiagramScript {
   try {
     const raw = store?.getItem(key)
     if (raw != null) {
-      const parsed = ScriptSchema.safeParse(JSON.parse(raw))
-      if (parsed.success) {
-        const script = parsed.data as DiagramScript
-        return { ...script, index: clamp(script.index, 0, script.plays.length - 1) }
-      }
+      const script = parseScript(JSON.parse(raw))
+      if (script != null) return script
     }
   } catch {
     // Blocked or corrupt storage: start fresh.

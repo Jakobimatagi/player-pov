@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import { startAuth, subscribeAuth, getAuthSnap } from '../auth/session'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
+import { loadRemoteScript, type RemoteScript } from '../data/diagrams'
 import { listFolders } from '../data/plays'
 import { supabase } from '../data/supabase'
 import { DEMO_FOLDERS, honorDemoRoster } from '../playbook/archive'
 import { effectiveFormation } from '../playbook/folders'
-import { useSyncExternalStore } from 'react'
 
 export interface BookInfo {
   name: string
@@ -12,15 +12,29 @@ export interface BookInfo {
   formation: string | null
 }
 
-/** The playbook a diagram is being drawn into: its name and base alignment. */
-export function useBook(
-  playbookId: string | null,
-  roster: string | null,
-): { book: BookInfo | null; settled: boolean } {
+export interface BookState {
+  book: BookInfo | null
+  /** The script saved in the database, when there is one. */
+  remote: RemoteScript | null
+  /** True when scripts live in the database; false in the demo or with no playbook. */
+  synced: boolean
+  /** The playbook and its saved script have been looked up. */
+  settled: boolean
+  /** Why the lookup failed, when it did. */
+  error: string | null
+}
+
+/** The playbook a diagram is drawn into: its name, base alignment and saved script. */
+export function useBook(playbookId: string | null, roster: string | null): BookState {
   const auth = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
   const demo = supabase == null || honorDemoRoster(roster, true, import.meta.env.DEV)
-  const [book, setBook] = useState<BookInfo | null>(null)
-  const [settled, setSettled] = useState(playbookId == null)
+  const synced = !demo && playbookId != null
+  const [state, setState] = useState<Omit<BookState, 'synced'>>({
+    book: null,
+    remote: null,
+    settled: playbookId == null,
+    error: null,
+  })
 
   useEffect(() => {
     startAuth()
@@ -34,16 +48,26 @@ export function useBook(
       try {
         const folders = demo ? DEMO_FOLDERS : (await listFolders(auth.teamId ?? '')).folders
         const folder = folders.find((item) => item.id === playbookId)
+        const remote = demo ? null : await loadRemoteScript(playbookId)
         if (dead) return
-        setBook(
-          folder == null
-            ? null
-            : { name: folder.name, formation: effectiveFormation(folders, folder.id) },
-        )
-      } catch {
-        if (!dead) setBook(null)
-      } finally {
-        if (!dead) setSettled(true)
+        setState({
+          book:
+            folder == null
+              ? null
+              : { name: folder.name, formation: effectiveFormation(folders, folder.id) },
+          remote,
+          settled: true,
+          error: null,
+        })
+      } catch (error) {
+        if (!dead) {
+          setState({
+            book: null,
+            remote: null,
+            settled: true,
+            error: error instanceof Error ? error.message : 'Could not load the playbook',
+          })
+        }
       }
     })()
     return () => {
@@ -51,5 +75,5 @@ export function useBook(
     }
   }, [playbookId, demo, auth.teamId])
 
-  return { book, settled }
+  return { ...state, synced }
 }

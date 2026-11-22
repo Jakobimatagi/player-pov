@@ -992,6 +992,7 @@ export function PlaybookPage() {
             key={here.id}
             folderId={here.id}
             rosterQuery={fixture && supabase != null ? '&roster=demo' : ''}
+            remote={!fixture}
           />
         </Suspense>
       ) : null}
