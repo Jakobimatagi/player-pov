@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSyncExternalStore } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
@@ -48,6 +48,7 @@ import {
 import type { PositionGroup } from '../data/database.types'
 import { listTeamPlayers, type TeamPlayer } from '../data/slots'
 import { AssignPanel } from './AssignPanel'
+import '../diagram/diagram.css'
 import { AddPlaysPanel, GeneratePlaybookPanel, NewFolderForm, type AddMode } from './FolderForms'
 import { findTemplate } from './playbooks'
 import { findStarter, STARTERS } from './starters'
@@ -82,6 +83,11 @@ type Panel =
 function useAuth() {
   return useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
 }
+
+// Konva is heavy, so the thumbnails load only when a playbook is opened.
+const DiagramStrip = lazy(() =>
+  import('./DiagramStrip').then((module) => ({ default: module.DiagramStrip })),
+)
 
 let demoSerial = 0
 
@@ -281,6 +287,11 @@ export function PlaybookPage() {
         failed(error, 'Could not change the base alignment')
         return
       }
+    }
+    // The demo has no database, so the draw page reads the demo folders: keep them in step.
+    if (fixture) {
+      const demo = DEMO_FOLDERS.find((row) => row.id === folder.id)
+      if (demo != null) demo.baseFormation = next
     }
     setFolders((rows) =>
       rows.map((row) => (row.id === folder.id ? { ...row, baseFormation: next } : row)),
@@ -963,7 +974,7 @@ export function PlaybookPage() {
         (hereSide == null || hereSide === 'offense') ? (
           <li className="playbook-row play-add-card">
             <Link
-              to={`/draw?playbook=${here.id}${fixture && supabase != null ? '&roster=demo' : ''}`}
+              to={`/diagram?playbook=${here.id}${fixture && supabase != null ? '&roster=demo' : ''}`}
               aria-label={`Draw a new play in ${here.name}`}
               data-testid="draw-play-card"
             >
@@ -975,6 +986,15 @@ export function PlaybookPage() {
           </li>
         ) : null}
       </ul>
+      {here != null && here.kind === 'playbook' && !viewingArchived && !searching ? (
+        <Suspense fallback={null}>
+          <DiagramStrip
+            key={here.id}
+            folderId={here.id}
+            rosterQuery={fixture && supabase != null ? '&roster=demo' : ''}
+          />
+        </Suspense>
+      ) : null}
     </CoachLayout>
   )
 }

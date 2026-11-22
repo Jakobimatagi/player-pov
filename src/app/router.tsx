@@ -43,6 +43,13 @@ const router = createBrowserRouter([
       { path: '/plays/:playId', element: <PlaySheetPage /> },
       // Draw a new play into a playbook: /draw?playbook=<folder id>.
       editorRoute('/draw'),
+      {
+        path: '/diagram',
+        lazy: async () => {
+          const { DiagramEditorPage } = await import('../diagram/DiagramEditorPage')
+          return { Component: DiagramEditorPage }
+        },
+      },
       ...devRoutes,
     ],
   },
