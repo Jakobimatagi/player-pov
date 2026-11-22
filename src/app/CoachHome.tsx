@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import {
+  Activity,
   ArrowUpRight,
   BookOpen,
   ListOrdered,
@@ -34,6 +35,12 @@ function destinations(): Destination[] {
       label: 'Depth chart',
       blurb: 'Who starts at every position',
       icon: ListOrdered,
+    },
+    {
+      to: '/team/activity',
+      label: 'Activity',
+      blurb: 'Who studied this week: POV reps, time and assignments',
+      icon: Activity,
     },
     {
       to: '/team/roster',

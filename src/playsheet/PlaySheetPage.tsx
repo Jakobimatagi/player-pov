@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router'
+import { useActivityCapture } from '../activity/useActivityCapture'
 import { CoachLayout } from '../app/CoachLayout'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
@@ -70,6 +71,8 @@ function facingOf(id: string, look: LookSource, own: boolean): FacingOption {
 
 type Load =
   { status: 'loading' } | { status: 'error'; text: string } | { status: 'ready'; play: SheetPlay }
+
+const noViewer = () => null
 
 const DEMO_PLAYER_SLOT = 'h'
 const DEMO_DEFENSE_SLOT = 'fs'
@@ -284,6 +287,14 @@ export function PlaySheetPage() {
     null
   const selected = asked != null && ordered.some((p) => p.id === asked) ? asked : fallback
   const picked = ordered.find((player) => player.id === selected) ?? null
+
+  // A player's study time on this play's sheet. Not in demo mode, not for coaches.
+  useActivityCapture({
+    enabled: !fixture && snap.role === 'player' && ready != null,
+    teamId: ready?.teamId ?? null,
+    playId: ready?.id ?? null,
+    readViewer: noViewer,
+  })
 
   if (!fixture && snap.ready && snap.session == null) {
     return <Navigate to={`/login?next=${encodeURIComponent(`/plays/${playId}`)}`} replace />
