@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://player-pov/play.schema.json",
-  "title": "POV Playbook Play v1",
+  "title": "SchemeHQ Play v1",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "meta", "players", "ball"],

@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand'
 import { formatLoadErrors } from './formatErrors'
 import type { PlayLoadError } from '../play/types'
 
@@ -21,7 +22,7 @@ export function LoadError({
   return (
     <div className="fallback" data-testid="load-error">
       <header className="topbar">
-        <span className="wordmark">POV Playbook</span>
+        <span className="wordmark">{BRAND.name}</span>
         <span className="topbar-muted">Film Room</span>
       </header>
       <section className="error-panel">

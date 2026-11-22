@@ -1,4 +1,6 @@
 import { Check, Minus } from 'lucide-react'
+import { Wordmark } from '@/components/brand/Wordmark'
+import { BRAND } from '@/lib/brand'
 
 type Feature = { title: string; body: string; image: string; alt: string; phone?: boolean }
 
@@ -94,7 +96,7 @@ const FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: 'Does it replace our film service?',
-    a: 'No. It sits next to it. Film breaks down what happened; POV Playbook is where players learn what to do.',
+    a: `No. It sits next to it. Film breaks down what happened; ${BRAND.name} is where players learn what to do.`,
   },
 ]
 
@@ -107,13 +109,8 @@ export function LandingPage() {
   return (
     <div className="min-h-dvh overflow-x-clip bg-background text-foreground">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <a href="/" className="flex items-center gap-2.5 font-semibold">
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-sm text-primary-foreground">
-            P
-          </span>
-          <span>
-            POV <span className="text-primary">Playbook</span>
-          </span>
+        <a href="/" aria-label={`${BRAND.name} home`}>
+          <Wordmark />
         </a>
         <a
           href="/login"
@@ -127,10 +124,10 @@ export function LandingPage() {
         <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-8 pb-16 sm:px-6 lg:grid-cols-[5fr_7fr] lg:pt-16">
           <div>
             <p className="text-sm font-medium tracking-wide text-primary uppercase">
-              For football coaches and their players
+              For high school football staffs and their players
             </p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-              Your playbook, seen from the helmet.
+            <h1 className="mt-3 font-display text-5xl leading-[0.95] font-extrabold tracking-tight text-balance uppercase sm:text-7xl">
+              {BRAND.tagline}
             </h1>
             <p className="mt-5 max-w-prose text-lg text-pretty text-muted-foreground">
               Draw a play once. Every player watches it in 3D from their own position, runs it as
@@ -164,7 +161,10 @@ export function LandingPage() {
 
         <section className="border-t border-border bg-card/40" aria-labelledby="features">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-            <h2 id="features" className="text-3xl font-semibold tracking-tight">
+            <h2
+              id="features"
+              className="font-display text-4xl font-extrabold tracking-tight uppercase"
+            >
               What it does
             </h2>
             <div className="mt-10 grid gap-12">
@@ -191,7 +191,7 @@ export function LandingPage() {
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6" aria-labelledby="who">
-          <h2 id="who" className="text-3xl font-semibold tracking-tight">
+          <h2 id="who" className="font-display text-4xl font-extrabold tracking-tight uppercase">
             Who it’s for
           </h2>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -214,7 +214,10 @@ export function LandingPage() {
 
         <section className="border-t border-border bg-card/40" aria-labelledby="plans">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-            <h2 id="plans" className="text-3xl font-semibold tracking-tight">
+            <h2
+              id="plans"
+              className="font-display text-4xl font-extrabold tracking-tight uppercase"
+            >
               Plans
             </h2>
             <p className="mt-2 text-muted-foreground">Priced per year, the way schools budget.</p>
@@ -265,7 +268,7 @@ export function LandingPage() {
         </section>
 
         <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6" aria-labelledby="faq">
-          <h2 id="faq" className="text-3xl font-semibold tracking-tight">
+          <h2 id="faq" className="font-display text-4xl font-extrabold tracking-tight uppercase">
             Questions
           </h2>
           <div className="mt-6 divide-y divide-border border-y border-border">
@@ -289,7 +292,7 @@ export function LandingPage() {
         </section>
 
         <section className="mx-auto max-w-6xl px-4 pb-20 text-center sm:px-6">
-          <h2 className="text-2xl font-semibold tracking-tight text-balance">
+          <h2 className="font-display text-3xl font-extrabold tracking-tight text-balance uppercase">
             Put your next install in their helmets.
           </h2>
           <div className="mt-6 flex justify-center gap-3">
@@ -302,7 +305,9 @@ export function LandingPage() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground sm:px-6">
-          <span>© {new Date().getFullYear()} POV Playbook</span>
+          <span>
+            © {new Date().getFullYear()} {BRAND.name}
+          </span>
           <a href="/login" className="hover:text-foreground">
             Log in
           </a>

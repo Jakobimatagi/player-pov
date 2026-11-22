@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand'
 import { Diagram2D } from './Diagram2D'
 
 /** Shown when WebGL is missing, or after context loss gives up (§8a.1). */
@@ -5,7 +6,7 @@ export function NoWebGL({ showReload }: { showReload: boolean }) {
   return (
     <div className="fallback" data-testid="no-webgl">
       <header className="topbar">
-        <span className="wordmark">POV Playbook</span>
+        <span className="wordmark">{BRAND.name}</span>
         <span className="topbar-muted">Film Room</span>
       </header>
       <div className="fallback-grid">
