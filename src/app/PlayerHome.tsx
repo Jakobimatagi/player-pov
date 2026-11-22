@@ -6,7 +6,7 @@ import './coachHome.css'
 
 type Load = { status: 'loading' } | { status: 'error' } | { status: 'ready'; plays: AssignedPlay[] }
 
-/** Player home: the plays assigned to them, each opening in their own position. */
+/** Player home: the plays assigned to them, each opening on the play sheet at their position. */
 export function PlayerHome({
   name,
   teamId,
@@ -48,13 +48,13 @@ export function PlayerHome({
         {load.status === 'loading' && <p className="loading-line">Loading…</p>}
         {load.status === 'error' && <p>Couldn&apos;t load your plays.</p>}
         {load.status === 'ready' && load.plays.length === 0 && (
-          <p>Nothing assigned yet. Check with your coach.</p>
+          <p>No published plays for you yet. Check with your coach.</p>
         )}
         {load.status === 'ready' && load.plays.length > 0 && (
           <ul className="coach-home-cards" data-testid="player-plays">
             {load.plays.map((play) => (
               <li key={play.id}>
-                <Link className="coach-home-card" to={`/watch/${play.id}`}>
+                <Link className="coach-home-card" to={`/plays/${play.id}`}>
                   <span className="coach-home-card-title">{play.name}</span>
                   <span className="coach-home-card-blurb">
                     {play.slot != null

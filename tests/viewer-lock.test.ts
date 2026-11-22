@@ -170,12 +170,12 @@ describe('player home', () => {
       { id: 'p2', name: 'Blitz Zero', side: 'defense', slot: null },
     ])
     expect(html).toContain('Player Home')
-    expect(html).toContain('href="/watch/p1"')
+    expect(html).toContain('href="/plays/p1"')
     expect(html).toContain('Your position: FS')
     expect(html).toContain('No position assigned yet')
   })
 
   it('says when nothing is assigned', () => {
-    expect(render([])).toContain('Nothing assigned yet. Check with your coach.')
+    expect(render([])).toContain('No published plays for you yet. Check with your coach.')
   })
 })

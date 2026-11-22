@@ -8,6 +8,7 @@ import {
 } from '../auth/pages'
 import { HomePage, SessionLayout, WatchPage } from './HomeGate'
 import { PlaybookPage } from '../playbook/PlaybookPage'
+import { PlaySheetPage } from '../playsheet/PlaySheetPage'
 import { DepthChartPage } from '../team/DepthChartPage'
 import { RosterSheetPage } from '../team/RosterSheetPage'
 import { TeamPage } from '../team/TeamPage'
@@ -41,6 +42,7 @@ const router = createBrowserRouter([
       { path: '/team/roster', element: <RosterSheetPage /> },
       { path: '/team/depth', element: <DepthChartPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
+      { path: '/plays/:playId', element: <PlaySheetPage /> },
       ...devRoutes,
     ],
   },

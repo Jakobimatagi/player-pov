@@ -14,6 +14,7 @@ import {
   safeNext,
   SESSION_EXPIRED,
   SIGNED_OUT,
+  adoptSession,
 } from './session'
 
 function originRedirect(path: string): string {
@@ -39,12 +40,14 @@ export function LoginPage() {
       return
     }
     setPending(true)
-    const { error: signError } = await supabase.auth.signInWithPassword({ email, password })
-    setPending(false)
+    const { data, error: signError } = await supabase.auth.signInWithPassword({ email, password })
     if (signError) {
+      setPending(false)
       setError(mapLoginError(signError))
       return
     }
+    if (data.session != null) await adoptSession(data.session)
+    setPending(false)
     navigate(next, { replace: true })
   }
 

@@ -181,6 +181,8 @@ export type Database = {
           default_look_id: string | null
           current_version: number | null
           archived_at: string | null
+          published_at: string | null
+          published_by: string | null
           created_by: string | null
           created_at: string
           updated_at: string
@@ -384,7 +386,8 @@ export type Database = {
         Row: {
           id: string
           team_id: string
-          playbook_id: string
+          playbook_id: string | null
+          package_id: string | null
           assignee_user: string | null
           assignee_group: PositionGroup | null
           due_at: string | null
@@ -394,7 +397,8 @@ export type Database = {
         Insert: {
           id?: string
           team_id: string
-          playbook_id: string
+          playbook_id?: string | null
+          package_id?: string | null
           assignee_user?: string | null
           assignee_group?: PositionGroup | null
           due_at?: string | null
@@ -404,7 +408,8 @@ export type Database = {
         Update: {
           id?: string
           team_id?: string
-          playbook_id?: string
+          playbook_id?: string | null
+          package_id?: string | null
           assignee_user?: string | null
           assignee_group?: PositionGroup | null
           due_at?: string | null
@@ -434,6 +439,52 @@ export type Database = {
         }
         Relationships: []
       }
+      position_rule_variants: {
+        Row: {
+          play_id: string
+          slot: string
+          scope: string
+          match: string
+          team_id: string
+          side: Side
+          alignment: string | null
+          assignment: string | null
+          adjustment: string | null
+          key_read: string | null
+          recognize: string | null
+          react: string | null
+          notes: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          play_id: string
+          slot: string
+          scope: string
+          match: string
+          team_id: string
+          side: Side
+          alignment?: string | null
+          assignment?: string | null
+          adjustment?: string | null
+          key_read?: string | null
+          recognize?: string | null
+          react?: string | null
+          notes?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alignment?: string | null
+          assignment?: string | null
+          adjustment?: string | null
+          key_read?: string | null
+          recognize?: string | null
+          react?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
       position_rules: {
         Row: {
           play_id: string
@@ -443,6 +494,9 @@ export type Database = {
           alignment: string | null
           assignment: string | null
           key_read: string | null
+          recognize: string | null
+          react: string | null
+          adjustment: string | null
           notes: string | null
           updated_by: string | null
           updated_at: string
@@ -455,6 +509,9 @@ export type Database = {
           alignment?: string | null
           assignment?: string | null
           key_read?: string | null
+          recognize?: string | null
+          react?: string | null
+          adjustment?: string | null
           notes?: string | null
           updated_by?: string | null
           updated_at?: string
@@ -463,6 +520,9 @@ export type Database = {
           alignment?: string | null
           assignment?: string | null
           key_read?: string | null
+          recognize?: string | null
+          react?: string | null
+          adjustment?: string | null
           notes?: string | null
         }
         Relationships: []
@@ -615,6 +675,14 @@ export type Database = {
       health: {
         Args: Record<string, never>
         Returns: number
+      }
+      publish_play: {
+        Args: { p_play: string }
+        Returns: string
+      }
+      unpublish_play: {
+        Args: { p_play: string }
+        Returns: undefined
       }
       save_play_version: {
         Args: {

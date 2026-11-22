@@ -1646,3 +1646,79 @@ body {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+
+/* Playbook list additions */
+.playbook-open {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.playbook-open:hover {
+  text-decoration: underline;
+}
+
+.play-state {
+  margin-left: 0.5rem;
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid #c99a2e;
+  color: #f2c766;
+  white-space: nowrap;
+}
+
+.play-state[data-state='published'] {
+  border-color: #3fae6a;
+  color: #7fe0a4;
+}
+
+/* Assign a playbook folder */
+.assign-list {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+}
+
+.assign-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  min-height: 44px;
+  border-top: 1px solid #2e2e2e;
+}
+
+.assign-who {
+  flex: 1 1 10rem;
+  font-weight: 700;
+}
+
+.assign-due {
+  color: #c9c4b8;
+  font-size: 0.9rem;
+}
+
+.assign-item[data-inherited='true'] .assign-who {
+  font-weight: 400;
+  color: #c9c4b8;
+}
+
+.assign-none {
+  color: #c9c4b8;
+}
+
+.assign-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  min-height: 44px;
+  align-items: center;
+}
+
+.assign-mode label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}

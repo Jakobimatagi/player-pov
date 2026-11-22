@@ -59,7 +59,13 @@ export const PlaySourceSchema = z.object({
   }),
   duration: z.number(),
   players: z.array(
-    z.object({ ...playerFields, align: z.object({ dx: z.number(), dy: z.number() }) }),
+    z.object({
+      ...playerFields,
+      anchor: z
+        .enum(['ball', 'strong#1', 'strong#2', 'weak#1', 'weak#2', 'strong', 'weak'])
+        .optional(),
+      align: z.object({ dx: z.number(), dy: z.number() }),
+    }),
   ),
   defaultLookId: z.string().optional(),
   ball: z.object({

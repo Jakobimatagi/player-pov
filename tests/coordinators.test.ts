@@ -1,9 +1,10 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { canEditSide, staffTitle } from '../src/auth/sides'
 import { cameraState } from '../src/camera/cameraState'
-import { isEmptyRule, ruleColumns, type PositionRule } from '../src/data/rules'
+import { EMPTY_RULE, isEmptyRule, ruleColumns, type PositionRule } from '../src/data/rules'
 import type { CompiledPlay } from '../src/play/types'
 import { NewFolderForm } from '../src/playbook/FolderForms'
 import { effectiveSide, matchesSide, type Folder } from '../src/playbook/folders'
@@ -95,13 +96,19 @@ describe('folder sides', () => {
 
 describe('position rules', () => {
   it('treats an all-blank rule as empty and stores blanks as null', () => {
-    expect(isEmptyRule({ alignment: ' ', assignment: '', keyRead: '', notes: '\n' })).toBe(true)
-    expect(isEmptyRule({ alignment: '', assignment: 'Deep half', keyRead: '', notes: '' })).toBe(
-      false,
-    )
+    expect(isEmptyRule({ ...EMPTY_RULE, alignment: ' ', notes: '\n' })).toBe(true)
+    expect(isEmptyRule({ ...EMPTY_RULE, assignment: 'Deep half' })).toBe(false)
     expect(
-      ruleColumns({ alignment: ' 12 yds ', assignment: '', keyRead: '#2', notes: '' }),
-    ).toEqual({ alignment: '12 yds', assignment: null, key_read: '#2', notes: null })
+      ruleColumns({ ...EMPTY_RULE, alignment: ' 12 yds ', keyRead: '#2', react: ' Carry him ' }),
+    ).toEqual({
+      alignment: '12 yds',
+      assignment: null,
+      adjustment: null,
+      key_read: '#2',
+      recognize: null,
+      react: 'Carry him',
+      notes: null,
+    })
   })
 
   const play = {
@@ -115,7 +122,10 @@ describe('position rules', () => {
       side: 'defense',
       alignment: '12 yards, split the hashes',
       assignment: 'Deep half',
+      adjustment: '',
       keyRead: '#2 vertical',
+      recognize: '',
+      react: '',
       notes: '',
       updatedAt: '2026-11-21T00:00:00Z',
     },
@@ -130,8 +140,39 @@ describe('position rules', () => {
     const html = card(1, true)
     expect(html).toContain('Your job: FS #21')
     expect(html).toContain('Deep half')
-    expect(html).toContain('Key / read')
+    expect(html).toContain('Read')
+    expect(html).toContain('Pre-snap')
     expect(html).not.toContain('Coaching points')
+  })
+
+  it('applies a vs exception for the formation the play was charted against', () => {
+    cameraState.attached = 1
+    const html = renderToStaticMarkup(
+      createElement(RuleCard, {
+        play,
+        rules,
+        locked: true,
+        facing: {
+          id: 'lib:gun-trips-rt',
+          name: 'Gun Trips Right',
+          tags: { personnel: '11', structure: '3x1', backfield: 'gun', strength: 'right' },
+        },
+        variants: [
+          {
+            ...rules[0]!,
+            alignment: 'Over #3 at 10',
+            assignment: '',
+            keyRead: '',
+            scope: 'structure',
+            match: '3x1',
+          },
+        ],
+      }),
+    )
+    expect(html).toContain('Over #3 at 10')
+    expect(html).toMatch(/class="rule-vs">vs (<!-- -->)?3x1</)
+    expect(html).toContain('Deep half')
+    expect(html).not.toContain('12 yards, split the hashes')
   })
 
   it('tells a locked player when there are no rules, and stays hidden otherwise', () => {
@@ -146,18 +187,23 @@ describe('position rules', () => {
       hopOrder: { offense: new Uint8Array([0]), defense: new Uint8Array([1]) },
     } as unknown as CompiledPlay
     const html = renderToStaticMarkup(
-      createElement(RulesPanel, {
-        play: full,
-        playId: 'p',
-        teamId: 't',
-        role: 'coach',
-        mySide: 'defense',
-        rules,
-        onSaved: () => {},
-        open: true,
-        setOpen: () => {},
-      }),
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(RulesPanel, {
+          play: full,
+          playId: 'p',
+          teamId: 't',
+          role: 'coach',
+          mySide: 'defense',
+          rules,
+          onSaved: () => {},
+          open: true,
+          setOpen: () => {},
+        }),
+      ),
     )
+    expect(html).toContain('href="/plays/p"')
     expect(html).toContain('As defensive coordinator you edit defense players.')
     expect(html.indexOf('<h3>Defense</h3>')).toBeGreaterThan(-1)
     expect(html).toContain('Offense · view only')

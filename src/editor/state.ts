@@ -147,7 +147,12 @@ export function chartLayout(
       ref: { side, slot: player.slot },
       position: player.position,
       jersey: player.jersey,
-      points: legPoints(origin, player.legs),
+      points: legPoints(
+        origin,
+        side === 'ours' && origins.oursMirror.get(player.slot) === -1
+          ? player.legs.map((leg) => ({ ...leg, to: { dx: leg.to.dx, dy: -leg.to.dy } }))
+          : player.legs,
+      ),
       labels: player.legs.map((leg) => leg.label),
     })
   }

@@ -175,6 +175,16 @@ async function applySession(session: Session | null, expired: boolean): Promise<
   })
 }
 
+/**
+ * Adopt a session the caller just signed in with, and load its membership, before
+ * navigating. Without this the next page can read the old signed-out snapshot (the
+ * auth listener runs later) and bounce straight back to the login page.
+ */
+export async function adoptSession(session: Session): Promise<void> {
+  localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()))
+  await applySession(session, false)
+}
+
 export async function reloadMembership(): Promise<void> {
   if (supabase == null || snap.session == null) return
   await applySession(snap.session, false)
