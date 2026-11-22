@@ -6,6 +6,7 @@ import { SIDE_LABEL, staffTitle } from '../auth/sides'
 import type { PositionCode, StaffSide, TeamRole } from '../data/database.types'
 import { supabase } from '../data/supabase'
 import { MoreHorizontal, UserPlus } from 'lucide-react'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { initialsOf } from '@/lib/initials'
 import { cn } from '@/lib/utils'
 import { CoachLayout } from '../app/CoachLayout'
 import { TeamTabs } from './TeamShell'
@@ -109,6 +111,23 @@ export function TeamPage() {
   useEffect(() => {
     startAuth()
   }, [])
+
+  const sheetOpen = menuId != null || inviteOpen
+  const closeSheets = () => {
+    setMenuId(null)
+    setInviteOpen(false)
+  }
+  useEffect(() => {
+    if (!sheetOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuId(null)
+        setInviteOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [sheetOpen])
 
   useEffect(() => {
     if (fixture || supabase == null || snap.session == null) return
@@ -468,6 +487,9 @@ export function TeamPage() {
         ) : null}
       </ul>
       {notice ? <p className="mt-4 text-sm text-muted-foreground">{notice}</p> : null}
+      {(menuRow && headCoach) || inviteOpen ? (
+        <div className="sheet-backdrop" aria-hidden="true" onClick={closeSheets} />
+      ) : null}
       {menuRow && headCoach ? (
         <div className="row-menu" role="menu">
           {menuRow.status === 'Pending' ? (
@@ -590,16 +612,12 @@ export function TeamPage() {
 }
 
 function MemberAvatar({ name }: { name: string }) {
-  const initials = name
-    .split(/\s+/)
-    .map((part) => part[0] ?? '')
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
   return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
-      {initials || '•'}
-    </span>
+    <Avatar className="size-9">
+      <AvatarFallback className="bg-secondary text-xs font-semibold text-secondary-foreground">
+        {initialsOf(name)}
+      </AvatarFallback>
+    </Avatar>
   )
 }
 

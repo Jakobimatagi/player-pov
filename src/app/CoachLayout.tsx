@@ -84,6 +84,12 @@ function tabItems(dev: boolean): NavItem[] {
   return items
 }
 
+/** Each page mounts its own layout, so read back the collapsed state the sidebar saves. */
+function sidebarWasOpen(): boolean {
+  if (typeof document === 'undefined') return true
+  return !document.cookie.split('; ').includes('sidebar_state=false')
+}
+
 function isActive(pathname: string, item: NavItem): boolean {
   if (item.end) return pathname === item.to
   return pathname === item.to || pathname.startsWith(`${item.to}/`)
@@ -216,14 +222,13 @@ export function CoachLayout({
   children: ReactNode
   dev?: boolean
 }) {
+  // Wide pages (roster, depth chart, play sheet) still stop at 1400px.
+  const width = wide ? 'max-w-[1400px]' : 'max-w-6xl'
+  // SidebarInset is already the <main> landmark when the nav is on.
+  const Content = nav ? 'div' : 'main'
   const header = (
     <header className="sticky top-0 z-10 border-b bg-background/85 backdrop-blur-md">
-      <div
-        className={cn(
-          'mx-auto flex w-full items-center gap-3 px-4 py-3 md:px-6',
-          !wide && 'max-w-6xl',
-        )}
-      >
+      <div className={cn('mx-auto flex w-full items-center gap-3 px-4 py-3 md:px-6', width)}>
         {nav ? (
           <>
             <SidebarTrigger className="-ml-1 size-9 text-muted-foreground" />
@@ -253,22 +258,16 @@ export function CoachLayout({
           </div>
         </div>
       </div>
-      {subnav ? (
-        <div className={cn('mx-auto w-full px-4 md:px-6', !wide && 'max-w-6xl')}>{subnav}</div>
-      ) : null}
+      {subnav ? <div className={cn('mx-auto w-full px-4 md:px-6', width)}>{subnav}</div> : null}
     </header>
   )
 
   const content = (
-    <main
-      className={cn(
-        'mx-auto w-full flex-1 px-4 pt-5 pb-24 md:px-6 md:pb-10',
-        !wide && 'max-w-6xl',
-        className,
-      )}
+    <Content
+      className={cn('mx-auto w-full flex-1 px-4 pt-5 pb-24 md:px-6 md:pb-10', width, className)}
     >
       {children}
-    </main>
+    </Content>
   )
 
   if (!nav) {
@@ -282,7 +281,7 @@ export function CoachLayout({
 
   return (
     <TooltipProvider delayDuration={200}>
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={sidebarWasOpen()}>
         <CoachSidebar account={account} dev={dev} />
         <SidebarInset className="min-w-0 md:border md:border-sidebar-border">
           {header}

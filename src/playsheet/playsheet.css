@@ -1,35 +1,4 @@
 @layer legacy {
-  /* Play sheet: board + 3 A's and 3 R's per position. */
-
-  .play-sheet .coach-main {
-    max-width: 1280px;
-    margin: 0 auto;
-  }
-
-  .sheet-title {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .sheet-title h1 {
-    margin: 0;
-    font-size: 1.4rem;
-    overflow-wrap: anywhere;
-  }
-
-  .sheet-back {
-    display: inline-flex;
-    align-items: center;
-    min-height: 32px;
-    color: var(--muted-foreground);
-    text-decoration: none;
-    font-size: 0.9rem;
-  }
-
-  .sheet-back:hover {
-    color: var(--foreground);
-  }
-
   .sheet-bar {
     display: flex;
     flex-wrap: wrap;

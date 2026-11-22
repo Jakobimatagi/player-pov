@@ -1,33 +1,7 @@
 @layer legacy {
-  /* Team sub-pages: tabs, roster sheet, depth chart. */
-
-  .coach-main-wide {
+  /* Team sub-pages: tabs,
+  roster sheet {
     max-width: 1400px;
-  }
-
-  .team-tabs {
-    display: flex;
-    gap: 4px;
-    margin: 0 0 16px;
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-  }
-
-  .team-tabs a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 0 14px;
-    color: var(--muted-foreground);
-    text-decoration: none;
-    border-bottom: 3px solid transparent;
-    white-space: nowrap;
-  }
-
-  .team-tabs a[aria-current='page'] {
-    color: var(--foreground);
-    border-bottom-color: var(--primary);
-    font-weight: 700;
   }
 
   .visually-hidden {

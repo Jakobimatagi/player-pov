@@ -9,19 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { initialsOf } from '@/lib/initials'
 import { signOut } from '../auth/session'
-
-function initialsOf(name: string): string {
-  const base = name.includes('@') ? (name.split('@')[0] ?? name) : name
-  return (
-    base
-      .split(/[\s._-]+/)
-      .map((part) => part[0] ?? '')
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || '•'
-  )
-}
 
 export function AccountMenu({
   name,
