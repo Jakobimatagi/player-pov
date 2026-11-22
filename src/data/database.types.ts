@@ -701,6 +701,37 @@ export type Database = {
         Update: Record<string, never>
         Relationships: []
       }
+      /**
+       * Coach notes on a roster player. Staff-only table; players read their shared
+       * notes through my_depth_notes. created_by, dates and shared_at are set by trigger.
+       */
+      depth_notes: {
+        Row: {
+          id: string
+          team_id: string
+          roster_player_id: string
+          slot: string | null
+          body: string
+          shared: boolean
+          shared_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          team_id: string
+          roster_player_id: string
+          slot?: string | null
+          body: string
+          shared?: boolean
+        }
+        Update: {
+          slot?: string | null
+          body?: string
+          shared?: boolean
+        }
+        Relationships: []
+      }
       /** Daily study rollup. Read-only to clients; record_activity is the only writer. */
       activity_daily: {
         Row: {
@@ -854,6 +885,37 @@ export type Database = {
       merge_roster_players: {
         Args: { p_keep: string; p_drop: string }
         Returns: undefined
+      }
+      team_depth_notes: {
+        Args: { p_team: string }
+        Returns: {
+          id: string
+          roster_player_id: string
+          slot: string | null
+          body: string
+          shared: boolean
+          shared_at: string | null
+          created_by: string | null
+          author_name: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      my_depth_spots: {
+        Args: { p_team: string }
+        Returns: { slot: string; rank: number; depth: number }[]
+      }
+      my_depth_notes: {
+        Args: { p_team: string }
+        Returns: {
+          id: string
+          slot: string | null
+          body: string
+          author_name: string
+          created_at: string
+          updated_at: string
+          shared_at: string | null
+        }[]
       }
       position_group_of: {
         Args: { p: PositionCode }

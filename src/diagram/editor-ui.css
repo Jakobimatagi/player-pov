@@ -658,3 +658,14 @@
   width: 100% !important;
   height: 100% !important;
 }
+
+/* Watch in 3D: which side of the drawing is the play. */
+.dge-preview-side select {
+  padding: 7px 8px;
+  border: 1px solid var(--input);
+  border-radius: 4px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 13px;
+  max-width: 100%;
+}

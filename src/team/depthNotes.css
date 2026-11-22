@@ -1,0 +1,285 @@
+@layer legacy {
+  /* ---------- Depth chart notes ---------- */
+
+  .notes-control {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    max-width: 100%;
+    min-height: 44px;
+    margin-top: 4px;
+    padding: 4px 8px;
+    border: 1px solid var(--input);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--foreground);
+    font: inherit;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .notes-control[aria-expanded='true'] {
+    border-color: var(--primary);
+  }
+
+  .notes-control-count {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 4px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .notes-control-shared {
+    font-weight: 400;
+    color: #9fdba8;
+  }
+
+  .notes-control-preview {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted-foreground);
+  }
+
+  .notes-icon {
+    flex: none;
+  }
+
+  .notes-thread {
+    margin: 4px 0 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--background);
+    min-width: 0;
+  }
+
+  .notes-thread-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .notes-thread-head h3 {
+    margin: 0;
+    font-size: 1rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .notes-close {
+    flex: none;
+    padding: 0 12px;
+    font-size: 0.9rem;
+  }
+
+  .notes-hint {
+    margin: 6px 0;
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+  }
+
+  .notes-list {
+    list-style: none;
+    margin: 8px 0;
+    padding: 0;
+  }
+
+  .note {
+    padding: 8px 0 8px 10px;
+    border-top: 1px solid var(--border);
+    border-left: 3px solid var(--input);
+  }
+
+  .note[data-shared='true'] {
+    border-left-color: #3d9a4a;
+  }
+
+  .note-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 8px;
+  }
+
+  .note-meta {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+    min-width: 0;
+  }
+
+  .note-meta strong {
+    color: var(--foreground);
+  }
+
+  .note-slot {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: var(--secondary);
+    color: var(--foreground);
+    font-size: 0.75rem;
+  }
+
+  .note-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--input);
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .note-badge[data-shared='true'] {
+    border-color: #3d9a4a;
+    color: #9fdba8;
+  }
+
+  .note-body {
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .note-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .note-actions .playbook-action {
+    min-height: 36px;
+    font-size: 0.85rem;
+  }
+
+  .note-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .note-field {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .note-textarea {
+    width: 100%;
+    min-height: 4.5rem;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--input);
+    background: var(--card);
+    color: var(--foreground);
+    font: inherit;
+    font-size: 1rem;
+    resize: vertical;
+  }
+
+  .note-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .note-about {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+  }
+
+  .note-about select {
+    min-height: 40px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--input);
+    background: var(--card);
+    color: var(--foreground);
+    font-size: 0.9rem;
+  }
+
+  .note-count {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .note-share {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  .note-share input {
+    width: 22px;
+    height: 22px;
+    accent-color: #3d9a4a;
+  }
+
+  .note-warning {
+    margin: 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #b8862b;
+    background: rgba(184, 134, 43, 0.15);
+    color: #f3d08a;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .note-form-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Roster sheet: shared depth notes next to the private staff notes. */
+  .sheet col.c-depthnotes {
+    width: 200px;
+  }
+
+  .sheet-notes-label {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+  }
+
+  .sheet-notes-label[data-shared='true'] {
+    color: #9fdba8;
+  }
+
+  .sheet .notes-control {
+    width: 100%;
+    margin: 0;
+  }
+
+  .sheet-thread {
+    margin-bottom: 12px;
+  }
+
+  .depth-thread {
+    padding: 0 0 4px;
+  }
+}

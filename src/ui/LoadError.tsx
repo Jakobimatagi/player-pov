@@ -7,12 +7,15 @@ export function LoadError({
   url,
   onRetry,
   onBack,
+  heading,
 }: {
   errors: readonly PlayLoadError[]
   url: string
   onRetry: () => void
   /** Shown as Back to plays when the play came from the playbook. */
   onBack?: () => void
+  /** What went wrong, when it is more specific than a failed load (a bad look, a compile). */
+  heading?: string
 }) {
   const { groups, more } = formatLoadErrors(errors)
   return (
@@ -22,7 +25,7 @@ export function LoadError({
         <span className="topbar-muted">Film Room</span>
       </header>
       <section className="error-panel">
-        <h1>Couldn't load this play</h1>
+        <h1>{heading ?? "Couldn't load this play"}</h1>
         <p>{url}</p>
         <ul>
           {groups.map((group) => (

@@ -71,6 +71,8 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `scout-packages.md`            | Package looks, slots, other team           |
 | `scout-packs.md`               | Opponent packs, delegation, coach rooms    |
 | `scout-reps.md`                | Rep homework: target spot, attempts, RLS   |
+| `depth-notes.md`               | Depth chart notes, sharing, My depth chart |
+| `scout-looks-viewer.md`        | Watch a play vs any scout look in 3D       |
 | `playbook.md`                  | Play list, rename, delete, player view     |
 | `editor.md`                    | Editor core: render, select, undo          |
 | `formation-templates.md`       | Save, reuse, base alignment, side rules    |
