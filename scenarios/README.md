@@ -69,6 +69,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `waypoint-cap.md`              | 12-waypoint cap and route thinning         |
 | `playbook-data.md`             | Play RLS, assigned reads, version conflict |
 | `scout-packages.md`            | Package looks, slots, other team           |
+| `scout-packs.md`               | Opponent packs, delegation, coach rooms    |
 | `playbook.md`                  | Play list, rename, delete, player view     |
 | `editor.md`                    | Editor core: render, select, undo          |
 
