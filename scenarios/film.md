@@ -7,9 +7,10 @@ A coach uploads one video file per game and marks plays on it (issue #59). A mar
 | Tables and RLS | `supabase/migrations/20261207000000_film.sql`, checked by `supabase/tests/film.test.sql`      |
 | Video storage  | A private Cloudflare R2 bucket, key `<team_id>/<film_id>/original`                            |
 | Signed URLs    | Edge Function `supabase/functions/film-storage`                                               |
+| Game film page | `/film` (`src/film/FilmPage.tsx`), in the coach nav under Playbook                            |
 | Browser side   | `src/data/film.ts` (create, resumable upload, playback URL, delete), `src/film/uploadPlan.ts` |
 
-This pass is the data and storage layer. The film player, play marking, the breakdown grid, Chart this play and the player clip view come later and get their scenarios here when they ship.
+The `/film` page adds, uploads, watches and deletes film. Play marking, the breakdown grid, Chart this play and the player clip view come later and get their scenarios here when they ship.
 
 ## Why R2
 
@@ -155,3 +156,36 @@ The app owner does this; it is not automated.
 
 - Step 1: no rows, and both calls fail with `Film not found`.
 - Step 2: the object is gone from the bucket (and any half-finished upload is aborted), then the film row and its clips are gone. A direct `delete from film` as a coach is refused (`permission denied`).
+
+## Scenario 7 — Game film page, no backend
+
+**Preconditions:** `VITE_SUPABASE_URL` unset. Open `/film`.
+
+**Expected:**
+
+- The coach nav shows **Game film** under Playbook, lit on this page.
+- The note reads `Example film. Connect a backend and sign in as a coach to upload your own.`
+- **Team film storage** reads `3.9 GB of 10 GB used` with a bar.
+- **Add film** shows Video file, Title, Opponent, Game date and Scout pack week (`No scout packs yet`). **Upload film** is disabled.
+- **Team film** lists Lincoln at Central and Week 11 vs Eastside as `Ready` with **Watch**, and Scrimmage end zone as `Upload not finished` with **Resume upload** and `Choose the same file (922 MB) to continue from where it stopped.`
+- At 375px wide there is no sideways scroll, and every button is reachable.
+
+## Scenario 8 — Upload from the page
+
+**Preconditions:** Setup done and `film-storage` deployed. Signed in as the head coach on `/film`, locally (`localhost:5173`) or on production.
+
+**Steps:**
+
+1. Choose an MP4 of a few hundred MB. The title fills in from the file name. Pick a scout pack week.
+2. Click **Upload film**. Partway through, click **Pause**, then **Resume**.
+3. Start a second upload, reload the page partway, then click **Resume upload** on its row and choose the same file.
+
+**Expected:**
+
+- The progress bar reads `Uploading · <sent> of <total> · <n>%`, `Paused · …` after Pause, and climbs again from where it stopped after Resume.
+- When done, the notice reads `<title> is ready to watch.`, the row shows `Ready`, and the storage bar grows by the file's size.
+- After the reload, the row shows `Upload not finished`. Resuming with the same file continues from the stored parts; a different file shows `Choose the same file you started with (<size>).`
+- **Watch** plays the video inline, and seeking jumps without a full download.
+- The trash button asks first (`Delete for good`, `This removes the video and every play marked on it. It cannot be undone.`); confirming removes the row and frees the storage.
+- A `.avi`, a file over 20 GB, or one bigger than the free storage is refused before anything uploads.
+- Signed in as a player, `/film` sends you to Home.

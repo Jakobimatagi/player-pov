@@ -265,3 +265,39 @@ export async function deleteFilm(filmId: string): Promise<void> {
   await callStorage({ action: 'delete', filmId })
   saveUpload(filmId, null)
 }
+
+/** A scout pack week folder film can be filed in. */
+export interface PackWeek {
+  id: string
+  name: string
+  opponent: string | null
+}
+
+/** Live scout pack weeks on the team, newest first, with the opponent folder's name. */
+export async function listPackWeeks(teamId: string): Promise<PackWeek[]> {
+  const db = client()
+  const { data, error } = await db
+    .from('playbooks')
+    .select('id, name, parent_id, pack_week')
+    .eq('team_id', teamId)
+    .is('archived_at', null)
+    .not('pack_week', 'is', null)
+    .order('pack_week', { ascending: false })
+  if (error) throw new Error(error.message)
+  const weeks = data ?? []
+  const parentIds = [...new Set(weeks.map((w) => w.parent_id).filter((id): id is string => !!id))]
+  const names = new Map<string, string>()
+  if (parentIds.length > 0) {
+    const { data: parents, error: parentError } = await db
+      .from('playbooks')
+      .select('id, name')
+      .in('id', parentIds)
+    if (parentError) throw new Error(parentError.message)
+    for (const p of parents ?? []) names.set(p.id, p.name)
+  }
+  return weeks.map((w) => ({
+    id: w.id,
+    name: w.name,
+    opponent: w.parent_id ? (names.get(w.parent_id) ?? null) : null,
+  }))
+}
