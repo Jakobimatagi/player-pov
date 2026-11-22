@@ -16,6 +16,9 @@ import {
   type RuleFields,
 } from '../data/rules'
 import { listTeamLooks, type TeamLook } from '../data/looks'
+import { listFormationTemplates } from '../data/formationTemplates'
+import { DEMO_TEMPLATES } from '../diagram/templateStore'
+import { templateLook } from '../diagram/templates'
 import { loadMySlot } from '../data/slots'
 import { supabase } from '../data/supabase'
 import {
@@ -199,8 +202,36 @@ export function PlaySheetPage() {
 
   const ready = load.status === 'ready' ? load.play : null
 
+  // A defense also plans against the offense formations its coaches saved. Staff only:
+  // players can't read templates.
+  const templateTeam = ready?.side === 'defense' && !playerView ? ready.teamId : null
+  const [templateLooks, setTemplateLooks] = useState<{ team: string; looks: LookSource[] }>({
+    team: '',
+    looks: [],
+  })
+  useEffect(() => {
+    if (templateTeam == null) return
+    let dead = false
+    const source = fixture ? DEMO_TEMPLATES.list() : listFormationTemplates(templateTeam)
+    source
+      .then(
+        (rows) => rows.flatMap((row) => (row.archivedAt == null ? (templateLook(row) ?? []) : [])),
+        () => [],
+      )
+      .then((looks) => {
+        if (!dead) setTemplateLooks({ team: templateTeam, looks })
+      })
+    return () => {
+      dead = true
+    }
+  }, [fixture, templateTeam])
+  const savedLooks = useMemo(
+    () => (templateLooks.team === templateTeam ? templateLooks.looks : []),
+    [templateLooks, templateTeam],
+  )
+
   // Formations a defense play can be studied against: the one it was charted against,
-  // the starter library, then the team's own charted formations.
+  // the starter library, the team's own charted formations, then its saved offense ones.
   const facings = useMemo<FacingOption[]>(() => {
     if (ready == null || ready.side !== 'defense' || ready.source == null || ready.look == null) {
       return []
@@ -216,8 +247,11 @@ export function PlaySheetPage() {
         out.push(facingOf(id, { ...look.source, name: look.name }, false))
       }
     }
+    for (const look of savedLooks) {
+      if (!out.some((item) => item.id === look.id)) out.push(facingOf(look.id, look, false))
+    }
     return out
-  }, [ready, teamLooks])
+  }, [ready, teamLooks, savedLooks])
   const facing = facings.find((item) => item.id === vs) ?? facings[0] ?? null
   const file = useMemo(() => {
     if (ready == null) return null

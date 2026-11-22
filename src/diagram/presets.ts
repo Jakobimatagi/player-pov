@@ -261,23 +261,30 @@ const LINEMEN = new Set(['lt', 'lg', 'c', 'rg', 'rt'])
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 
+/** A spot's token colour and label when the spot doesn't set its own. Linemen get no label. */
+export function spotDefaults(
+  side: PresetSide,
+  slot: string,
+): { color: TokenColor; label?: string } {
+  // Defenders are dark tokens, so the two sides read apart at a glance.
+  if (side === 'defense') return { color: 'black', label: slot.toUpperCase() }
+  if (LINEMEN.has(slot)) return { color: 'white' }
+  return { color: OFFENSE_COLOR[slot] ?? 'white', label: slot.toUpperCase() }
+}
+
 /** A preset's players on the field, with ids starting after `from`. */
 export function presetPlayers(preset: Preset, from = 0): DPlayer[] {
   return preset.spots.map((spot, i) => {
     const defense = preset.side === 'defense'
-    const lineman = !defense && LINEMEN.has(spot.slot)
-    const label = spot.label ?? (lineman ? undefined : spot.slot.toUpperCase())
+    const fallback = spotDefaults(preset.side, spot.slot)
+    const label = spot.label ?? fallback.label
     return {
       id: `p${from + i + 1}`,
       shape: 'circle',
-      // Defenders are dark tokens, so the two sides read apart at a glance.
-      color: defense
-        ? 'black'
-        : lineman
-          ? 'white'
-          : (spot.color ?? OFFENSE_COLOR[spot.slot] ?? 'white'),
+      color: spot.color ?? fallback.color,
       fillStyle: 'solid',
       side: preset.side,
+      slot: spot.slot,
       // Offense moves up the page; +dy is its left, which is the page's left.
       x: clamp01(0.5 - spot.dy / FIELD_WIDTH),
       y: clamp01(LOS_Y - spot.dx / VIEW_YARDS),

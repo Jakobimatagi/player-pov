@@ -5,11 +5,36 @@ import { listFolders } from '../data/plays'
 import { supabase } from '../data/supabase'
 import { DEMO_FOLDERS, honorDemoRoster } from '../playbook/archive'
 import { effectiveFormation } from '../playbook/folders'
+import { getFormationTemplate } from '../data/formationTemplates'
+import { DEMO_TEMPLATES } from './templateStore'
+import { templateIdOf, type FormationTemplate } from './templates'
 
 export interface BookInfo {
   name: string
   /** Base alignment key, inherited from the nearest folder above that has one. */
   formation: string | null
+  /** The team template that `formation` names, when it is one (`tpl:<id>`). */
+  templates: FormationTemplate[]
+}
+
+/**
+ * The template a base alignment points at, archived or not, so a book keeps its alignment
+ * after the template leaves the pickers. Empty for a built-in key, or when it can't be read
+ * (the play then starts from the blank line).
+ */
+async function bookTemplates(
+  formation: string | null,
+  demo: boolean,
+): Promise<FormationTemplate[]> {
+  const id = templateIdOf(formation)
+  if (id == null) return []
+  try {
+    if (demo) return (await DEMO_TEMPLATES.list()).filter((t) => t.id === id)
+    const template = await getFormationTemplate(id)
+    return template == null ? [] : [template]
+  } catch {
+    return []
+  }
 }
 
 export interface BookState {
@@ -51,13 +76,12 @@ export function useBook(playbookId: string | null, roster: string | null): BookS
         const folders = demo ? DEMO_FOLDERS : (await listFolders(auth.teamId ?? '')).folders
         const folder = folders.find((item) => item.id === playbookId)
         const remote = demo ? null : await loadRemoteScript(playbookId)
+        const formation = folder == null ? null : effectiveFormation(folders, folder.id)
+        const templates = await bookTemplates(formation, demo)
         if (dead) return
         setFound({
           forId: playbookId,
-          book:
-            folder == null
-              ? null
-              : { name: folder.name, formation: effectiveFormation(folders, folder.id) },
+          book: folder == null ? null : { name: folder.name, formation, templates },
           remote,
           settled: true,
           error: null,
