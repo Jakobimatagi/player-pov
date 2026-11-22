@@ -11,7 +11,7 @@ A head coach pays for a team through Stripe Checkout. Stripe tells the app what 
 | Subscription → state      | `supabase/functions/stripe-webhook/subscription.ts`, checked by `tests/stripe-subscription.test.ts`            |
 | Products, prices, account | `marketing/pricing.md` section 4                                                                               |
 
-The billing page (`/team/billing`) is step 3 and does not exist yet. Checkout and the portal already send the coach back there.
+The **Billing** tab (`/team/billing`, `src/team/BillingPage.tsx`) shows the plan, usage against its limits, and Upgrade or Manage billing for the head coach. It reads `public.team_billing(team)` (`supabase/migrations/20261210000000_team_billing.sql`, checked by `supabase/tests/team_billing.test.sql`): staff get the plan and usage, only the head coach gets payment status and renewal, players get nothing.
 
 ## How it fits together
 
@@ -116,9 +116,32 @@ The Stripe keys live in Supabase only, never in Vercel or the browser build.
 - A resent event returns `{"result":"duplicate"}`.
 - Event types outside `customer.subscription.*` return `{"result":"ignored"}`.
 
+## Scenario 5 — Billing tab
+
+**Preconditions:** Signed in as `coach@demo.local` with the local stack and functions served.
+
+**Steps:**
+
+1. Open **Team → Billing** on a Starter team.
+2. Click **Upgrade to Team**, then use Stripe's back arrow.
+3. After scenario 2, open **Team → Billing** again and click **Manage billing**.
+4. Sign in as `player@demo.local` and open `/team/billing`.
+
+**Expected:**
+
+- Starter shows `Coaches 1 of 1`, `Players n of 25`, `Plays n of 15`, `Game film Not included`, and two upgrade cards ($499 and $899 a year).
+- Upgrade opens Stripe Checkout for that plan. Coming back with the back arrow shows `Checkout canceled. Nothing was charged.`
+- Returning from a payment shows `Payment received. Updating your plan…` until the webhook lands, then `You’re all set. Your new plan is active.` If the webhook takes more than 30 seconds: `Your plan can take a minute to update. Refresh this page soon.`
+- A paid team shows the plan, `Renews <date>`, unlimited counts, film used of 10 GB, and **Manage billing**, which opens the Stripe portal. No upgrade cards.
+- A failed payment shows `Payment failed. Update your card by <date> to keep your plan.` with the date 14 days after the first failure.
+- An assistant coach sees the plan and usage, no buttons, and `Ask your head coach to upgrade.`
+- The player is sent to `/team` and sees no billing anywhere.
+- At 390 px there is no sideways scroll.
+
 ## Not in this step
 
-- The billing page and upgrade prompts (step 3), and Starter limits (step 4).
+- Upgrade prompts where a Starter limit is hit, and the limits themselves (step 4). Until then the Billing tab is the only place a coach sees the plan.
+- An invoice or purchase-order path for schools. Handle by hand in Stripe Invoicing for now.
 - Linking more teams to a Program account. Checkout links only the team it started from.
 - When the 14-day grace runs out with no new event, `plan_of` turns to Starter but `film_quota_bytes` stays until the next event. Step 4 enforces limits from `plan_of`.
 - Stripe Tax, the founding coupon and trials (`marketing/pricing.md` section 4). Checkout already allows promotion codes.

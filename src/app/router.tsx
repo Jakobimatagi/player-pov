@@ -13,6 +13,7 @@ import { PlaySheetPage } from '../playsheet/PlaySheetPage'
 import { HomeworkPage } from '../reps/HomeworkPage'
 import { RepsPage } from '../reps/RepsPage'
 import { ActivityPage } from '../team/ActivityPage'
+import { BillingPage } from '../team/BillingPage'
 import { DepthChartPage } from '../team/DepthChartPage'
 import { RosterSheetPage } from '../team/RosterSheetPage'
 import { TeamPage } from '../team/TeamPage'
@@ -39,6 +40,7 @@ const router = createBrowserRouter([
       { path: '/team/roster', element: <RosterSheetPage /> },
       { path: '/team/depth', element: <DepthChartPage /> },
       { path: '/team/activity', element: <ActivityPage /> },
+      { path: '/team/billing', element: <BillingPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
       { path: '/film', element: <FilmPage /> },
       { path: '/plays/:playId', element: <PlaySheetPage /> },

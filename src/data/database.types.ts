@@ -996,6 +996,26 @@ export type Database = {
         Args: { p_keep: string; p_drop: string }
         Returns: undefined
       }
+      team_billing: {
+        Args: { p_team: string }
+        Returns: {
+          plan: 'starter' | 'team' | 'program'
+          max_coaches: number | null
+          max_players: number | null
+          max_plays: number | null
+          features: string[]
+          coaches: number
+          players: number
+          plays: number
+          film_used: number
+          film_quota: number
+          is_head_coach: boolean
+          status: string | null
+          renews_at: string | null
+          past_due_since: string | null
+          has_customer: boolean | null
+        }[]
+      }
       team_depth_notes: {
         Args: { p_team: string }
         Returns: {
