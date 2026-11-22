@@ -436,6 +436,52 @@ export type Database = {
         }
         Relationships: []
       }
+      position_rule_variants: {
+        Row: {
+          play_id: string
+          slot: string
+          scope: string
+          match: string
+          team_id: string
+          side: Side
+          alignment: string | null
+          assignment: string | null
+          adjustment: string | null
+          key_read: string | null
+          recognize: string | null
+          react: string | null
+          notes: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          play_id: string
+          slot: string
+          scope: string
+          match: string
+          team_id: string
+          side: Side
+          alignment?: string | null
+          assignment?: string | null
+          adjustment?: string | null
+          key_read?: string | null
+          recognize?: string | null
+          react?: string | null
+          notes?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alignment?: string | null
+          assignment?: string | null
+          adjustment?: string | null
+          key_read?: string | null
+          recognize?: string | null
+          react?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
       position_rules: {
         Row: {
           play_id: string

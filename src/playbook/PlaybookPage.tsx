@@ -32,7 +32,7 @@ import {
   visiblePlays,
 } from './archive'
 import { AddPlaysPanel, GeneratePlaybookPanel, NewFolderForm, type AddMode } from './FolderForms'
-import { buildPlaybook, findTemplate, PLAYBOOK_TEMPLATES } from './playbooks'
+import { findStarter, STARTERS } from './starters'
 import {
   breadcrumb,
   canAddSubfolder,
@@ -177,6 +177,10 @@ export function PlaybookPage() {
     fixture || canEditSide(role, mySide, side, snap.specialCoordinator)
   const hereSide = effectiveSide(live, current)
   const editHere = staff && canEdit(hereSide)
+  /** Starter books this coach may generate here: the folder's side, or any side they edit. */
+  const starters = STARTERS.filter(
+    (starter) => (hereSide == null || hereSide === starter.side) && canEdit(starter.side),
+  )
   const newFolderSides: (StaffSide | null)[] =
     current != null
       ? []
@@ -391,9 +395,9 @@ export function PlaybookPage() {
 
   /** Files a starter playbook as a new folder here, one saved play per concept. */
   async function generate(templateId: string): Promise<void> {
-    const template = findTemplate(templateId)
+    const template = findStarter(templateId)
     if (template == null) throw new Error('Unknown playbook')
-    const plays = buildPlaybook(template.id)
+    const plays = template.build()
     let folder: Folder
     if (fixture) {
       folder = {
@@ -402,7 +406,7 @@ export function PlaybookPage() {
         parentId: current,
         kind: 'playbook',
         archived: false,
-        side: hereSide ?? 'offense',
+        side: hereSide ?? template.side,
       }
     } else {
       if (snap.teamId == null) throw new Error('No team')
@@ -411,7 +415,7 @@ export function PlaybookPage() {
         name: template.name,
         parentId: current,
         kind: 'playbook',
-        side: hereSide ?? 'offense',
+        side: hereSide ?? template.side,
       })
     }
     setFolders((rows) => [...rows, folder])
@@ -563,7 +567,7 @@ export function PlaybookPage() {
                 New folder
               </button>
             ) : null}
-            {canAddSubfolder(live, current) && hereSide !== 'defense' && canEdit('offense') ? (
+            {canAddSubfolder(live, current) && starters.length > 0 ? (
               <button
                 type="button"
                 className="playbook-action"
@@ -603,7 +607,7 @@ export function PlaybookPage() {
         {panel?.kind === 'generate' ? (
           <GeneratePlaybookPanel
             parentName={here?.name ?? null}
-            templates={PLAYBOOK_TEMPLATES}
+            templates={starters}
             onGenerate={generate}
             onCancel={() => setPanel(null)}
           />

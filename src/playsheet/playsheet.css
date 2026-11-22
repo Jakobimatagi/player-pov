@@ -528,3 +528,152 @@
   font-size: 0.85rem;
   color: #c9c4b8;
 }
+
+/* Facing: the formation the board and the answers are shown against */
+.facing {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #3a3a3a;
+  border-left: 4px solid #7fc4ff;
+  border-radius: 0.6rem;
+  background: #1a1f24;
+}
+
+.facing-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.6rem;
+}
+
+.facing-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7fc4ff;
+}
+
+.facing-name {
+  font-size: 1.05rem;
+}
+
+.facing-tags {
+  color: #c9c4b8;
+  font-size: 0.85rem;
+}
+
+.facing-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  color: #c9c4b8;
+  font-size: 0.85rem;
+}
+
+.facing-step .btn {
+  min-width: 44px;
+  padding: 0.3rem 0.6rem;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.facing-pick select {
+  margin-top: 0.5rem;
+  width: 100%;
+  min-height: 44px;
+  background: #2a2a2a;
+  color: #f4f1ea;
+  border: 1px solid #4a4a4a;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+}
+
+.facing-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: #a9a397;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Exception layers on the position card */
+.layer-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0.25rem;
+}
+
+.layer-tab {
+  min-height: 36px;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #4a4a4a;
+  background: #242424;
+  color: #e6e1d6;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.layer-tab[aria-selected='true'] {
+  border-color: #7fc4ff;
+  background: #1d2a36;
+  color: #fff;
+}
+
+.layer-tab[data-has='true']::after {
+  content: ' •';
+  color: #7fc4ff;
+}
+
+.layer-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #b8daf7;
+}
+
+.rule-vs {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #1d3a55;
+  color: #b8daf7;
+}
+
+.rule-view .rule-line[data-variant='true'] dd {
+  border-left: 3px solid #7fc4ff;
+  padding-left: 0.5rem;
+}
+
+.rule-inherits {
+  font-size: 0.8rem;
+  color: #8f897d;
+  overflow-wrap: anywhere;
+}
+
+.rule-inherits[data-overridden='true'] {
+  text-decoration: line-through;
+}
+
+.rule-field[data-variant='true'] textarea {
+  border-color: #7fc4ff;
+}
+
+.sheet-pos-vs {
+  color: #7fc4ff;
+}

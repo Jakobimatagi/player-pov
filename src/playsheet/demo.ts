@@ -1,5 +1,8 @@
 import type { PositionRule, RuleFields } from '../data/rules'
+import type { RuleVariant } from '../data/variants'
 import { compileChart } from '../editor/compileAdapter'
+import { buildDefenseBook } from '../playbook/defenseTemplates'
+import type { NewPlay } from '../playbook/newPlays'
 import { buildPlaybook } from '../playbook/playbooks'
 import type { PlayFile } from '../play/types'
 
@@ -70,4 +73,168 @@ export function demoRules(): PositionRule[] {
     notes: fields.notes ?? '',
     updatedAt: '2026-11-21T00:00:00.000Z',
   }))
+}
+
+const D = (
+  alignment: string,
+  assignment: string,
+  adjustment: string,
+  keyRead: string,
+  recognize: string,
+  react: string,
+): Partial<RuleFields> => ({ alignment, assignment, adjustment, keyRead, recognize, react })
+
+/** Cover 3 Sky answers. The backside tackle and end are left unfinished on purpose. */
+const coverThree: Record<string, Partial<RuleFields>> = {
+  de_s: D(
+    'Strong side, 5 technique: outside shade of the tackle.',
+    'Contain rush. Nothing gets outside you.',
+    'vs a tight end, widen to a 9 technique.',
+    'Tackle’s helmet.',
+    'Helmet inside = run away / down block. Helmet outside = reach.',
+    'Down block: squeeze and spill. Reach: rip across and keep contain.',
+  ),
+  dt_s: D(
+    '1 technique: shade the center to the strength.',
+    'A-gap. Two-gap the center on run, push the pocket on pass.',
+    'vs under center, tighten to a head-up 0.',
+    'Center’s hands and helmet.',
+    'Hands to you = run. Center sets back = pass.',
+    'Run: hold the A gap and shed. Pass: bull rush and get hands up at the throw.',
+  ),
+  dt_w: { alignment: '3 technique: outside shade of the weak guard.' },
+  de_w: { alignment: 'Weak 5 technique.', assignment: 'Contain rush.' },
+  sam: D(
+    'Apex between #2 and the end man on the line, 4 yards deep.',
+    'Curl/flat to the strength.',
+    'vs a tight end on your side, walk up to a 9 technique and set the edge.',
+    '#2 receiver.',
+    '#2 out = flat threat. #2 vertical = carry to 10, then the curl.',
+    'Out: sink under #1’s curl, then break on the flat. Vertical: wall him off the seam.',
+  ),
+  mike: D(
+    '5 yards, over the strong guard.',
+    'Middle hook. Fit the strong A gap on run.',
+    'vs 2-back sets, stay square; you have the fullback’s side.',
+    'Near back to the QB.',
+    'Back steps to you = run. QB drops = pass.',
+    'Run: downhill to your gap. Pass: open to the strength and sink to 10.',
+  ),
+  will: D(
+    'Weak B gap, 4.5 yards.',
+    'Weak hook/curl.',
+    'vs 3x1, cheat inside to the weak A gap: the back is your #2.',
+    'Weak guard, then the back.',
+    'Guard pulls = run strong. Back releases weak = check-down.',
+    'Run: flow and scrape. Back release: wall him and rally.',
+  ),
+  cb_s: D(
+    '7 yards off #1, inside shade.',
+    'Deep third to the strength.',
+    'vs a stacked or bunch #1, back off to 8 and play the deepest man.',
+    '#1 receiver’s release, then the QB’s three-step.',
+    'Quick game = break on it. #1 vertical = stay on top.',
+    'Keep your cushion until he commits, then match vertical and play the ball high.',
+  ),
+  cb_w: D(
+    '7 yards off #1, inside shade.',
+    'Deep third, weak side.',
+    'vs a single receiver weak, read #1 alone and squeeze inside routes.',
+    '#1 receiver.',
+    'Inside release = squeeze the post. Outside = sideline third.',
+    'Stay on top and outside. No catches over your head.',
+  ),
+  ss: D(
+    'Outside #2 at 7 yards (sky).',
+    'Curl/flat to the strength; force on run.',
+    'vs a tight end, align 2 outside him at 5 and set the edge.',
+    '#2 to #1.',
+    '#2 out = jump the flat. #2 vertical = carry and look for #1’s curl.',
+    'Run to you: force and turn it in. Pass: sink under the curl, then drive on the flat.',
+  ),
+  fs: D(
+    '12 yards, middle of the field.',
+    'Deep middle third. Nothing gets behind you.',
+    'Read the formation: favor the side with more receivers by 2 yards.',
+    'QB’s eyes, then the closest vertical threat.',
+    'QB looks off = stay in the middle. Two verticals inside = split them.',
+    'Break on the throw at the top of the drop. Tackle through the hands on anything deep.',
+  ),
+}
+
+/** Exceptions written for the demo: what changes against 3x1, 12 personnel and the bunch. */
+const coverThreeVs: {
+  slot: string
+  scope: 'look' | 'structure' | 'personnel'
+  match: string
+  fields: Partial<RuleFields>
+}[] = [
+  {
+    slot: 'fs',
+    scope: 'structure',
+    match: '3x1',
+    fields: {
+      alignment: '10 yards, over #3 to the trips side.',
+      keyRead: '#3 receiver.',
+      react: '#3 vertical: carry him, you are the only help on the seam.',
+    },
+  },
+  {
+    slot: 'ss',
+    scope: 'personnel',
+    match: '12',
+    fields: { alignment: 'Down to 5 yards, 2 outside the second tight end.' },
+  },
+  {
+    slot: 'cb_s',
+    scope: 'look',
+    match: 'lib:gun-bunch-rt',
+    fields: {
+      alignment: '8 yards off the point man, outside leverage.',
+      assignment: 'Deep third: take the first receiver to go vertical out of the bunch.',
+    },
+  },
+]
+
+function ruleRow(slot: string, fields: Partial<RuleFields>, side: 'offense' | 'defense') {
+  return {
+    slot,
+    side,
+    alignment: fields.alignment ?? '',
+    assignment: fields.assignment ?? '',
+    adjustment: fields.adjustment ?? '',
+    keyRead: fields.keyRead ?? '',
+    recognize: fields.recognize ?? '',
+    react: fields.react ?? '',
+    notes: fields.notes ?? '',
+  }
+}
+
+export const DEMO_DEFENSE_ID = 'cover-3'
+
+/** The no-backend defense demo: Cover 3 Sky, with exceptions vs 3x1, 12 personnel and the bunch. */
+export function demoDefense(): {
+  name: string
+  play: NewPlay
+  file: PlayFile
+  rules: PositionRule[]
+  variants: RuleVariant[]
+} {
+  const play = buildDefenseBook('base-43')[0]
+  const chart = play == null ? null : compileChart(play.source, play.look)
+  if (play == null || chart?.play == null) throw new Error('demo defense did not compile')
+  return {
+    name: play.source.name,
+    play,
+    file: chart.play,
+    rules: Object.entries(coverThree).map(([slot, fields]) => ({
+      ...ruleRow(slot, fields, 'defense'),
+      updatedAt: '2026-11-22T00:00:00.000Z',
+    })),
+    variants: coverThreeVs.map((item) => ({
+      ...ruleRow(item.slot, item.fields, 'defense'),
+      scope: item.scope,
+      match: item.match,
+    })),
+  }
 }

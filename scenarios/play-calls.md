@@ -15,7 +15,7 @@ Coaching points stay optional. Scout-look players (the other side on the board) 
 
 A play is a **Draft** until it is published. Players never see a draft: `app.can_view_play` requires `plays.published_at`. `publish_play` refuses (`23514`) while `app.play_rule_gaps` lists any position. On a published play, clearing or deleting an answer is refused, so the coach unpublishes first. Saving a version that adds a position with no answers puts the play back to Draft. Only the head coach or the coordinator of the play's side can publish or unpublish. The database checks are in `supabase/tests/play_calls.test.sql`.
 
-The play sheet is `/plays/:playId`. It shows a board with every player at their alignment and the path they run, offense moving up. Below it are our positions, then the scout look, which is folded away. The card shows the picked position's answers. `?pos=<slot>` opens a position.
+The play sheet is `/plays/:playId`. It shows a board with every player at their alignment and the path they run, offense moving up. Below it are our positions, then the scout look, which is folded away. The card shows the picked position's answers. `?pos=<slot>` opens a position, and `?vs=<formation id>` faces a formation (defense plays; see `scenarios/formations.md`).
 
 ## Scenario 1 — Coach sees what's missing
 

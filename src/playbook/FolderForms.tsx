@@ -3,7 +3,7 @@ import { SIDE_LABEL } from '../auth/sides'
 import type { StaffSide } from '../data/database.types'
 import type { PlayRow } from '../data/plays'
 import { folderNameError, KIND_LABEL, type FolderKind } from './folders'
-import type { PlaybookTemplate } from './playbooks'
+import type { Starter } from './starters'
 
 function message(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.length > 0 ? error.message : fallback
@@ -107,7 +107,7 @@ export function NewFolderForm(props: {
 
 export function GeneratePlaybookPanel(props: {
   parentName: string | null
-  templates: readonly PlaybookTemplate[]
+  templates: readonly Starter[]
   onGenerate: (templateId: string) => Promise<void>
   onCancel: () => void
 }) {
@@ -133,7 +133,8 @@ export function GeneratePlaybookPanel(props: {
           : `Generate playbook in ${props.parentName}`}
       </h2>
       <p className="folder-hint">
-        Each one makes a folder of charted pass plays you can watch and edit.
+        Each one makes a folder of charted plays you can watch and edit. Defensive calls re-align to
+        whatever formation they face.
       </p>
       <ul className="template-list">
         {props.templates.map((template) => (
@@ -148,7 +149,7 @@ export function GeneratePlaybookPanel(props: {
               <span>
                 {busy === template.id
                   ? 'Creating…'
-                  : `${template.plays.length} plays · ${template.summary}`}
+                  : `${template.side === 'defense' ? 'Defense' : 'Offense'} · ${template.playCount} plays · ${template.summary}`}
               </span>
             </button>
           </li>

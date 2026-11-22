@@ -24,11 +24,14 @@ export function RuleView({
   rule,
   required,
   compact = false,
+  tags,
 }: {
   rule: RuleFields | null | undefined
   /** Our side: blanks show as missing. Scout look: blanks are skipped. */
   required: boolean
   compact?: boolean
+  /** Answers that come from a "vs" exception, with the exception's short name. */
+  tags?: Partial<Record<keyof RuleFields, string>>
 }) {
   const fields = pick(rule)
   return (
@@ -44,14 +47,17 @@ export function RuleView({
             <dl>
               {list.map((field) => {
                 const value = fields[field.key].trim()
+                const tag = tags?.[field.key]
                 return (
                   <div
                     key={field.key}
                     className="rule-line"
                     data-missing={value === '' ? 'true' : undefined}
+                    data-variant={tag != null ? 'true' : undefined}
                   >
                     <dt>
                       {field.label}
+                      {tag != null ? <span className="rule-vs">vs {tag}</span> : null}
                       {compact ? null : <span className="rule-question">{field.question}</span>}
                     </dt>
                     <dd>{value === '' ? 'Not answered yet' : value}</dd>
@@ -181,6 +187,121 @@ export function RuleEditor({
           </span>
         ) : null}
       </div>
+    </form>
+  )
+}
+
+/**
+ * One "vs" exception layer: only the answers that change against this formation,
+ * structure or personnel group. Each blank shows what it inherits.
+ */
+export function VariantEditor({
+  initial,
+  inherited,
+  editable,
+  label,
+  side,
+  onSave,
+}: {
+  initial: RuleFields | null | undefined
+  /** What each answer is without this exception. */
+  inherited: RuleFields
+  editable: boolean
+  label: string
+  side: Side
+  onSave: (fields: RuleFields) => Promise<void>
+}) {
+  const [fields, setFields] = useState<RuleFields>(() => pick(initial))
+  const [status, setStatus] = useState<{
+    kind: 'idle' | 'busy' | 'saved' | 'error'
+    text?: string
+  }>({ kind: 'idle' })
+  const formId = useId()
+  const changed = RULE_FIELDS.filter((field) => fields[field.key].trim() !== '').length
+
+  useEffect(() => {
+    if (status.kind !== 'saved') return
+    const id = window.setTimeout(() => setStatus({ kind: 'idle' }), 2000)
+    return () => window.clearTimeout(id)
+  }, [status.kind])
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setStatus({ kind: 'busy' })
+    try {
+      await onSave(fields)
+      setStatus({ kind: 'saved' })
+    } catch (err) {
+      setStatus({ kind: 'error', text: err instanceof Error ? err.message : 'Could not save' })
+    }
+  }
+
+  return (
+    <form className="rule-form variant-form" onSubmit={(event) => void submit(event)}>
+      <p className="assign-hint">
+        Fill in only what changes {label}. Blank answers keep the rule shown underneath them.
+      </p>
+      {PHASES.map((phase) => (
+        <fieldset key={phase} className="rule-phase" data-phase={phase}>
+          <legend>{PHASE_LABEL[phase]}</legend>
+          {RULE_FIELDS.filter((field) => field.phase === phase).map((field) => {
+            const id = `${formId}-${field.key}`
+            const below = inherited[field.key].trim()
+            const own = fields[field.key].trim() !== ''
+            return (
+              <label
+                key={field.key}
+                className="rule-field"
+                htmlFor={id}
+                data-variant={own ? 'true' : undefined}
+              >
+                <span className="rule-field-label">
+                  {field.label}
+                  <span className="rule-question">{field.question}</span>
+                </span>
+                <textarea
+                  id={id}
+                  rows={2}
+                  maxLength={field.max}
+                  readOnly={!editable}
+                  placeholder={editable ? 'Same as below' : ''}
+                  value={fields[field.key]}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value
+                    setFields((current) => ({ ...current, [field.key]: value }))
+                  }}
+                />
+                <span className="rule-inherits" data-overridden={own ? 'true' : undefined}>
+                  {below === '' ? 'Nothing underneath yet' : `Otherwise: ${below}`}
+                </span>
+              </label>
+            )
+          })}
+        </fieldset>
+      ))}
+      {editable ? (
+        <div className="rule-actions">
+          <button type="submit" className="btn primary" disabled={status.kind === 'busy'}>
+            Save exception
+          </button>
+          {status.kind === 'saved' ? <span role="status">Saved</span> : null}
+          {status.kind === 'error' ? (
+            <span className="assign-note" role="alert">
+              {status.text}
+            </span>
+          ) : (
+            <span className="rule-left">
+              {changed === 0
+                ? 'No changes yet: saving removes this exception'
+                : `${changed} answer${changed === 1 ? '' : 's'} change ${label}`}
+            </span>
+          )}
+        </div>
+      ) : (
+        <p className="assign-hint">
+          Only the head coach or the {side} coordinator can change these.
+        </p>
+      )}
     </form>
   )
 }
