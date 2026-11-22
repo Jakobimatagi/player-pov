@@ -1,5 +1,5 @@
 import type { ActivityDay, ActivityTotals, AssignmentProgress } from '../data/activity'
-import type { RosterEntry, Week } from '../activity/stats'
+import { weekOf, type RosterEntry, type Week } from '../activity/stats'
 import { DEMO_ROSTER } from './demoRoster'
 
 /**
@@ -116,10 +116,15 @@ export function demoProgress(now: Date): AssignmentProgress[] {
     const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + n, 23, 59, 59)
     return due.toISOString()
   }
-  return DEMO_ACTIVITY_PLAYERS.map((player, index) => {
+  // Progress follows this week's demo activity, so the lists agree with the table.
+  const week = weekOf(now, 0)
+  return DEMO_ACTIVITY_PLAYERS.map((player) => {
     const offense = isOffense(player.position)
-    const r = seeded(index, 300)
-    const opened = r < 0.2 ? 0 : r < 0.6 ? 1 : 2
+    const days = demoDays(player.userId, week, 0)
+    const opened = new Set(days.map((row) => row.playId)).size
+    const repped = new Set(
+      days.filter((row) => row.kind === 'pov' && row.runsCompleted > 0).map((row) => row.playId),
+    ).size
     return {
       assignmentId: offense ? 'demo-asg-offense' : 'demo-asg-defense',
       playbookId: offense ? 'demo-book-offense' : 'demo-book-defense',
@@ -128,7 +133,7 @@ export function demoProgress(now: Date): AssignmentProgress[] {
       userId: player.userId,
       playsTotal: 2,
       playsOpened: opened,
-      playsRepped: r > 0.8 ? 2 : Math.min(opened, 1),
+      playsRepped: repped,
     }
   })
 }
