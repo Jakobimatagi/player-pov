@@ -1,5 +1,7 @@
 # Pricing tracker
 
+![What it costs to run the app for a season](app-season-cost.png)
+
 What Player POV costs to run, and what we charge for it. Use this when pitching coaches, setting plan prices, or checking margins.
 
 Update the **Last checked** date whenever a vendor price is re-verified, and add a line to the change log at the bottom.
