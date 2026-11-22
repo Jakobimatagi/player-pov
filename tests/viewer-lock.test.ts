@@ -176,6 +176,6 @@ describe('player home', () => {
   })
 
   it('says when nothing is assigned', () => {
-    expect(render([])).toContain('Nothing assigned yet. Check with your coach.')
+    expect(render([])).toContain('No published plays for you yet. Check with your coach.')
   })
 })

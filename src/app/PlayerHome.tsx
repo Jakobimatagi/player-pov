@@ -48,7 +48,7 @@ export function PlayerHome({
         {load.status === 'loading' && <p className="loading-line">Loading…</p>}
         {load.status === 'error' && <p>Couldn&apos;t load your plays.</p>}
         {load.status === 'ready' && load.plays.length === 0 && (
-          <p>Nothing assigned yet. Check with your coach.</p>
+          <p>No published plays for you yet. Check with your coach.</p>
         )}
         {load.status === 'ready' && load.plays.length > 0 && (
           <ul className="coach-home-cards" data-testid="player-plays">

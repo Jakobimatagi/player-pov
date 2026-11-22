@@ -26,17 +26,30 @@ import {
   DEMO_ARCHIVED,
   DEMO_FOLDERS,
   DEMO_LINKS,
+  DEMO_ASSIGNMENTS,
   DEMO_PLAYS,
+  DEMO_TEAM_PLAYERS,
   honorDemoRoster,
   listStatus,
   visiblePlays,
 } from './archive'
+import {
+  assignedSummary,
+  createAssignment,
+  deleteAssignment,
+  listAssignments,
+  type Assignment,
+} from '../data/assignments'
+import type { PositionGroup } from '../data/database.types'
+import { listTeamPlayers, type TeamPlayer } from '../data/slots'
+import { AssignPanel } from './AssignPanel'
 import { AddPlaysPanel, GeneratePlaybookPanel, NewFolderForm, type AddMode } from './FolderForms'
 import { findStarter, STARTERS } from './starters'
 import {
   breadcrumb,
   canAddSubfolder,
   childFolders,
+  subtreeIds,
   effectiveSide,
   matchesSide,
   type SideFilter,
@@ -54,7 +67,12 @@ import { blankPlay, nameFromFile, parsePlayUpload, type NewPlay } from './newPla
 
 const TABS = ['Team', 'Playbooks', 'Plays', 'Scout', 'Homework'] as const
 
-type Panel = { kind: 'folder' } | { kind: 'add'; mode: AddMode } | { kind: 'generate' } | null
+type Panel =
+  | { kind: 'folder' }
+  | { kind: 'add'; mode: AddMode }
+  | { kind: 'generate' }
+  | { kind: 'assign'; folderId: string }
+  | null
 
 function useAuth() {
   return useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
@@ -111,6 +129,12 @@ export function PlaybookPage() {
     fixture ? (playerView ? DEMO_FOLDERS.filter((f) => f.id === 'base') : DEMO_FOLDERS) : [],
   )
   const [links, setLinks] = useState<FolderLink[]>(fixture ? DEMO_LINKS : [])
+  const [assignments, setAssignments] = useState<Assignment[]>(() =>
+    fixture && !playerView ? DEMO_ASSIGNMENTS : [],
+  )
+  const [teamPlayers, setTeamPlayers] = useState<TeamPlayer[]>(() =>
+    fixture && !playerView ? DEMO_TEAM_PLAYERS : [],
+  )
   const [list, setList] = useState<'active' | 'archived'>('active')
   const [search, setSearch] = useState('')
   const [renaming, setRenaming] = useState<string | null>(null)
@@ -137,15 +161,19 @@ export function PlaybookPage() {
   const refresh = useCallback(async () => {
     if (supabase == null || snap.teamId == null) return
     const teamId = snap.teamId
-    const [nextPlays, tree, nextArchived] = await Promise.all([
+    const [nextPlays, tree, nextArchived, nextAssignments, nextPlayers] = await Promise.all([
       listPlays(teamId),
       listFolders(teamId),
       staff ? listArchivedPlays(teamId) : Promise.resolve([] as PlayRow[]),
+      staff ? listAssignments(teamId) : Promise.resolve([] as Assignment[]),
+      staff ? listTeamPlayers(teamId).catch(() => [] as TeamPlayer[]) : Promise.resolve([]),
     ])
     setPlays(nextPlays)
     setFolders(tree.folders)
     setLinks(tree.links)
     setArchived(nextArchived)
+    setAssignments(nextAssignments)
+    setTeamPlayers(nextPlayers)
   }, [snap.teamId, staff])
 
   useEffect(() => {
@@ -452,6 +480,30 @@ export function PlaybookPage() {
     done(`${name} created`)
   }
 
+  async function assign(
+    playbookId: string,
+    input: { group: PositionGroup | null; userId: string | null; dueAt: string | null },
+  ) {
+    let row: Assignment
+    if (fixture) {
+      row = { id: demoId(), playbookId, ...input }
+    } else {
+      if (snap.teamId == null || snap.session == null) throw new Error('No team')
+      row = await createAssignment({
+        teamId: snap.teamId,
+        playbookId,
+        createdBy: snap.session.user.id,
+        ...input,
+      })
+    }
+    setAssignments((rows) => [...rows, row])
+  }
+
+  async function unassign(assignment: Assignment) {
+    if (!fixture) await deleteAssignment(assignment.id)
+    setAssignments((rows) => rows.filter((row) => row.id !== assignment.id))
+  }
+
   const candidates = current == null ? [] : plays.filter((play) => !folderPlayIds.has(play.id))
 
   return (
@@ -612,6 +664,38 @@ export function PlaybookPage() {
             onCancel={() => setPanel(null)}
           />
         ) : null}
+        {panel?.kind === 'assign'
+          ? (() => {
+              const folder = live.find((item) => item.id === panel.folderId)
+              if (folder == null) return null
+              const inside = subtreeIds(live, folder.id)
+              const playIds = new Set(
+                links.filter((link) => inside.has(link.folderId)).map((link) => link.playId),
+              )
+              const inFolder = plays.filter((play) => playIds.has(play.id))
+              const above = breadcrumb(live, folder.id).slice(0, -1)
+              return (
+                <AssignPanel
+                  key={folder.id}
+                  folderName={folder.name}
+                  side={effectiveSide(live, folder.id)}
+                  own={assignments.filter((item) => item.playbookId === folder.id)}
+                  inherited={above.flatMap((parent) =>
+                    assignments
+                      .filter((item) => item.playbookId === parent.id)
+                      .map((item) => ({ ...item, from: parent.name })),
+                  )}
+                  players={teamPlayers}
+                  playCount={inFolder.length}
+                  draftCount={inFolder.filter((play) => play.published_at == null).length}
+                  canEdit={canEdit(effectiveSide(live, folder.id))}
+                  onAssign={(input) => assign(folder.id, input)}
+                  onRemove={unassign}
+                  onClose={() => setPanel(null)}
+                />
+              )
+            })()
+          : null}
         {panel?.kind === 'add' ? (
           <AddPlaysPanel
             key={current ?? 'root'}
@@ -705,10 +789,30 @@ export function PlaybookPage() {
                           const count = subtreePlayCount(live, links, folder.id)
                           return count === 1 ? '1 play' : `${count} plays`
                         })()}
+                        {(() => {
+                          const mine = assignments.filter((item) => item.playbookId === folder.id)
+                          return staff && mine.length > 0
+                            ? ` · Assigned: ${assignedSummary(mine, teamPlayers)}`
+                            : ''
+                        })()}
                       </span>
                     </button>
                     {staff && canEdit(effectiveSide(live, folder.id)) ? (
                       <span className="playbook-actions">
+                        <button
+                          type="button"
+                          className="playbook-action"
+                          aria-expanded={panel?.kind === 'assign' && panel.folderId === folder.id}
+                          onClick={() =>
+                            setPanel(
+                              panel?.kind === 'assign' && panel.folderId === folder.id
+                                ? null
+                                : { kind: 'assign', folderId: folder.id },
+                            )
+                          }
+                        >
+                          Assign
+                        </button>
                         <button
                           type="button"
                           className="playbook-action"

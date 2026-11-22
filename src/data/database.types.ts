@@ -386,7 +386,8 @@ export type Database = {
         Row: {
           id: string
           team_id: string
-          playbook_id: string
+          playbook_id: string | null
+          package_id: string | null
           assignee_user: string | null
           assignee_group: PositionGroup | null
           due_at: string | null
@@ -396,7 +397,8 @@ export type Database = {
         Insert: {
           id?: string
           team_id: string
-          playbook_id: string
+          playbook_id?: string | null
+          package_id?: string | null
           assignee_user?: string | null
           assignee_group?: PositionGroup | null
           due_at?: string | null
@@ -406,7 +408,8 @@ export type Database = {
         Update: {
           id?: string
           team_id?: string
-          playbook_id?: string
+          playbook_id?: string | null
+          package_id?: string | null
           assignee_user?: string | null
           assignee_group?: PositionGroup | null
           due_at?: string | null

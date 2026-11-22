@@ -1,4 +1,6 @@
+import type { Assignment } from '../data/assignments'
 import type { PlayRow } from '../data/plays'
+import type { TeamPlayer } from '../data/slots'
 import type { Folder, FolderLink } from './folders'
 
 export const DEMO_PLAYS: PlayRow[] = [
@@ -33,6 +35,17 @@ export const DEMO_FOLDERS: Folder[] = [
 ]
 
 export const DEMO_LINKS: FolderLink[] = [{ folderId: 'base', playId: 'flood' }]
+
+/** Base Offense is assigned to the quarterbacks in the demo. */
+export const DEMO_ASSIGNMENTS: Assignment[] = [
+  { id: 'demo-asg-qb', playbookId: 'base', group: 'QB', userId: null, dueAt: null },
+]
+
+export const DEMO_TEAM_PLAYERS: TeamPlayer[] = [
+  { userId: 'demo-p1', name: 'Jordan Reyes', position: 'QB' },
+  { userId: 'demo-p2', name: 'Marcus Hill', position: 'FS' },
+  { userId: 'demo-p3', name: 'Andre Cole', position: 'WR' },
+]
 
 export const DEMO_ARCHIVED: PlayRow[] = [
   {
