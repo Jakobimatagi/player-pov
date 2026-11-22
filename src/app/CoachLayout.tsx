@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
+import { BrandMark } from '@/components/brand/Wordmark'
+import { BRAND } from '@/lib/brand'
 import {
   Activity,
   ArrowLeft,
@@ -102,13 +104,12 @@ function Brand() {
     <Link
       to="/"
       className="flex h-12 items-center gap-2.5 rounded-lg px-2 text-sidebar-foreground outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:px-0"
-      aria-label="POV Playbook home"
+      aria-label={`${BRAND.name} home`}
     >
-      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-[0_6px_16px_-6px] shadow-primary">
-        P
-      </span>
-      <span className="truncate font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-        POV <span className="text-primary">Playbook</span>
+      <BrandMark />
+      <span className="truncate font-display text-xl leading-none font-extrabold tracking-wide uppercase group-data-[collapsible=icon]:hidden">
+        {BRAND.wordmark.lead}
+        <span className="text-primary">{BRAND.wordmark.accent}</span>
       </span>
     </Link>
   )
@@ -249,7 +250,9 @@ export function CoachLayout({
               {eyebrow}
             </p>
           ) : null}
-          <h1 className="truncate text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
+          <h1 className="truncate font-display text-2xl font-extrabold tracking-wide uppercase md:text-3xl">
+            {title}
+          </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {actions}

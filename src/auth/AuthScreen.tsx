@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Wordmark } from '@/components/brand/Wordmark'
 
 export function AuthScreen({
   children,
@@ -12,7 +13,7 @@ export function AuthScreen({
   return (
     <div className="auth-screen">
       <p className="auth-wordmark">
-        <span>POV</span> <span className="auth-playbook">Playbook</span>
+        <Wordmark />
       </p>
       {banner ? <p className="auth-banner">{banner}</p> : null}
       <div className="auth-card" data-testid="auth-card">
