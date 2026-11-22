@@ -6,7 +6,7 @@
 // the last finished part instead of starting over.
 //
 // Secrets (supabase secrets set ...): R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
-// R2_BUCKET. SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided.
+// R2_BUCKET (or R2_BUCKET_NAME). SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided.
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1'
 import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.20'
 
@@ -60,7 +60,7 @@ export function partSizeFor(sizeBytes: number): number {
 
 function r2() {
   const account = Deno.env.get('R2_ACCOUNT_ID') ?? ''
-  const bucket = Deno.env.get('R2_BUCKET') ?? ''
+  const bucket = Deno.env.get('R2_BUCKET') || Deno.env.get('R2_BUCKET_NAME') || ''
   const client = new AwsClient({
     accessKeyId: Deno.env.get('R2_ACCESS_KEY_ID') ?? '',
     secretAccessKey: Deno.env.get('R2_SECRET_ACCESS_KEY') ?? '',

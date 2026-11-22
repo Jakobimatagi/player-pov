@@ -65,14 +65,14 @@ The app owner does this; it is not automated.
 5. Set the function secrets and deploy it (deploys are not in CI):
 
    ```bash
-   supabase secrets set --project-ref bfaopibbbldsxvjprfdx R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET=player-pov-film APP_URL=https://<production domain>
+   supabase secrets set --project-ref bfaopibbbldsxvjprfdx --env-file supabase/functions/.env
    ```
 
    ```bash
    supabase functions deploy film-storage --project-ref bfaopibbbldsxvjprfdx
    ```
 
-Locally, put the same values in `supabase/functions/.env` (not committed) and run `supabase functions serve film-storage --env-file supabase/functions/.env`.
+`supabase/functions/.env` (not committed) holds `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET_NAME`. The keys live in Supabase only, not in Vercel: the browser build never needs them. Locally, use the same file and run `supabase functions serve film-storage --env-file supabase/functions/.env`.
 
 ## Scenario 1 — Add film to a pack week
 
