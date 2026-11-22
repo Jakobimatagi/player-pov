@@ -1,554 +1,556 @@
-/* Team sub-pages: tabs, roster sheet, depth chart. */
+@layer legacy {
+  /* Team sub-pages: tabs, roster sheet, depth chart. */
 
-.coach-main-wide {
-  max-width: 1400px;
-}
-
-.team-tabs {
-  display: flex;
-  gap: 4px;
-  margin: 0 0 16px;
-  border-bottom: 1px solid #2e2e2e;
-  overflow-x: auto;
-}
-
-.team-tabs a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 14px;
-  color: #c9c4b8;
-  text-decoration: none;
-  border-bottom: 3px solid transparent;
-  white-space: nowrap;
-}
-
-.team-tabs a[aria-current='page'] {
-  color: #f4f1ea;
-  border-bottom-color: #c8102e;
-  font-weight: 700;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-/* ---------- Roster sheet ---------- */
-
-.sheet-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.sheet-toolbar .playbook-search {
-  flex: 1 1 14rem;
-  margin: 0;
-}
-
-.sheet-count {
-  margin: 8px 0;
-  color: #c9c4b8;
-}
-
-/* The table scrolls sideways inside its box; the page itself never does. */
-.sheet-scroll {
-  overflow-x: auto;
-  border: 1px solid #2e2e2e;
-  border-radius: 10px;
-}
-
-.sheet {
-  width: 100%;
-  min-width: 1142px;
-  table-layout: fixed;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-
-.sheet th {
-  position: sticky;
-  top: 0;
-  background: #1c1c1c;
-  color: #c9c4b8;
-  font-weight: 600;
-  text-align: left;
-  padding: 6px 8px;
-  border-bottom: 1px solid #2e2e2e;
-  white-space: nowrap;
-}
-
-.sheet th button {
-  min-height: 36px;
-  padding: 0;
-  background: none;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
-.sheet td {
-  padding: 2px 4px;
-  border-bottom: 1px solid #262626;
-  vertical-align: middle;
-}
-
-.sheet tbody tr:hover {
-  background: #1a1a1a;
-}
-
-.sheet-cell {
-  width: 100%;
-  min-height: 40px;
-  padding: 6px 8px;
-  background: transparent;
-  color: #f4f1ea;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  font: inherit;
-}
-
-.sheet-cell:hover {
-  border-color: #3a3a3a;
-}
-
-.sheet-cell:focus {
-  outline: none;
-  border-color: #c8102e;
-  background: #232323;
-}
-
-.sheet-cell[aria-invalid='true'] {
-  border-color: #ff6b6b;
-  background: #2a1515;
-}
-
-.sheet-cell:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-select.sheet-cell {
-  background: #1c1c1c;
-}
-
-.sheet col.c-jersey {
-  width: 64px;
-}
-.sheet col.c-name {
-  width: 180px;
-}
-.sheet col.c-position {
-  width: 88px;
-}
-.sheet col.c-gradYear {
-  width: 84px;
-}
-.sheet col.c-also {
-  width: 110px;
-}
-.sheet col.c-ht {
-  width: 76px;
-}
-.sheet col.c-wt {
-  width: 68px;
-}
-.sheet col.c-account {
-  width: 212px;
-}
-.sheet col.c-notes {
-  width: 208px;
-}
-.sheet col.c-actions {
-  width: 52px;
-}
-
-.col-account {
-  white-space: nowrap;
-}
-
-.sheet-account {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sheet-merge {
-  width: 84px;
-  min-width: 0;
-  padding: 4px 6px;
-  font-size: 0.85rem;
-}
-
-.col-account {
-  overflow: hidden;
-}
-
-.sheet-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid #3a3a3a;
-  color: #c9c4b8;
-  font-size: 0.8rem;
-}
-
-.sheet-badge[data-linked='true'] {
-  border-color: #3d9a4a;
-  color: #9fdba8;
-}
-
-.sheet-delete {
-  min-width: 40px;
-  min-height: 40px;
-  background: none;
-  border: 0;
-  color: #c9c4b8;
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-.sheet-delete:hover {
-  color: #ff8a8a;
-  background: #2a1515;
-}
-
-.sheet-confirm {
-  display: inline-flex;
-  gap: 4px;
-}
-
-.sheet-add {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-top: 12px;
-}
-
-.sheet-add .sheet-cell {
-  border-color: #3a3a3a;
-  width: auto;
-}
-
-.sheet-add-jersey {
-  width: 4.5rem !important;
-}
-
-.sheet-add-name {
-  flex: 1 1 12rem;
-}
-
-.sheet-paste {
-  width: 100%;
-  background: #2a2a2a;
-  color: #f4f1ea;
-  border: 1px solid #4a4a4a;
-  border-radius: 8px;
-  padding: 8px;
-  font:
-    0.95rem ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    monospace;
-}
-
-.sheet-hint {
-  color: #c9c4b8;
-  font-size: 0.9rem;
-}
-
-/* ---------- Depth chart ---------- */
-
-.depth-summary {
-  color: #c9c4b8;
-}
-
-.depth-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Phone: cards in a two-column list, field order. */
-.depth-field {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.depth-los {
-  display: none;
-}
-
-.depth-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-height: 84px;
-  padding: 8px 10px;
-  text-align: left;
-  background: #1c1c1c;
-  color: #f4f1ea;
-  border: 1px solid #3a3a3a;
-  border-radius: 10px;
-  font: inherit;
-  cursor: pointer;
-  min-width: 0;
-}
-
-.depth-card:hover,
-.depth-card:focus-visible {
-  border-color: #c8102e;
-}
-
-.depth-card[aria-pressed='true'] {
-  border-color: #c8102e;
-  box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.35);
-}
-
-.depth-card[data-empty='true'] {
-  border-style: dashed;
-  background: #161616;
-}
-
-.depth-card-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px;
-  width: 100%;
-}
-
-.depth-card-num {
-  font-weight: 800;
-  font-size: 1.05rem;
-}
-
-.depth-card-pos {
-  font-weight: 800;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  color: #c8102e;
-}
-
-.depth-card-name {
-  font-weight: 700;
-  max-width: 100%;
-  line-height: 1.2;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.depth-card[data-empty='true'] .depth-card-name {
-  color: #8f8a80;
-  font-weight: 500;
-}
-
-.depth-card-next,
-.depth-card-more {
-  font-size: 0.8rem;
-  color: #c9c4b8;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.depth-panel {
-  background: #1c1c1c;
-  border: 1px solid #3a3a3a;
-  border-radius: 10px;
-  padding: 12px 16px;
-}
-
-/* Phone and tablet: the panel is a bottom sheet above the tab bar. */
-@media (max-width: 1499px) {
-  .depth-panel {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 64px;
-    z-index: 5;
-    max-height: min(70vh, 34rem);
-    overflow: auto;
-    overscroll-behavior: contain;
-    border-radius: 14px 14px 0 0;
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  .coach-main-wide {
+    max-width: 1400px;
   }
-}
 
-@media (min-width: 768px) and (max-width: 1499px) {
-  .depth-panel {
-    left: auto;
-    right: 16px;
-    bottom: 16px;
-    width: min(26rem, calc(100% - 32px));
-    border-radius: 14px;
+  .team-tabs {
+    display: flex;
+    gap: 4px;
+    margin: 0 0 16px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
   }
-}
 
-.depth-panel h2 {
-  margin: 0;
-  font-size: 1.1rem;
-}
+  .team-tabs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    color: var(--muted-foreground);
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
 
-.depth-panel-code {
-  color: #c8102e;
-  margin-left: 4px;
-}
+  .team-tabs a[aria-current='page'] {
+    color: var(--foreground);
+    border-bottom-color: var(--primary);
+    font-weight: 700;
+  }
 
-.depth-list {
-  list-style: none;
-  margin: 12px 0;
-  padding: 0;
-}
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 
-.depth-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  border-top: 1px solid #2e2e2e;
-}
+  /* ---------- Roster sheet ---------- */
 
-.depth-rank {
-  flex: 0 0 4.2rem;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #c9c4b8;
-}
+  .sheet-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
 
-.depth-row:first-child .depth-rank {
-  color: #f4f1ea;
-  font-weight: 700;
-}
+  .sheet-toolbar .playbook-search {
+    flex: 1 1 14rem;
+    margin: 0;
+  }
 
-.depth-who {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
+  .sheet-count {
+    margin: 8px 0;
+    color: var(--muted-foreground);
+  }
 
-.depth-meta {
-  font-size: 0.85rem;
-  color: #c9c4b8;
-}
+  /* The table scrolls sideways inside its box; the page itself never does. */
+  .sheet-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
 
-.depth-moves {
-  display: inline-flex;
-  gap: 4px;
-}
+  .sheet {
+    width: 100%;
+    min-width: 1142px;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
 
-.depth-moves .btn {
-  padding: 0;
-}
+  .sheet th {
+    position: sticky;
+    top: 0;
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-weight: 600;
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
 
-/* Tablet and up: cards sit where the players line up, on a turf field. */
-@media (min-width: 900px) {
-  .depth-field {
-    grid-template-columns: repeat(var(--cols, 9), minmax(0, 1fr));
-    grid-auto-rows: minmax(104px, auto);
+  .sheet th button {
+    min-height: 36px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .sheet td {
+    padding: 2px 4px;
+    border-bottom: 1px solid #262626;
+    vertical-align: middle;
+  }
+
+  .sheet tbody tr:hover {
+    background: var(--card);
+  }
+
+  .sheet-cell {
+    width: 100%;
+    min-height: 40px;
+    padding: 6px 8px;
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font: inherit;
+  }
+
+  .sheet-cell:hover {
+    border-color: var(--input);
+  }
+
+  .sheet-cell:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: #232323;
+  }
+
+  .sheet-cell[aria-invalid='true'] {
+    border-color: #ff6b6b;
+    background: #2a1515;
+  }
+
+  .sheet-cell:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  select.sheet-cell {
+    background: var(--card);
+  }
+
+  .sheet col.c-jersey {
+    width: 64px;
+  }
+  .sheet col.c-name {
+    width: 180px;
+  }
+  .sheet col.c-position {
+    width: 88px;
+  }
+  .sheet col.c-gradYear {
+    width: 84px;
+  }
+  .sheet col.c-also {
+    width: 110px;
+  }
+  .sheet col.c-ht {
+    width: 76px;
+  }
+  .sheet col.c-wt {
+    width: 68px;
+  }
+  .sheet col.c-account {
+    width: 212px;
+  }
+  .sheet col.c-notes {
+    width: 208px;
+  }
+  .sheet col.c-actions {
+    width: 52px;
+  }
+
+  .col-account {
+    white-space: nowrap;
+  }
+
+  .sheet-account {
+    display: inline-flex;
+    align-items: center;
     gap: 6px;
-    padding: 20px 12px;
-    border-radius: 14px;
-    background:
-      repeating-linear-gradient(
-        to bottom,
-        transparent 0 calc(33.333% - 1px),
-        rgba(255, 255, 255, 0.07) calc(33.333% - 1px) 33.333%
-      ),
-      #1f4d2b;
-    border: 1px solid #2f6b3d;
   }
 
-  .depth-card {
-    grid-column: var(--col);
-    grid-row: var(--row);
-    background: rgba(20, 20, 20, 0.92);
-    align-self: center;
+  .sheet-merge {
+    width: 84px;
+    min-width: 0;
+    padding: 4px 6px;
+    font-size: 0.85rem;
   }
 
-  .depth-card[data-empty='true'] {
-    background: rgba(20, 20, 20, 0.6);
+  .col-account {
+    overflow: hidden;
+  }
+
+  .sheet-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--input);
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+  }
+
+  .sheet-badge[data-linked='true'] {
+    border-color: #3d9a4a;
+    color: #9fdba8;
+  }
+
+  .sheet-delete {
+    min-width: 40px;
+    min-height: 40px;
+    background: none;
+    border: 0;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    border-radius: 6px;
+  }
+
+  .sheet-delete:hover {
+    color: #ff8a8a;
+    background: #2a1515;
+  }
+
+  .sheet-confirm {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .sheet-add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  .sheet-add .sheet-cell {
+    border-color: var(--input);
+    width: auto;
+  }
+
+  .sheet-add-jersey {
+    width: 4.5rem !important;
+  }
+
+  .sheet-add-name {
+    flex: 1 1 12rem;
+  }
+
+  .sheet-paste {
+    width: 100%;
+    background: var(--secondary);
+    color: var(--foreground);
+    border: 1px solid var(--input);
+    border-radius: 8px;
+    padding: 8px;
+    font:
+      0.95rem ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      monospace;
+  }
+
+  .sheet-hint {
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+  }
+
+  /* ---------- Depth chart ---------- */
+
+  .depth-summary {
+    color: var(--muted-foreground);
+  }
+
+  .depth-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Phone: cards in a two-column list, field order. */
+  .depth-field {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .depth-los {
-    display: block;
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    height: 0;
-    border-top: 2px dashed rgba(255, 255, 255, 0.45);
-    pointer-events: none;
+    display: none;
   }
 
-  /* Units moving up the screen have the line above row 1; receiving units below the last row. */
-  .depth-los[data-dir='up'] {
-    top: 14px;
-  }
-
-  .depth-los[data-dir='down'] {
-    bottom: 14px;
-  }
-}
-
-@media (min-width: 1500px) {
-  .depth-layout {
-    flex-direction: row;
+  .depth-card {
+    display: flex;
+    flex-direction: column;
     align-items: flex-start;
+    gap: 2px;
+    min-height: 84px;
+    padding: 8px 10px;
+    text-align: left;
+    background: var(--card);
+    color: var(--foreground);
+    border: 1px solid var(--input);
+    border-radius: 10px;
+    font: inherit;
+    cursor: pointer;
+    min-width: 0;
   }
 
-  .depth-field {
-    flex: 1 1 auto;
+  .depth-card:hover,
+  .depth-card:focus-visible {
+    border-color: var(--primary);
+  }
+
+  .depth-card[aria-pressed='true'] {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.35);
+  }
+
+  .depth-card[data-empty='true'] {
+    border-style: dashed;
+    background: var(--card);
+  }
+
+  .depth-card-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .depth-card-num {
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+
+  .depth-card-pos {
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    color: var(--primary);
+  }
+
+  .depth-card-name {
+    font-weight: 700;
+    max-width: 100%;
+    line-height: 1.2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .depth-card[data-empty='true'] .depth-card-name {
+    color: #8f8a80;
+    font-weight: 500;
+  }
+
+  .depth-card-next,
+  .depth-card-more {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .depth-panel {
-    flex: 0 0 22rem;
-    position: sticky;
-    top: 16px;
+    background: var(--card);
+    border: 1px solid var(--input);
+    border-radius: 10px;
+    padding: 12px 16px;
   }
-}
 
-.depth-subunits {
-  margin-top: -4px;
-}
+  /* Phone and tablet: the panel is a bottom sheet above the tab bar. */
+  @media (max-width: 1499px) {
+    .depth-panel {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 64px;
+      z-index: 5;
+      max-height: min(70vh, 34rem);
+      overflow: auto;
+      overscroll-behavior: contain;
+      border-radius: 14px 14px 0 0;
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    }
+  }
 
-.depth-subunits button {
-  font-size: 0.9rem;
-}
+  @media (min-width: 768px) and (max-width: 1499px) {
+    .depth-panel {
+      left: auto;
+      right: 16px;
+      bottom: 16px;
+      width: min(26rem, calc(100% - 32px));
+      border-radius: 14px;
+    }
+  }
 
-.depth-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
+  .depth-panel h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
 
-.sheet-file {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  margin-bottom: 8px;
-}
+  .depth-panel-code {
+    color: var(--primary);
+    margin-left: 4px;
+  }
 
-.sheet-file:focus-within {
-  outline: 2px solid #c8102e;
-  outline-offset: 2px;
+  .depth-list {
+    list-style: none;
+    margin: 12px 0;
+    padding: 0;
+  }
+
+  .depth-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .depth-rank {
+    flex: 0 0 4.2rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-foreground);
+  }
+
+  .depth-row:first-child .depth-rank {
+    color: var(--foreground);
+    font-weight: 700;
+  }
+
+  .depth-who {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .depth-meta {
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+  }
+
+  .depth-moves {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .depth-moves .btn {
+    padding: 0;
+  }
+
+  /* Tablet and up: cards sit where the players line up, on a turf field. */
+  @media (min-width: 900px) {
+    .depth-field {
+      grid-template-columns: repeat(var(--cols, 9), minmax(0, 1fr));
+      grid-auto-rows: minmax(104px, auto);
+      gap: 6px;
+      padding: 20px 12px;
+      border-radius: 14px;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0 calc(33.333% - 1px),
+          rgba(255, 255, 255, 0.07) calc(33.333% - 1px) 33.333%
+        ),
+        #1f4d2b;
+      border: 1px solid #2f6b3d;
+    }
+
+    .depth-card {
+      grid-column: var(--col);
+      grid-row: var(--row);
+      background: rgba(20, 20, 20, 0.92);
+      align-self: center;
+    }
+
+    .depth-card[data-empty='true'] {
+      background: rgba(20, 20, 20, 0.6);
+    }
+
+    .depth-los {
+      display: block;
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      height: 0;
+      border-top: 2px dashed rgba(255, 255, 255, 0.45);
+      pointer-events: none;
+    }
+
+    /* Units moving up the screen have the line above row 1; receiving units below the last row. */
+    .depth-los[data-dir='up'] {
+      top: 14px;
+    }
+
+    .depth-los[data-dir='down'] {
+      bottom: 14px;
+    }
+  }
+
+  @media (min-width: 1500px) {
+    .depth-layout {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+
+    .depth-field {
+      flex: 1 1 auto;
+    }
+
+    .depth-panel {
+      flex: 0 0 22rem;
+      position: sticky;
+      top: 16px;
+    }
+  }
+
+  .depth-subunits {
+    margin-top: -4px;
+  }
+
+  .depth-subunits button {
+    font-size: 0.9rem;
+  }
+
+  .depth-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .sheet-file {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+
+  .sheet-file:focus-within {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
 }

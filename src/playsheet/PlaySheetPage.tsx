@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router'
-import { AccountMenu } from '../app/AccountMenu'
+import { CoachLayout } from '../app/CoachLayout'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
 import { loadPlay, publishPlay, unpublishPlay } from '../data/plays'
@@ -376,159 +376,167 @@ export function PlaySheetPage() {
   }
 
   return (
-    <div className="coach-frame play-sheet">
-      <div className="coach-main">
-        <header className="roster-head sheet-head">
-          <div className="sheet-title">
-            <Link className="sheet-back" to={playerView ? '/' : '/playbook'}>
-              ← {playerView ? 'My plays' : 'Playbook'}
-            </Link>
-            <h1>{ready?.name ?? 'Play'}</h1>
-          </div>
-          <AccountMenu name={snap.session?.user.email ?? 'Account'} />
-        </header>
+    <CoachLayout
+      title={ready?.name ?? 'Play'}
+      back={{ to: playerView ? '/' : '/playbook', label: playerView ? 'My plays' : 'Playbook' }}
+      account={snap.session?.user.email ?? 'Account'}
+      nav={!playerView}
+      wide
+      className="play-sheet"
+    >
+      {load.status === 'loading' ? <p className="loading-line">Loading…</p> : null}
+      {load.status === 'error' ? <p role="alert">{load.text}</p> : null}
 
-        {load.status === 'loading' ? <p className="loading-line">Loading…</p> : null}
-        {load.status === 'error' ? <p role="alert">{load.text}</p> : null}
-
-        {ready != null && layout != null ? (
-          <>
-            <div className="sheet-bar">
-              <span className="sheet-side">{SIDE_LABEL[ready.side]}</span>
-              {staff ? (
-                <span
-                  className="sheet-state"
-                  data-state={published ? 'published' : 'draft'}
-                  data-testid="sheet-state"
-                >
-                  {published ? 'Published' : 'Draft'}
-                </span>
-              ) : null}
-              {staff ? (
-                <span className="sheet-meter" data-testid="sheet-meter">
-                  <meter
-                    min={0}
-                    max={completion.total}
-                    value={completion.complete.length}
-                    aria-hidden="true"
-                  />
-                  {completion.complete.length} of {completion.total} positions have all 3 A’s and 3
-                  R’s
-                </span>
-              ) : null}
-              <span className="sheet-actions">
-                <Link className="btn" to={`/watch/${ready.id}`}>
-                  Watch in 3D
-                </Link>
-                {canPublish ? (
-                  <button
-                    type="button"
-                    className={published ? 'btn' : 'btn primary'}
-                    disabled={publishing || (!published && !isComplete)}
-                    onClick={() => void togglePublish()}
-                    data-testid="sheet-publish"
-                  >
-                    {published ? 'Unpublish' : 'Publish to players'}
-                  </button>
-                ) : null}
-              </span>
-            </div>
-            {staff && !published && !isComplete ? (
-              <p className="sheet-gate" data-testid="sheet-gate">
-                Players can’t see this play yet. Answer all six for{' '}
-                {completion.incomplete
-                  .map((slot) => ours.find((p) => p.id === slot)?.label ?? slot)
-                  .join(', ')}{' '}
-                to publish it.
-              </p>
-            ) : null}
-            {notice != null ? (
-              <p
-                className={notice.kind === 'error' ? 'sheet-notice error' : 'sheet-notice'}
-                role={notice.kind === 'error' ? 'alert' : 'status'}
+      {ready != null && layout != null ? (
+        <>
+          <div className="sheet-bar">
+            <span className="sheet-side">{SIDE_LABEL[ready.side]}</span>
+            {staff ? (
+              <span
+                className="sheet-state"
+                data-state={published ? 'published' : 'draft'}
+                data-testid="sheet-state"
               >
-                {notice.text}
-              </p>
+                {published ? 'Published' : 'Draft'}
+              </span>
             ) : null}
-
-            {facing != null ? (
-              <FacingBar
-                facings={facings}
-                facing={facing}
-                onFace={face}
-                onStep={step}
-                staff={staff}
-              />
+            {staff ? (
+              <span className="sheet-meter" data-testid="sheet-meter">
+                <meter
+                  min={0}
+                  max={completion.total}
+                  value={completion.complete.length}
+                  aria-hidden="true"
+                />
+                {completion.complete.length} of {completion.total} positions have all 3 A’s and 3
+                R’s
+              </span>
             ) : null}
+            <span className="sheet-actions">
+              <Link className="btn" to={`/watch/${ready.id}`}>
+                Watch in 3D
+              </Link>
+              {canPublish ? (
+                <button
+                  type="button"
+                  className={published ? 'btn' : 'btn primary'}
+                  disabled={publishing || (!published && !isComplete)}
+                  onClick={() => void togglePublish()}
+                  data-testid="sheet-publish"
+                >
+                  {published ? 'Unpublish' : 'Publish to players'}
+                </button>
+              ) : null}
+            </span>
+          </div>
+          {staff && !published && !isComplete ? (
+            <p className="sheet-gate" data-testid="sheet-gate">
+              Players can’t see this play yet. Answer all six for{' '}
+              {completion.incomplete
+                .map((slot) => ours.find((p) => p.id === slot)?.label ?? slot)
+                .join(', ')}{' '}
+              to publish it.
+            </p>
+          ) : null}
+          {notice != null ? (
+            <p
+              className={notice.kind === 'error' ? 'sheet-notice error' : 'sheet-notice'}
+              role={notice.kind === 'error' ? 'alert' : 'status'}
+            >
+              {notice.text}
+            </p>
+          ) : null}
 
-            <div className="sheet-body">
-              <div className="sheet-board-col">
-                <div className="sheet-board-wrap">
-                  <PlayBoard
-                    layout={layout}
-                    name={ready.name}
-                    selected={selected}
-                    mine={mySlot}
-                    status={statusOf}
-                    showStatus={staff}
-                    onSelect={select}
-                  />
-                </div>
-              </div>
+          {facing != null ? (
+            <FacingBar
+              facings={facings}
+              facing={facing}
+              onFace={face}
+              onStep={step}
+              staff={staff}
+            />
+          ) : null}
 
-              <aside className="sheet-card" aria-live="polite" data-testid="sheet-card">
-                {picked == null ? (
-                  <p>Pick a player on the board.</p>
-                ) : (
-                  <>
-                    <header className="sheet-card-head">
-                      <h2>
-                        {picked.id === mySlot ? 'Your job: ' : ''}
-                        {picked.label}
-                      </h2>
-                      <span className="sheet-card-sub">
-                        {SIDE_LABEL[picked.team]}
-                        {picked.ours ? '' : ' · scout look'}
-                        {staff && picked.ours
-                          ? ` · ${REQUIRED_FIELDS.length - missingFields(ruleFor(picked.id)).length} of ${REQUIRED_FIELDS.length} answered`
-                          : ''}
-                      </span>
-                    </header>
-                    <PositionCard
-                      key={`${picked.id}:${facing?.id ?? ''}:${rulesVersion}`}
-                      player={picked}
-                      staff={staff}
-                      editable={canEditPlayer(picked.team)}
-                      base={ruleFor(picked.id)}
-                      variants={variants}
-                      facing={facing}
-                      onSaveBase={(fields) => save(picked, fields)}
-                      onSaveException={(target, fields) => saveException(picked, target, fields)}
-                    />
-                    {mySlot != null && picked.id !== mySlot ? (
-                      <button
-                        type="button"
-                        className="btn sheet-mine"
-                        onClick={() => select(mySlot)}
-                      >
-                        Back to my position
-                      </button>
-                    ) : null}
-                  </>
-                )}
-              </aside>
-
-              <div className="sheet-lists">
-                <PositionList
-                  title={
-                    staff
-                      ? `${SIDE_LABEL[ready.side]} · every position answers all six`
-                      : `${SIDE_LABEL[ready.side]} · tap a teammate to see their job`
-                  }
-                  players={ours}
+          <div className="sheet-body">
+            <div className="sheet-board-col">
+              <div className="sheet-board-wrap">
+                <PlayBoard
+                  layout={layout}
+                  name={ready.name}
                   selected={selected}
                   mine={mySlot}
+                  status={statusOf}
                   showStatus={staff}
+                  onSelect={select}
+                />
+              </div>
+            </div>
+
+            <aside className="sheet-card" aria-live="polite" data-testid="sheet-card">
+              {picked == null ? (
+                <p>Pick a player on the board.</p>
+              ) : (
+                <>
+                  <header className="sheet-card-head">
+                    <h2>
+                      {picked.id === mySlot ? 'Your job: ' : ''}
+                      {picked.label}
+                    </h2>
+                    <span className="sheet-card-sub">
+                      {SIDE_LABEL[picked.team]}
+                      {picked.ours ? '' : ' · scout look'}
+                      {staff && picked.ours
+                        ? ` · ${REQUIRED_FIELDS.length - missingFields(ruleFor(picked.id)).length} of ${REQUIRED_FIELDS.length} answered`
+                        : ''}
+                    </span>
+                  </header>
+                  <PositionCard
+                    key={`${picked.id}:${facing?.id ?? ''}:${rulesVersion}`}
+                    player={picked}
+                    staff={staff}
+                    editable={canEditPlayer(picked.team)}
+                    base={ruleFor(picked.id)}
+                    variants={variants}
+                    facing={facing}
+                    onSaveBase={(fields) => save(picked, fields)}
+                    onSaveException={(target, fields) => saveException(picked, target, fields)}
+                  />
+                  {mySlot != null && picked.id !== mySlot ? (
+                    <button type="button" className="btn sheet-mine" onClick={() => select(mySlot)}>
+                      Back to my position
+                    </button>
+                  ) : null}
+                </>
+              )}
+            </aside>
+
+            <div className="sheet-lists">
+              <PositionList
+                title={
+                  staff
+                    ? `${SIDE_LABEL[ready.side]} · every position answers all six`
+                    : `${SIDE_LABEL[ready.side]} · tap a teammate to see their job`
+                }
+                players={ours}
+                selected={selected}
+                mine={mySlot}
+                showStatus={staff}
+                status={statusOf}
+                rules={rules}
+                summary={(slot) =>
+                  resolveRule(ruleFor(slot), variants, slot, facing).fields.assignment
+                }
+                exceptions={(slot) => variantCount(variants, slot, facing)}
+                onSelect={select}
+              />
+              {theirs.length > 0 ? (
+                <PositionList
+                  title="Scout look · optional"
+                  collapsible
+                  players={theirs}
+                  selected={selected}
+                  mine={mySlot}
+                  showStatus={false}
                   status={statusOf}
                   rules={rules}
                   summary={(slot) =>
@@ -537,29 +545,12 @@ export function PlaySheetPage() {
                   exceptions={(slot) => variantCount(variants, slot, facing)}
                   onSelect={select}
                 />
-                {theirs.length > 0 ? (
-                  <PositionList
-                    title="Scout look · optional"
-                    collapsible
-                    players={theirs}
-                    selected={selected}
-                    mine={mySlot}
-                    showStatus={false}
-                    status={statusOf}
-                    rules={rules}
-                    summary={(slot) =>
-                      resolveRule(ruleFor(slot), variants, slot, facing).fields.assignment
-                    }
-                    exceptions={(slot) => variantCount(variants, slot, facing)}
-                    onSelect={select}
-                  />
-                ) : null}
-              </div>
+              ) : null}
             </div>
-          </>
-        ) : null}
-      </div>
-    </div>
+          </div>
+        </>
+      ) : null}
+    </CoachLayout>
   )
 }
 

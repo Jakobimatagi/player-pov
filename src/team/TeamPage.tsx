@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react'
 import { useSyncExternalStore } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router'
+import { Navigate, useSearchParams } from 'react-router'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import { SIDE_LABEL, staffTitle } from '../auth/sides'
 import type { PositionCode, StaffSide, TeamRole } from '../data/database.types'
 import { supabase } from '../data/supabase'
-import { AccountMenu } from '../app/AccountMenu'
+import { MoreHorizontal, UserPlus } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { CoachLayout } from '../app/CoachLayout'
 import { TeamTabs } from './TeamShell'
 import './team.css'
 
@@ -68,8 +80,6 @@ const DEMO: Row[] = [
   },
 ]
 
-const TABS = ['Team', 'Playbooks', 'Plays', 'Scout', 'Homework'] as const
-
 function roleLabel(role: TeamRole): string {
   if (role === 'player') return 'Player'
   if (role === 'coach') return 'Coach'
@@ -90,7 +100,6 @@ export function TeamPage() {
   const [rows, setRows] = useState<Row[]>(fixture ? DEMO : [])
   const [filter, setFilter] = useState<'All' | 'Coaches' | 'Players' | 'Pending'>('All')
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [consent, setConsent] = useState(false)
   const [inviteRole, setInviteRole] = useState('player')
@@ -320,133 +329,145 @@ export function TeamPage() {
     setMenuId(null)
   }
 
+  const filterCounts = {
+    All: rows.length,
+    Coaches: rows.filter((row) => row.kind === 'coach').length,
+    Players: rows.filter((row) => row.kind === 'player').length,
+    Pending: rows.filter((row) => row.status === 'Pending').length,
+  }
+
   return (
-    <div className={playerView ? 'player-frame' : 'coach-frame'}>
-      {playerView ? null : (
-        <nav className="side-nav" aria-label="Coach">
-          {TABS.map((tab) => (
-            <Link key={tab} to={tab === 'Playbooks' ? '/playbook' : '/team'}>
-              {tab}
-            </Link>
-          ))}
-        </nav>
-      )}
-      <div className="coach-main">
-        <header className="roster-head">
-          {playerView ? null : (
-            <button
-              type="button"
-              className="nav-toggle"
-              aria-label="Menu"
-              onClick={() => setMenuOpen(true)}
-            >
-              Menu
-            </button>
-          )}
-          <h1>Team</h1>
-          {headCoach ? (
-            <button type="button" className="invite-button" onClick={() => setInviteOpen(true)}>
-              + Invite
-            </button>
-          ) : null}
-          <AccountMenu name={playerView ? 'Player' : (snap.session?.user.email ?? 'Coach Kim')} />
-        </header>
-        {playerView ? <p>Names and positions only.</p> : <TeamTabs />}
-        <div className="roster-filters" role="tablist">
-          {(['All', 'Coaches', 'Players', 'Pending'] as const).map((item) => (
-            <button
-              key={item}
-              type="button"
-              aria-pressed={filter === item}
-              onClick={() => setFilter(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-        <table className="roster-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Position</th>
-              <th className="col-status">Status</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
+    <CoachLayout
+      title="Team"
+      eyebrow={playerView ? undefined : 'Team'}
+      nav={!playerView}
+      account={playerView ? 'Player' : (snap.session?.user.email ?? 'Coach Kim')}
+      subnav={playerView ? undefined : <TeamTabs />}
+      actions={
+        headCoach ? (
+          <Button size="lg" onClick={() => setInviteOpen(true)}>
+            <UserPlus />
+            Invite
+          </Button>
+        ) : null
+      }
+    >
+      {playerView ? (
+        <p className="mb-4 text-sm text-muted-foreground">Names and positions only.</p>
+      ) : null}
+      <div
+        className="mb-4 grid w-full grid-cols-4 gap-1 rounded-lg bg-muted p-1 sm:inline-flex sm:w-auto"
+        role="tablist"
+        aria-label="Filter members"
+      >
+        {(['All', 'Coaches', 'Players', 'Pending'] as const).map((item) => (
+          <button
+            key={item}
+            type="button"
+            aria-pressed={filter === item}
+            onClick={() => setFilter(item)}
+            className={cn(
+              'inline-flex h-9 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-sm sm:px-3 font-medium text-muted-foreground transition-colors hover:text-foreground',
+              filter === item && 'bg-background text-foreground shadow-sm',
+            )}
+          >
+            {item}
+            <span className="text-xs text-muted-foreground tabular-nums">{filterCounts[item]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="pl-4">Name</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Position</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-12">
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {shown.map((row) => (
-              <tr key={row.id}>
-                <td>
-                  <span className="status-dot" data-status={row.status} />
-                  {row.name}
-                </td>
-                <td>{row.role}</td>
-                <td>{row.position}</td>
-                <td className="col-status">{row.status}</td>
-                <td>
+              <TableRow key={row.id}>
+                <TableCell className="pl-4">
+                  <div className="flex items-center gap-3">
+                    <MemberAvatar name={row.name} />
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{row.name}</p>
+                      {row.email ? (
+                        <p className="truncate text-xs text-muted-foreground">{row.email}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{row.role}</TableCell>
+                <TableCell>
+                  {row.position === '—' ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <Badge variant="secondary">{row.position}</Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={row.status} />
+                </TableCell>
+                <TableCell className="pr-3 text-right">
                   {headCoach ? (
-                    <button
-                      type="button"
-                      className="more"
+                    <Button
+                      variant="ghost"
+                      size="icon-lg"
                       aria-label={`Actions for ${row.name}`}
                       onClick={() => setMenuId(row.id)}
                     >
-                      ⋯
-                    </button>
+                      <MoreHorizontal />
+                    </Button>
                   ) : null}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-        <ul className="roster-cards">
-          {shown.map((row) => (
-            <li key={row.id}>
-              <span className="status-dot" data-status={row.status} />
-              <strong>{row.name}</strong>
-              <span className="pos-badge">{row.position}</span>
-              <span>{row.role}</span>
-              {headCoach ? (
-                <button
-                  type="button"
-                  className="more"
-                  aria-label={`Actions for ${row.name}`}
-                  onClick={() => setMenuId(row.id)}
-                >
-                  ⋯
-                </button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-        {notice ? <p className="auth-note">{notice}</p> : null}
+            {shown.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                  Nobody here yet.
+                </TableCell>
+              </TableRow>
+            ) : null}
+          </TableBody>
+        </Table>
       </div>
-      {playerView ? null : (
-        <nav className="tab-bar" aria-label="Coach">
-          {TABS.map((tab) => (
-            <Link key={tab} to={tab === 'Playbooks' ? '/playbook' : '/team'}>
-              {tab}
-            </Link>
-          ))}
-        </nav>
-      )}
-      {menuOpen ? (
-        <div className="nav-drawer">
-          <button type="button" className="nav-toggle" onClick={() => setMenuOpen(false)}>
-            Close
-          </button>
-          {TABS.map((tab) => (
-            <Link
-              key={tab}
-              to={tab === 'Playbooks' ? '/playbook' : '/team'}
-              onClick={() => setMenuOpen(false)}
-            >
-              {tab}
-            </Link>
-          ))}
-        </div>
-      ) : null}
+
+      <ul className="divide-y overflow-hidden rounded-xl border bg-card md:hidden">
+        {shown.map((row) => (
+          <li key={row.id} className="flex min-h-16 items-center gap-3 px-4 py-3">
+            <MemberAvatar name={row.name} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{row.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{row.role}</p>
+            </div>
+            {row.position === '—' ? null : <Badge variant="secondary">{row.position}</Badge>}
+            <StatusDot status={row.status} />
+            {headCoach ? (
+              <Button
+                variant="ghost"
+                size="icon-lg"
+                className="size-11"
+                aria-label={`Actions for ${row.name}`}
+                onClick={() => setMenuId(row.id)}
+              >
+                <MoreHorizontal />
+              </Button>
+            ) : null}
+          </li>
+        ))}
+        {shown.length === 0 ? (
+          <li className="px-4 py-10 text-center text-sm text-muted-foreground">Nobody here yet.</li>
+        ) : null}
+      </ul>
+      {notice ? <p className="mt-4 text-sm text-muted-foreground">{notice}</p> : null}
       {menuRow && headCoach ? (
         <div className="row-menu" role="menu">
           {menuRow.status === 'Pending' ? (
@@ -564,6 +585,48 @@ export function TeamPage() {
           </button>
         </form>
       ) : null}
-    </div>
+    </CoachLayout>
+  )
+}
+
+function MemberAvatar({ name }: { name: string }) {
+  const initials = name
+    .split(/\s+/)
+    .map((part) => part[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+  return (
+    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
+      {initials || '•'}
+    </span>
+  )
+}
+
+const STATUS_TONE: Record<Row['status'], string> = {
+  Active: 'bg-emerald-500/12 text-emerald-300 ring-emerald-500/25',
+  Pending: 'bg-amber-500/12 text-amber-300 ring-amber-500/25',
+  Removed: 'bg-red-500/12 text-red-300 ring-red-500/25',
+}
+
+function StatusBadge({ status }: { status: Row['status'] }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset',
+        STATUS_TONE[status],
+      )}
+    >
+      <span className="size-1.5 rounded-full bg-current" />
+      {status}
+    </span>
+  )
+}
+
+function StatusDot({ status }: { status: Row['status'] }) {
+  const tone =
+    status === 'Active' ? 'bg-emerald-400' : status === 'Pending' ? 'bg-amber-400' : 'bg-red-400'
+  return (
+    <span className={cn('size-2 shrink-0 rounded-full', tone)} aria-label={status} role="img" />
   )
 }

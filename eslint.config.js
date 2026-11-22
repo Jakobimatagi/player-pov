@@ -36,5 +36,10 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // shadcn/ui files export their cva variants next to the components.
+    files: ['src/components/ui/**/*.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
   prettier,
 )

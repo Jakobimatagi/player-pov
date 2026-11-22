@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import { Link, NavLink, Navigate } from 'react-router'
-import { AccountMenu } from '../app/AccountMenu'
+import { NavLink, Navigate } from 'react-router'
+import { CoachLayout } from '../app/CoachLayout'
 import type { AuthSnap } from '../auth/session'
+import { cn } from '@/lib/utils'
 
 const TEAM_TABS = [
   { to: '/team', label: 'Members', end: true },
@@ -12,9 +13,19 @@ const TEAM_TABS = [
 /** Team sub-pages: Members, Roster sheet, Depth chart. */
 export function TeamTabs() {
   return (
-    <nav className="team-tabs" aria-label="Team">
+    <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Team">
       {TEAM_TABS.map((tab) => (
-        <NavLink key={tab.to} to={tab.to} end={tab.end}>
+        <NavLink
+          key={tab.to}
+          to={tab.to}
+          end={tab.end}
+          className={({ isActive }) =>
+            cn(
+              'inline-flex h-11 items-center border-b-2 border-transparent px-3 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground',
+              isActive && 'border-primary text-foreground',
+            )
+          }
+        >
           {tab.label}
         </NavLink>
       ))}
@@ -43,25 +54,14 @@ export function TeamShell({
     return <Navigate to="/team" replace />
   }
   return (
-    <div className="coach-frame">
-      <nav className="side-nav" aria-label="Coach">
-        <Link to="/">Home</Link>
-        <Link to="/team">Team</Link>
-        <Link to="/playbook">Playbooks</Link>
-      </nav>
-      <div className={wide ? 'coach-main coach-main-wide' : 'coach-main'}>
-        <header className="roster-head">
-          <h1>{title}</h1>
-          <AccountMenu name={snap.session?.user.email ?? 'Coach'} />
-        </header>
-        <TeamTabs />
-        {children}
-      </div>
-      <nav className="tab-bar" aria-label="Coach">
-        <Link to="/">Home</Link>
-        <Link to="/team">Team</Link>
-        <Link to="/playbook">Playbooks</Link>
-      </nav>
-    </div>
+    <CoachLayout
+      title={title}
+      eyebrow="Team"
+      account={snap.session?.user.email ?? 'Coach'}
+      wide={wide}
+      subnav={<TeamTabs />}
+    >
+      {children}
+    </CoachLayout>
   )
 }

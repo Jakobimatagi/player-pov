@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { listAssignedPlays, type AssignedPlay } from '../data/slots'
-import { AccountMenu } from './AccountMenu'
-import './coachHome.css'
+import { ChevronRight, Clapperboard, Play } from 'lucide-react'
+import { CoachLayout } from './CoachLayout'
 
 type Load = { status: 'loading' } | { status: 'error' } | { status: 'ready'; plays: AssignedPlay[] }
 
@@ -39,34 +39,42 @@ export function PlayerHome({
   }, [initial, teamId, userId])
 
   return (
-    <div className="coach-frame coach-home">
-      <div className="coach-main">
-        <header className="roster-head">
-          <h1>Player Home</h1>
-          <AccountMenu name={name} />
-        </header>
-        {load.status === 'loading' && <p className="loading-line">Loading…</p>}
-        {load.status === 'error' && <p>Couldn&apos;t load your plays.</p>}
-        {load.status === 'ready' && load.plays.length === 0 && (
-          <p>No published plays for you yet. Check with your coach.</p>
-        )}
-        {load.status === 'ready' && load.plays.length > 0 && (
-          <ul className="coach-home-cards" data-testid="player-plays">
-            {load.plays.map((play) => (
-              <li key={play.id}>
-                <Link className="coach-home-card" to={`/plays/${play.id}`}>
-                  <span className="coach-home-card-title">{play.name}</span>
-                  <span className="coach-home-card-blurb">
+    <CoachLayout title="Player Home" eyebrow="Your plays" account={name} nav={false}>
+      {load.status === 'loading' && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {load.status === 'error' && <p>Couldn&apos;t load your plays.</p>}
+      {load.status === 'ready' && load.plays.length === 0 && (
+        <div className="grid place-items-center rounded-xl border border-dashed bg-card/50 px-6 py-16 text-center">
+          <Clapperboard className="mb-3 size-8 text-muted-foreground" />
+          <p className="text-muted-foreground">
+            No published plays for you yet. Check with your coach.
+          </p>
+        </div>
+      )}
+      {load.status === 'ready' && load.plays.length > 0 && (
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="player-plays">
+          {load.plays.map((play) => (
+            <li key={play.id}>
+              <Link
+                className="group flex h-full items-center gap-4 rounded-xl border bg-card p-4 transition-colors outline-none hover:border-foreground/20 hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring"
+                to={`/plays/${play.id}`}
+              >
+                <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                  <Play className="size-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{play.name}</span>
+                  <span className="block text-sm text-muted-foreground">
                     {play.slot != null
                       ? `Your position: ${play.slot.toUpperCase()}`
                       : 'No position assigned yet'}
                   </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+                </span>
+                <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </CoachLayout>
   )
 }
