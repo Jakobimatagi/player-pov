@@ -1,96 +1,157 @@
 # Game film
 
-A coach uploads one video file per game and marks plays on it (issue #59). A marked play is a **clip**: a start and end time on that one file, plus breakdown tags. Nothing is cut or stored per play. Data and access rules live in `supabase/migrations/20261207000000_film.sql`; the pgTAP checks are `supabase/tests/film.test.sql`.
+A coach uploads one video file per game and marks plays on it (issue #59). A marked play is a **clip**: a start and end time on that one file, plus breakdown tags. Nothing is cut or stored per play.
 
-This pass is the data layer only: tables, access rules, the storage bucket and limits. Upload, the film player, play marking, the breakdown grid, Chart this play and the player clip view come in later passes and get their scenarios here when they ship. Until then, run these checks in Supabase Studio (SQL editor, with **Role** set to a signed-in user) or through `supabase test db`.
+| Piece          | Where                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------- |
+| Tables and RLS | `supabase/migrations/20261207000000_film.sql`, checked by `supabase/tests/film.test.sql`      |
+| Video storage  | A private Cloudflare R2 bucket, key `<team_id>/<film_id>/original`                            |
+| Signed URLs    | Edge Function `supabase/functions/film-storage`                                               |
+| Browser side   | `src/data/film.ts` (create, resumable upload, playback URL, delete), `src/film/uploadPlan.ts` |
 
-Where things live:
+This pass is the data and storage layer. The film player, play marking, the breakdown grid, Chart this play and the player clip view come later and get their scenarios here when they ship.
 
-| Thing    | Where                                                                                             |
-| -------- | ------------------------------------------------------------------------------------------------- |
-| Film row | `public.film`: team, folder (usually a scout pack week), title, opponent, game date, size, status |
-| Clip     | `public.film_clips`: film, play number, `start_ms`, `end_ms`, side, down, distance, tags, links   |
-| Original | Storage bucket `film`, key `<team_id>/<film_id>/original`. Set by the database, not the client    |
-| Proxy    | `<team_id>/<film_id>/proxy.mp4`, 720p faststart, written by the video worker (service role)       |
-| Thumbs   | `<team_id>/<film_id>/thumbs/...`, written by the video worker                                     |
+## Why R2
 
-Who can do what:
+Supabase Free caps every uploaded file at 50 MB, and a game is 2 to 20 GB. R2 has no per-file cap that matters here, no egress fee (a whole team streaming the same game costs nothing extra), and a free tier of 10 GB stored, 1 million writes and 10 million reads a month. Supabase still holds every row and every access rule. The browser never sees R2 keys: the Edge Function asks the database (`public.film_object_allowed`, as the signed-in user) and then signs a URL that lasts an hour.
+
+v1 does not transcode. The original file is what streams, using HTTP range requests, so a clip seeks without downloading the game. MP4 with H.264 plays in every browser. Exporting at 720p (about 1 GB an hour) keeps a team inside the free 10 GB.
+
+## Limits
+
+- One file is at most 20 GiB.
+- A team holds at most `teams.film_quota_bytes` (10 GiB by default, R2's free tier), counted from each film's declared size. The function checks the stored file matches the declared size, and marks the film `failed` and deletes the file if not. Only the service role changes a quota.
+- A film holds at most 500 clips, each at most 10 minutes, ending inside the film.
+- Free tier is per Cloudflare account, not per team. Watch **R2 → Metrics** in the Cloudflare dashboard as teams are added.
+
+## Who can do what
 
 | Action                                              | Who                                                                                |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | Read film and clips                                 | Every coach on the team                                                            |
-| Add, rename, refile or delete a film                | A coach with edit rights on its folder (side rules, or a scout task on the folder) |
-| Upload the original                                 | Same, once, while the film is `uploading`                                          |
-| Mark the upload finished (`uploading → processing`) | Same                                                                               |
-| Set `ready` or `failed`, the proxy and the length   | The video worker only                                                              |
+| Add, rename or refile a film                        | A coach with edit rights on its folder (side rules, or a scout task on the folder) |
+| Upload the video                                    | Same, while the film is `uploading`                                                |
+| Delete a film (video, then row and clips)           | Same, through the function only. Clients have no delete grant on `film`            |
+| Set `ready` or `failed`, `proxy_key`, `duration_ms` | Service role only (the function, or a later transcode worker)                      |
 | Mark, edit and delete clips                         | Every coach on the team                                                            |
-| Read a clip, its film row, proxy and thumbnails     | A player, only when the clip is linked to a published play assigned to them        |
-| Read the original                                   | Coaches only                                                                       |
+| Read a clip, its film row and stream the film       | A player, only when the clip links to a published play assigned to them            |
 | Anything on another team's film                     | Nobody                                                                             |
 
-Limits: one file is at most 20 GiB. A team holds at most `teams.film_quota_bytes` of film (200 GiB by default), counted from each film's declared size. A film holds at most 500 clips, each at most 10 minutes long and ending inside the film once its length is known.
+Known limit: a player allowed one clip can technically stream the whole game file, because a clip is a time range on it. The app only plays the clip range for them, and they still cannot list film or open any other film.
 
-Known limit: a player who may watch one clip can technically fetch the whole proxy file, because a clip is a time range on it, not a separate file. The app only ever plays the clip range for them, and they still cannot see the film list or any other film.
+## One-time setup
+
+The app owner does this; it is not automated.
+
+1. In Cloudflare (free plan): **R2 → Create bucket**, name `player-pov-film`, location automatic. Leave public access off.
+2. Bucket **Settings → CORS policy**:
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://<production domain>", "http://127.0.0.1:5173"],
+       "AllowedMethods": ["GET", "HEAD", "PUT"],
+       "AllowedHeaders": ["content-type", "range"],
+       "ExposeHeaders": ["ETag", "Content-Length", "Content-Range", "Accept-Ranges"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+
+   `ETag` must be exposed or resumable upload cannot finish.
+
+3. Bucket **Settings → Object lifecycle rules**: keep the default "Abort incomplete multipart uploads after 7 days" so abandoned uploads stop counting against storage.
+4. **R2 → Manage API tokens → Create API token**: Object Read & Write, this bucket only. Note the access key ID, the secret, and the account ID.
+5. Set the function secrets and deploy it (deploys are not in CI):
+
+   ```bash
+   supabase secrets set --project-ref bfaopibbbldsxvjprfdx R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET=player-pov-film APP_URL=https://<production domain>
+   ```
+
+   ```bash
+   supabase functions deploy film-storage --project-ref bfaopibbbldsxvjprfdx
+   ```
+
+Locally, put the same values in `supabase/functions/.env` (not committed) and run `supabase functions serve film-storage --env-file supabase/functions/.env`.
 
 ## Scenario 1 — Add film to a pack week
 
 **Preconditions:** A scout pack exists (`scenarios/scout-packs.md` Scenario 1). Signed in as the head coach or the DC.
 
-**Steps:** Insert a `film` row with the pack's week folder, a title and `size_bytes = 4000000000`.
+**Steps:** Call `createFilm` (or insert a `film` row) with the pack's week folder, a title and `size_bytes = 4000000000`.
 
 **Expected:**
 
 - The row has `status = uploading`, `storage_key = <team_id>/<film_id>/original` and no `proxy_key`, whatever the client sent.
-- As the OC, the same insert on a defense pack is refused (`new row violates row-level security policy`).
-- `size_bytes` over 21474836480 (20 GiB) is refused.
-- With the team's quota set below what is already used plus the new size, the insert is refused with `team film storage is full (<used> of <quota> bytes used)`.
+- As the OC, the same insert on a defense pack is refused (`You can only add film to a folder you can edit.`).
+- A size over 20 GiB is refused (`one film file is at most 20 GiB`).
+- With the team's quota below what is already used plus the new size, the insert is refused with `team film storage is full (<used> of <quota> bytes used)`.
 
-## Scenario 2 — Upload rules
+## Scenario 2 — Upload, drop the connection, resume
 
-**Preconditions:** Scenario 1 done.
+**Preconditions:** Setup done. Scenario 1 done with a real MP4 of at least 100 MB, its size as `size_bytes`.
 
-**Steps:** As the uploader, upload a file to `film/<team_id>/<film_id>/original`. Then try `.../proxy.mp4`, and a key under Team B's id.
+**Steps:**
+
+1. Call `uploadFilm(filmId, file, { onProgress })`.
+2. Partway through, turn off the network (DevTools → Network → Offline), then reload the page.
+3. Turn the network back on and call `uploadFilm` again with the same film and file.
 
 **Expected:**
 
-- The original uploads. The proxy and the other team's key are refused.
-- After setting `status = processing`, uploading to the film again is refused.
-- Setting `status = ready` or `proxy_key` as a coach is refused (`only the video worker sets the proxy and duration`, `a coach only marks an upload as finished`).
+- Progress resumes from the parts already stored, not from zero (the first `onProgress` call after the reload is above 0).
+- When it finishes, the film is `ready` with `duration_ms` set and `proxy_key` equal to `storage_key`.
+- In the Cloudflare dashboard the bucket holds one object at `<team_id>/<film_id>/original`.
+- Uploading a `.avi` is refused (`Upload an MP4, MOV, M4V or WebM video`).
+- Declaring the wrong `size_bytes` ends with `The uploaded file is not the size that was declared`, the film `failed`, and no object left in the bucket.
 
-## Scenario 3 — Mark plays
+## Scenario 3 — Stream and seek
 
-**Preconditions:** The film is `ready` with a `duration_ms` (set by the worker, or by hand as the service role).
+**Preconditions:** Scenario 2 done.
+
+**Steps:** Call `filmPlaybackUrl(filmId)`, set the returned URL as a `<video>` source, and seek to 45:00.
+
+**Expected:** The video plays within about a second of the seek. DevTools shows `206 Partial Content` responses with `Range` requests, not a full download. After an hour the URL stops working and a new call returns a fresh one.
+
+## Scenario 4 — Mark plays
+
+**Preconditions:** The film is `ready`.
 
 **Steps:** As any coach, insert clips with `start_ms`, `end_ms`, and some of side, down, distance, formation and coverage.
 
 **Expected:**
 
-- Clips save. `end_ms` equal to or before `start_ms` is refused. `end_ms` past `duration_ms` is refused (`clip ends after the film does`).
+- Clips save. `end_ms` at or before `start_ms` is refused. `end_ms` past `duration_ms` is refused (`clip ends after the film does`).
 - Linking a clip to another team's film, play or scout look is refused (foreign key violation).
 - Moving a clip to another film is refused (`a clip stays on its film`).
-- Deleting the film deletes its clips.
 
-## Scenario 4 — Player access
+## Scenario 5 — Player access
 
-**Preconditions:** Scenario 3 done. A player has a published play assigned to them. Another player has nothing assigned.
+**Preconditions:** Scenario 4 done. One player has a published play assigned to them. Another has nothing assigned.
 
 **Steps:**
 
-1. As the player, select from `film` and `film_clips`.
+1. As the first player, select from `film` and `film_clips`, and call `filmPlaybackUrl`.
 2. As a coach, set one clip's `play_id` to the assigned play.
-3. As the player, select again, and request a signed URL for the proxy and for the original.
+3. As the first player, repeat step 1.
 
 **Expected:**
 
-- Step 1 returns no rows.
-- Step 3 returns exactly that one clip and its film row. The proxy signed URL works. The original is refused.
-- The player with nothing assigned still sees no film, no clips and cannot read the proxy.
-- A player cannot insert or edit clips.
+- Step 1 returns no rows, and `filmPlaybackUrl` fails with `Film not found`.
+- Step 3 returns exactly that one clip and its film row, and `filmPlaybackUrl` returns a URL that plays.
+- The player with nothing assigned still sees nothing and gets no URL.
+- A player cannot insert or edit clips, and `deleteFilm` fails with `Not allowed`.
 
-## Scenario 5 — Other team
+## Scenario 6 — Delete and other teams
 
-**Preconditions:** Team A has film and clips.
+**Preconditions:** Scenario 2 done.
 
-**Steps:** Signed in as Team B's head coach, select from `film`, `film_clips`, and request Team A's object keys.
+**Steps:**
 
-**Expected:** No rows, and every Team A key is refused.
+1. Signed in as Team B's head coach, select Team A's film and call `filmPlaybackUrl` and `deleteFilm` on it.
+2. As Team A's head coach, call `deleteFilm(filmId)`.
+
+**Expected:**
+
+- Step 1: no rows, and both calls fail with `Film not found`.
+- Step 2: the object is gone from the bucket (and any half-finished upload is aborted), then the film row and its clips are gone. A direct `delete from film` as a coach is refused (`permission denied`).

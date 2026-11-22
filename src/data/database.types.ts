@@ -1,5 +1,8 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
+export type FilmStatus = 'uploading' | 'processing' | 'ready' | 'failed'
+export type FilmSide = 'offense' | 'defense' | 'special' | 'kick'
+
 export type TeamRole = 'head_coach' | 'coach' | 'player'
 export type PositionCode =
   'QB' | 'RB' | 'FB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'CB' | 'S' | 'K' | 'ATH'
@@ -23,6 +26,7 @@ export type Database = {
           season: string | null
           hash_rule: string
           season_ends_on: string
+          film_quota_bytes: number
           created_by: string | null
           created_at: string
         }
@@ -455,6 +459,112 @@ export type Database = {
           due_at?: string | null
           status?: ScoutTaskStatus
           note?: string | null
+        }
+        Relationships: []
+      }
+      film: {
+        Row: {
+          id: string
+          team_id: string
+          folder_id: string | null
+          title: string
+          opponent: string | null
+          game_date: string | null
+          size_bytes: number
+          storage_key: string
+          proxy_key: string | null
+          duration_ms: number | null
+          status: FilmStatus
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          team_id: string
+          folder_id?: string | null
+          title: string
+          opponent?: string | null
+          game_date?: string | null
+          size_bytes: number
+          created_by?: string | null
+        }
+        Update: {
+          folder_id?: string | null
+          title?: string
+          opponent?: string | null
+          game_date?: string | null
+          status?: FilmStatus
+        }
+        Relationships: []
+      }
+      film_clips: {
+        Row: {
+          id: string
+          team_id: string
+          film_id: string
+          start_ms: number
+          end_ms: number
+          play_number: number | null
+          side: FilmSide | null
+          quarter: number | null
+          down: number | null
+          distance: number | null
+          hash: 'L' | 'M' | 'R' | null
+          yard_line: number | null
+          personnel: string | null
+          formation: string | null
+          front: string | null
+          coverage: string | null
+          result: string | null
+          gain_loss: number | null
+          play_id: string | null
+          look_id: string | null
+          tags: Json
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          team_id: string
+          film_id: string
+          start_ms: number
+          end_ms: number
+          play_number?: number | null
+          side?: FilmSide | null
+          quarter?: number | null
+          down?: number | null
+          distance?: number | null
+          hash?: 'L' | 'M' | 'R' | null
+          yard_line?: number | null
+          personnel?: string | null
+          formation?: string | null
+          front?: string | null
+          coverage?: string | null
+          result?: string | null
+          gain_loss?: number | null
+          play_id?: string | null
+          look_id?: string | null
+          tags?: Json
+        }
+        Update: {
+          start_ms?: number
+          end_ms?: number
+          play_number?: number | null
+          side?: FilmSide | null
+          quarter?: number | null
+          down?: number | null
+          distance?: number | null
+          hash?: 'L' | 'M' | 'R' | null
+          yard_line?: number | null
+          personnel?: string | null
+          formation?: string | null
+          front?: string | null
+          coverage?: string | null
+          result?: string | null
+          gain_loss?: number | null
+          play_id?: string | null
+          look_id?: string | null
+          tags?: Json
         }
         Relationships: []
       }

@@ -1,5 +1,5 @@
 begin;
-select plan(43);
+select plan(46);
 set local search_path = public, extensions, auth;
 
 -- Team A: 11 head coach, 12 offensive coordinator, 15 defensive coordinator, 13 a QB with
@@ -172,27 +172,25 @@ select lives_ok(
   'a film that fits the quota is accepted'
 );
 
--- 3. Storage: the uploader writes the original only, only while uploading.
-select lives_ok(
-  $$insert into storage.objects (bucket_id, name)
-    values ('film', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original')$$,
-  'head coach uploads the original'
+-- 3. Storage access: the uploader may write the original only, only while uploading.
+select is(
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original', 'upload'),
+  true,
+  'head coach may upload the original'
 );
-select throws_ok(
-  $$insert into storage.objects (bucket_id, name)
-    values ('film', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/proxy.mp4')$$,
-  '42501', null,
+select is(
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/proxy.mp4', 'upload'),
+  false,
   'a coach cannot write the proxy'
 );
-select throws_ok(
-  $$insert into storage.objects (bucket_id, name)
-    values ('film', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02/ffffffff-ffff-4fff-8fff-ffffffffff09/original')$$,
-  '42501', null,
+select is(
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02/ffffffff-ffff-4fff-8fff-ffffffffff09/original', 'upload'),
+  false,
   'a coach cannot upload into another team''s film'
 );
-select throws_ok(
-  $$insert into storage.objects (bucket_id, name) values ('film', 'not-a-team/x/original')$$,
-  '42501', null,
+select is(
+  public.film_object_allowed('not-a-team/x/original', 'read'),
+  false,
   'a malformed key is refused'
 );
 
@@ -201,10 +199,9 @@ select lives_ok(
   $$update public.film set status = 'processing' where id = current_setting('test.film')::uuid$$,
   'the uploader marks the upload finished'
 );
-select throws_ok(
-  $$insert into storage.objects (bucket_id, name)
-    values ('film', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original2')$$,
-  '42501', null,
+select is(
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original', 'upload'),
+  false,
   'nothing more is uploaded once processing'
 );
 select throws_ok(
@@ -223,10 +220,10 @@ select pg_temp.worker();
 select lives_ok(
   $$update public.film
       set status = 'ready',
-          proxy_key = team_id || '/' || id || '/proxy.mp4',
+          proxy_key = storage_key,
           duration_ms = 9000000
     where id = current_setting('test.film')::uuid$$,
-  'the worker marks the film ready with its proxy'
+  'the storage function marks the film ready, streaming the original'
 );
 set local role authenticated;
 
@@ -296,7 +293,7 @@ select pg_temp.login('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13');
 select is((select count(*)::int from public.film), 0, 'the QB sees no film yet');
 select is((select count(*)::int from public.film_clips), 0, 'the QB sees no clips yet');
 select is(
-  app.can_read_film_object('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/proxy.mp4'),
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original', 'read'),
   false,
   'the QB cannot stream the proxy yet'
 );
@@ -322,21 +319,26 @@ select results_eq(
 );
 select is((select count(*)::int from public.film), 1, 'the QB reads that film''s row');
 select is(
-  app.can_read_film_object('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/proxy.mp4'),
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original', 'read'),
   true,
   'the QB streams the proxy'
 );
 select is(
-  app.can_read_film_object('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original'),
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/thumbs/1.jpg', 'read'),
+  true,
+  'the QB reads that film''s thumbnails'
+);
+select is(
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original', 'delete'),
   false,
-  'the QB never reads the original'
+  'the QB cannot delete the film''s files'
 );
 
 select pg_temp.login('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14');
 select is((select count(*)::int from public.film) + (select count(*)::int from public.film_clips), 0,
   'a player with nothing assigned sees no film and no clips');
 select is(
-  app.can_read_film_object('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/proxy.mp4'),
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original', 'read'),
   false,
   'nor streams the proxy'
 );
@@ -350,18 +352,36 @@ select is(
   'Team B sees none of Team A''s film or clips'
 );
 select is(
-  app.can_read_film_object('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original'),
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original', 'read'),
   false,
   'Team B cannot read Team A''s film files'
 );
 
--- 9. Deleting a film removes its clips.
+-- 9. Deleting goes through the storage function, so storage is cleaned up first.
 select pg_temp.login('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11');
-select lives_ok(
-  $$delete from public.film where id = current_setting('test.film')::uuid$$,
-  'head coach deletes the film'
+select is(
+  public.film_object_allowed('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01/' || current_setting('test.film') || '/original', 'delete'),
+  true,
+  'head coach may delete the film''s files'
 );
-select is((select count(*)::int from public.film_clips), 0, 'its clips go with it');
+select throws_ok(
+  $$delete from public.film where id = current_setting('test.film')::uuid$$,
+  '42501', null,
+  'clients cannot delete the film row directly'
+);
+reset role;
+select pg_temp.worker();
+delete from public.film where id = current_setting('test.film')::uuid;
+select is(
+  (select count(*)::int from public.film_clips where film_id = current_setting('test.film')::uuid),
+  0,
+  'deleting the film removes its clips'
+);
+select is(
+  (select film_quota_bytes from public.teams where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02'),
+  10737418240::bigint,
+  'a team gets 10 GiB of film by default'
+);
 
 select * from finish();
 rollback;

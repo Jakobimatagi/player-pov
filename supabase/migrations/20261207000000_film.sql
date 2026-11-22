@@ -1,11 +1,15 @@
--- Game film and the plays marked on it (issue #59, step 1: data, RLS, storage).
+-- Game film and the plays marked on it (issue #59, step 1: data, RLS, storage access).
 -- Rollback (not applied by supabase db push): supabase/down/20261207000000_film.sql
 --
--- 1. film: one row per uploaded game. The video lives in the private `film` storage
---    bucket, once per game, at <team_id>/<film_id>/original. A transcode worker (service
---    role) writes the streaming proxy (<team_id>/<film_id>/proxy.mp4, 720p faststart) and
---    thumbnails (<team_id>/<film_id>/thumbs/...), then sets proxy_key, duration_ms and
---    status = ready. Coaches stream the proxy, never the original.
+-- 1. film: one row per uploaded game. The video lives in a private Cloudflare R2 bucket
+--    (zero egress fees, free up to 10 GB), once per game, at <team_id>/<film_id>/original.
+--    The browser never holds R2 keys: the film-storage Edge Function checks the caller
+--    with public.film_object_allowed, then hands out short-lived signed URLs.
+--    In v1 nothing is transcoded. When the upload completes, the Edge Function (service
+--    role) sets status = ready, proxy_key = storage_key and the length the browser read,
+--    and the original is what streams (range requests, so clips seek without a full
+--    download). A later transcode worker can write a 720p proxy and thumbnails
+--    (<team_id>/<film_id>/proxy.mp4, .../thumbs/...) and point proxy_key at it.
 -- 2. film_clips: a marked play is a start and end time on that one file, plus breakdown
 --    tags. Nothing is cut or stored per play. A clip can link to the play or scout look
 --    a coach charted from it.
@@ -14,13 +18,16 @@
 --      coaches break film down). Adding, renaming or deleting a film needs edit rights on
 --      the folder it sits in (app.can_edit_book), or any staff when it has no folder.
 --    - A player reads a clip only when the play it produced is assigned to them
---      (app.can_view_play), and reads that film's row and its proxy and thumbnails so the
---      clip can play. Never the original, never the film library, never another team.
---    - Status, proxy_key and duration_ms are the worker's. A coach only moves a film from
---      uploading to processing once their upload finishes.
--- 4. Limits: one file is at most 20 GiB (bucket limit and film.size_bytes). A team holds
---    at most teams.film_quota_bytes of film (200 GiB by default), counted from the
---    declared size_bytes of its film rows.
+--      (app.can_view_play), and reads that film's row and the file at proxy_key so the
+--      clip can play. Never the film library, never another team.
+--    - Status, proxy_key and duration_ms are the service role's. A coach only moves a
+--      film from uploading to processing.
+--    - Deleting a film goes through the Edge Function, which removes the R2 objects first
+--      and then the row, so no orphaned video keeps costing storage. Clients have no
+--      delete grant on film.
+-- 4. Limits: one file is at most 20 GiB. A team holds at most teams.film_quota_bytes of
+--    film (10 GiB by default, R2's free tier), counted from the declared size_bytes of
+--    its film rows. Only the service role changes a team's quota.
 
 begin;
 
@@ -28,7 +35,7 @@ begin;
 alter table public.plays add constraint plays_team_id_id_key unique (team_id, id);
 
 alter table public.teams
-  add column film_quota_bytes bigint not null default 214748364800
+  add column film_quota_bytes bigint not null default 10737418240
   check (film_quota_bytes >= 0);
 
 -- 1. Film.
@@ -156,8 +163,8 @@ as $$
     and fm.team_id = split_part(obj, '/', 1)::uuid
 $$;
 
--- Staff read every file of their team's film. A player reads only the proxy and the
--- thumbnails of a film they can view, never the original.
+-- Staff read every file of their team's film. A player reads only the file at proxy_key
+-- and the thumbnails of a film they can view. In v1 proxy_key is the original.
 create function app.can_read_film_object(obj text)
 returns boolean
 language sql
@@ -176,8 +183,8 @@ as $$
   ), false)
 $$;
 
--- The uploader writes the original once, while the film is still uploading. Proxy and
--- thumbnails are the worker's (service role, which skips these policies).
+-- The uploader writes the original, while the film is still uploading. Proxy and
+-- thumbnails are the service role's.
 create function app.can_upload_film_object(obj text)
 returns boolean
 language sql
@@ -251,6 +258,10 @@ begin
       new.status := 'uploading';
       new.proxy_key := null;
       new.duration_ms := null;
+    end if;
+    -- The size check comes before the quota so an oversize file gets the right message.
+    if new.size_bytes is null or new.size_bytes <= 0 or new.size_bytes > 21474836480 then
+      raise exception 'one film file is at most 20 GiB' using errcode = '23514';
     end if;
     -- Serialize uploads per team so two at once cannot both slip under the quota.
     select film_quota_bytes into quota from public.teams where id = new.team_id for update;
@@ -346,9 +357,6 @@ create policy film_update on public.film
   for update to authenticated
   using (app.can_write_film(team_id, folder_id))
   with check (app.can_write_film(team_id, folder_id));
-create policy film_delete on public.film
-  for delete to authenticated
-  using (app.can_write_film(team_id, folder_id));
 
 create policy clips_select on public.film_clips
   for select to authenticated
@@ -365,7 +373,7 @@ create policy clips_delete on public.film_clips
   using (app.is_staff(team_id));
 
 revoke all on table public.film from public, anon, authenticated;
-grant select, delete on table public.film to authenticated;
+grant select on table public.film to authenticated;
 grant insert (team_id, folder_id, title, opponent, game_date, size_bytes, created_by)
   on table public.film to authenticated;
 grant update (folder_id, title, opponent, game_date, status)
@@ -384,31 +392,24 @@ grant update (
 ) on table public.film_clips to authenticated;
 grant all on table public.film_clips to service_role;
 
--- 6. Storage: a private bucket, 20 GiB per file, video and thumbnail types only. Reads go
--- through short-lived signed URLs, which the policies below gate.
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'film', 'film', false, 21474836480,
-  array['video/mp4', 'video/quicktime', 'video/x-m4v', 'video/webm', 'image/jpeg', 'image/webp']
-)
-on conflict (id) do update
-  set public = excluded.public,
-      file_size_limit = excluded.file_size_limit,
-      allowed_mime_types = excluded.allowed_mime_types;
+-- 6. Storage access check for the film-storage Edge Function. Runs as the caller, so it
+-- answers for the signed-in user whose token the function forwards.
+create function public.film_object_allowed(p_key text, p_action text)
+returns boolean
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select case p_action
+    when 'read' then app.can_read_film_object(p_key)
+    when 'upload' then app.can_upload_film_object(p_key)
+    when 'delete' then app.can_delete_film_object(p_key)
+    else false
+  end
+$$;
 
-create policy film_objects_select on storage.objects
-  for select to authenticated
-  using (bucket_id = 'film' and app.can_read_film_object(name));
-create policy film_objects_insert on storage.objects
-  for insert to authenticated
-  with check (bucket_id = 'film' and app.can_upload_film_object(name));
--- Resumable uploads may overwrite the same key while the film is still uploading.
-create policy film_objects_update on storage.objects
-  for update to authenticated
-  using (bucket_id = 'film' and app.can_upload_film_object(name))
-  with check (bucket_id = 'film' and app.can_upload_film_object(name));
-create policy film_objects_delete on storage.objects
-  for delete to authenticated
-  using (bucket_id = 'film' and app.can_delete_film_object(name));
+revoke all on function public.film_object_allowed(text, text) from public, anon;
+grant execute on function public.film_object_allowed(text, text) to authenticated, service_role;
 
 commit;

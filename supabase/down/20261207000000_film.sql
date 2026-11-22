@@ -1,17 +1,9 @@
--- Rollback for 20261207000000_film.sql: no film, no clips, no film bucket policies.
--- Objects already in the `film` bucket are not removed here. Empty the bucket through the
--- Storage API first, then this drops the bucket row.
+-- Rollback for 20261207000000_film.sql: no film and no clips. Video already in the R2
+-- bucket is not removed here; empty it from the Cloudflare dashboard if needed.
 
 begin;
 
-drop policy if exists film_objects_select on storage.objects;
-drop policy if exists film_objects_insert on storage.objects;
-drop policy if exists film_objects_update on storage.objects;
-drop policy if exists film_objects_delete on storage.objects;
--- Storage refuses direct deletes unless this is set. The bucket goes only when empty.
-set local storage.allow_delete_query = 'true';
-delete from storage.buckets
-where id = 'film' and not exists (select 1 from storage.objects where bucket_id = 'film');
+drop function if exists public.film_object_allowed(text, text);
 
 -- film_of_object returns the film row type, so it goes before the table.
 drop function if exists app.can_delete_film_object(text);
