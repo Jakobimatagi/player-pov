@@ -49,7 +49,10 @@ export function dueFromDate(date: string): string | null {
   return new Date(y!, m! - 1, d!, 23, 59, 59).toISOString()
 }
 
-export function assigneeLabel(assignment: Assignment, players: readonly TeamPlayer[]): string {
+export function assigneeLabel(
+  assignment: Pick<Assignment, 'group' | 'userId'>,
+  players: readonly TeamPlayer[],
+): string {
   if (assignment.group != null) {
     return POSITION_GROUPS.find((group) => group.id === assignment.group)?.label ?? assignment.group
   }

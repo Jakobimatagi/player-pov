@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import {
   assigneeLabel,
   dueFromDate,
@@ -10,11 +10,15 @@ import {
 import type { PositionGroup, StaffSide } from '../data/database.types'
 import type { TeamPlayer } from '../data/slots'
 
+/** What the panel needs from an assignment row: folder and scout rep rows both fit. */
+type AssigneeRow = Pick<Assignment, 'id' | 'group' | 'userId' | 'dueAt'>
+
 /**
  * Assign a playbook folder to position groups or single players. Players see the folder,
- * everything under it, and only the published plays inside.
+ * everything under it, and only the published plays inside. Scout reps reuse it with
+ * their own `hint` and `lockedHint`.
  */
-export function AssignPanel({
+export function AssignPanel<T extends AssigneeRow = Assignment>({
   folderName,
   side,
   own,
@@ -26,13 +30,15 @@ export function AssignPanel({
   onAssign,
   onRemove,
   onClose,
+  hint,
+  lockedHint,
 }: {
   folderName: string
   side: StaffSide | null
   /** Assignments on this folder. */
-  own: readonly Assignment[]
+  own: readonly T[]
   /** Assignments on folders above it, which also reach this one. */
-  inherited: readonly (Assignment & { from: string })[]
+  inherited: readonly (AssigneeRow & { from: string })[]
   players: readonly TeamPlayer[]
   playCount: number
   draftCount: number
@@ -42,8 +48,12 @@ export function AssignPanel({
     userId: string | null
     dueAt: string | null
   }) => Promise<void>
-  onRemove: (assignment: Assignment) => Promise<void>
+  onRemove: (assignment: T) => Promise<void>
   onClose: () => void
+  /** Replaces the folder text under the title. */
+  hint?: ReactNode
+  /** Replaces "Only the head coach or this book's coordinator…" for coaches who can't assign. */
+  lockedHint?: ReactNode
 }) {
   const [mode, setMode] = useState<'group' | 'player'>('group')
   const suggested = side == null ? [] : SIDE_GROUPS[side]
@@ -83,7 +93,7 @@ export function AssignPanel({
       await onAssign({ ...pick, dueAt: due === '' ? null : dueFromDate(due) })
       setNote({
         kind: 'ok',
-        text: `Assigned to ${assigneeLabel({ id: '', playbookId: '', dueAt: null, ...pick }, players)}`,
+        text: `Assigned to ${assigneeLabel(pick, players)}`,
       })
       setDue('')
     } catch (error) {
@@ -93,7 +103,7 @@ export function AssignPanel({
     }
   }
 
-  async function remove(assignment: Assignment) {
+  async function remove(assignment: T) {
     setNote(null)
     try {
       await onRemove(assignment)
@@ -109,14 +119,16 @@ export function AssignPanel({
       data-testid="assign-panel"
     >
       <h2 id={headingId}>Assign {folderName}</h2>
-      <p className="folder-hint">
-        Players see this folder, every folder inside it, and the published plays in them.
-        {draftCount > 0
-          ? ` ${draftCount} of ${playCount} play${playCount === 1 ? ' is a draft' : 's are drafts'} and stay hidden until published.`
-          : playCount > 0
-            ? ` All ${playCount} play${playCount === 1 ? ' is' : 's are'} published.`
-            : ' It has no plays yet.'}
-      </p>
+      {hint ?? (
+        <p className="folder-hint">
+          Players see this folder, every folder inside it, and the published plays in them.
+          {draftCount > 0
+            ? ` ${draftCount} of ${playCount} play${playCount === 1 ? ' is a draft' : 's are drafts'} and stay hidden until published.`
+            : playCount > 0
+              ? ` All ${playCount} play${playCount === 1 ? ' is' : 's are'} published.`
+              : ' It has no plays yet.'}
+        </p>
+      )}
 
       {own.length === 0 && inherited.length === 0 ? (
         <p className="assign-none">Not assigned to anyone yet.</p>
@@ -213,9 +225,11 @@ export function AssignPanel({
         </form>
       ) : (
         <div className="playbook-actions assign-actions">
-          <p className="folder-hint">
-            Only the head coach or this book’s coordinator can change who has it.
-          </p>
+          {lockedHint ?? (
+            <p className="folder-hint">
+              Only the head coach or this book’s coordinator can change who has it.
+            </p>
+          )}
           <button type="button" className="playbook-action" onClick={onClose}>
             Done
           </button>

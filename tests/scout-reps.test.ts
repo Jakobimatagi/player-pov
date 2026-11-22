@@ -124,9 +124,9 @@ describe('homework state', () => {
   it('reads passed, retry, overdue and todo', () => {
     expect(homeworkState({ attempts: 2, passed: true, dueAt: null }, now)).toBe('passed')
     expect(homeworkState({ attempts: 1, passed: false, dueAt: null }, now)).toBe('retry')
-    expect(
-      homeworkState({ attempts: 1, passed: false, dueAt: '2026-11-20T23:59:59Z' }, now),
-    ).toBe('overdue')
+    expect(homeworkState({ attempts: 1, passed: false, dueAt: '2026-11-20T23:59:59Z' }, now)).toBe(
+      'overdue',
+    )
     expect(homeworkState({ attempts: 0, passed: false, dueAt: '2026-11-25T23:59:59Z' }, now)).toBe(
       'todo',
     )

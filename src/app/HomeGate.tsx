@@ -71,6 +71,17 @@ export function HomePage() {
   if (kind === 'viewer' && new URLSearchParams(location.search).get('home') === 'coach') {
     return <CoachHome name="Coach Diaz" demo />
   }
+  // No backend: /?home=player shows Player Home with demo plays and homework.
+  if (kind === 'viewer' && new URLSearchParams(location.search).get('home') === 'player') {
+    return (
+      <PlayerHome
+        name="Jalen Ortiz"
+        teamId={null}
+        userId={null}
+        initial={[{ id: 'demo', name: 'Trips Flood', side: 'offense', slot: 'h' }]}
+      />
+    )
+  }
   if (kind === 'viewer') return <App />
   if (kind === 'loading') return <p className="loading-line">Loading…</p>
   if (kind === 'login') return <Navigate to={`/login?next=${encodeURIComponent('/')}`} replace />

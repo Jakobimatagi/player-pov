@@ -126,7 +126,8 @@ export function describeSpot(spot: RepSpot, side: 'offense' | 'defense'): string
   const d = Math.abs(depth)
   const l = Math.abs(lateral)
   const fmt = (n: number) => (Math.round(n * 10) / 10).toString()
-  const down = d < 0.25 ? 'on the line' : `${fmt(d)} yds ${depth > 0 ? 'downfield' : 'behind the ball'}`
+  const down =
+    d < 0.25 ? 'on the line' : `${fmt(d)} yds ${depth > 0 ? 'downfield' : 'behind the ball'}`
   const across = l < 0.25 ? 'over the ball' : `${fmt(l)} yds ${lateral > 0 ? 'left' : 'right'}`
   return `${down}, ${across}`
 }

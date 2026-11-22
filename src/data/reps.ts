@@ -82,7 +82,8 @@ function denied(error: { code?: string; message: string }, fallback: string): Er
   return new Error(error.message)
 }
 
-const REP_COLUMNS = 'id, team_id, play_id, look_id, slot, target_x, target_y, tolerance_yd, note, created_at'
+const REP_COLUMNS =
+  'id, team_id, play_id, look_id, slot, target_x, target_y, tolerance_yd, note, created_at'
 
 type RepRow = {
   id: string
