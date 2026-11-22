@@ -7,6 +7,8 @@ export type PositionGroup = 'QB' | 'RB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'DB
 export type Side = 'offense' | 'defense'
 /** Coordinator side and playbook side: a side of the ball, or special teams. */
 export type StaffSide = Side | 'special'
+/** A delegated scout pack section: not started, being charted, or ready for players. */
+export type ScoutTaskStatus = 'todo' | 'in_progress' | 'ready'
 /** What a second of study was spent on: the play sheet, or a viewer camera. */
 export type ActivityKind = 'playbook' | 'pov' | 'broadcast' | 'topdown'
 
@@ -71,6 +73,7 @@ export type Database = {
           role: TeamRole
           position: PositionCode | null
           coordinates: StaffSide | null
+          coach_groups: PositionGroup[]
           created_at: string
         }
         Insert: {
@@ -79,6 +82,7 @@ export type Database = {
           role: TeamRole
           position?: PositionCode | null
           coordinates?: StaffSide | null
+          coach_groups?: PositionGroup[]
           created_at?: string
         }
         Update: {
@@ -87,6 +91,7 @@ export type Database = {
           role?: TeamRole
           position?: PositionCode | null
           coordinates?: StaffSide | null
+          coach_groups?: PositionGroup[]
           created_at?: string
         }
         Relationships: []
@@ -335,6 +340,7 @@ export type Database = {
           kind: 'playbook' | 'opponent'
           side: StaffSide | null
           base_formation: string | null
+          pack_week: string | null
           created_by: string | null
           created_at: string
         }
@@ -348,6 +354,7 @@ export type Database = {
           kind?: 'playbook' | 'opponent'
           side?: StaffSide | null
           base_formation?: string | null
+          pack_week?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -361,6 +368,7 @@ export type Database = {
           kind?: 'playbook' | 'opponent'
           side?: StaffSide | null
           base_formation?: string | null
+          pack_week?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -408,6 +416,45 @@ export type Database = {
           version?: number
           updated_by?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      scout_tasks: {
+        Row: {
+          id: string
+          team_id: string
+          folder_id: string
+          parent_task_id: string | null
+          assignee_user: string | null
+          assignee_group: PositionGroup | null
+          due_at: string | null
+          status: ScoutTaskStatus
+          note: string | null
+          status_by: string | null
+          status_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          folder_id: string
+          parent_task_id?: string | null
+          assignee_user?: string | null
+          assignee_group?: PositionGroup | null
+          due_at?: string | null
+          status?: ScoutTaskStatus
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          folder_id?: string
+          assignee_user?: string | null
+          assignee_group?: PositionGroup | null
+          due_at?: string | null
+          status?: ScoutTaskStatus
+          note?: string | null
         }
         Relationships: []
       }
@@ -758,6 +805,17 @@ export type Database = {
       health: {
         Args: Record<string, never>
         Returns: number
+      }
+      create_scout_pack: {
+        Args: {
+          p_team: string
+          p_opponent: string
+          p_week: string
+          p_week_name: string
+          p_side: StaffSide | null
+          p_sections: string[]
+        }
+        Returns: string
       }
       publish_play: {
         Args: { p_play: string }
