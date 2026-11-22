@@ -1336,6 +1336,13 @@
     pointer-events: auto;
   }
 
+  /* Phones: the HUD wraps to three rows, so the notes stop above it. */
+  @media (max-width: 767px) {
+    .viewer-notes {
+      max-height: calc(100% - 27rem);
+    }
+  }
+
   .player-note {
     margin: 0;
     background: var(--card);

@@ -20,8 +20,14 @@ export const cameraState = {
 
 const listeners = new Set<() => void>()
 
+/**
+ * Calls `listener` on every change, and once now: a component subscribes in an effect,
+ * after its parent's layout effects, so it may have missed a change made before paint
+ * (the viewer starting a player on their slot).
+ */
 export function subscribeCamera(listener: () => void): () => void {
   listeners.add(listener)
+  listener()
   return () => listeners.delete(listener)
 }
 

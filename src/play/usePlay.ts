@@ -104,7 +104,12 @@ async function loadSavedPlay(playId: string, version?: number, lookId?: string):
         url,
         heading: 'Couldn’t open this look',
         errors: [
-          { kind: 'network', path: 'look', message: `“${pick.value}” is not a saved look id.` },
+          {
+            kind: 'network',
+            path: '?look=',
+            playerId: 'Scout look',
+            message: `“${pick.value}” is not a saved look id.`,
+          },
         ],
       }
     }
@@ -130,7 +135,9 @@ async function loadSavedPlay(playId: string, version?: number, lookId?: string):
         ok: false,
         url,
         heading: 'Couldn’t open this look',
-        errors: [{ kind: 'network', path: 'look', message: LOOK_UNAVAILABLE }],
+        errors: [
+          { kind: 'network', path: '?look=', playerId: 'Scout look', message: LOOK_UNAVAILABLE },
+        ],
       }
     }
     const source = { ...look.source, name: look.name }
@@ -197,7 +204,8 @@ export async function loadPlayInput(input: PlayInput): Promise<Loaded> {
         errors: [
           {
             kind: 'network',
-            path: 'look',
+            path: '?look=',
+            playerId: 'Scout look',
             message: 'This demo play only runs against its own look.',
           },
         ],
