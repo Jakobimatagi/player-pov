@@ -1,4 +1,5 @@
 import { useId, useState, type CSSProperties } from 'react'
+import { useSearchParams } from 'react-router'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
 import {
   DEPTH_SLOTS,
@@ -22,7 +23,10 @@ import {
   type DepthMap,
   type RosterPlayer,
 } from './roster'
+import { NotesControl, NotesThread } from './NotesThread'
+import { rankLabel, type DepthNote } from './depthNotes'
 import { TeamShell } from './TeamShell'
+import { useDepthNotes, type DepthNotesApi } from './useDepthNotes'
 import { useTeamRoster } from './useTeamRoster'
 import './team.css'
 
@@ -31,6 +35,8 @@ const RANK = ['Starter', '2nd', '3rd', '4th', '5th', '6th']
 export function DepthChartPage() {
   const team = useTeamRoster()
   const { snap, demo, players, depth } = team
+  const notes = useDepthNotes(snap, demo)
+  const [params, setParams] = useSearchParams()
   const [unitPick, setUnitPick] = useState<Unit | null>(null)
   const unit: Unit = unitPick ?? (snap.side === 'special' ? 'ko' : (snap.side ?? 'offense'))
   const group = groupOf(unit)
@@ -45,6 +51,23 @@ export function DepthChartPage() {
   const current = DEPTH_SLOTS.find((slot) => slot.id === openSlot) ?? null
   const receiving = unit === 'defense' || unit === 'kr' || unit === 'pr'
   const fieldStyle = { '--cols': unitColumns(unit) } as CSSProperties
+  // Deep link from the roster sheet or activity dashboard: ?player=<roster id> or ?user=<account id>.
+  const wantPlayer = params.get('player')
+  const wantUser = params.get('user')
+  const focus =
+    current == null && (wantPlayer != null || wantUser != null)
+      ? (players.find(
+          (player) =>
+            (wantPlayer != null && player.id === wantPlayer) ||
+            (wantUser != null && player.userId === wantUser),
+        ) ?? null)
+      : null
+  const clearFocus = () => {
+    const next = new URLSearchParams(params)
+    next.delete('player')
+    next.delete('user')
+    setParams(next, { replace: true })
+  }
 
   const pick = (next: Unit) => {
     setUnitPick(next)
@@ -95,6 +118,7 @@ export function DepthChartPage() {
       ) : null}
       {team.loading ? <p className="loading-line">Loading…</p> : null}
       {team.error ? <p className="auth-error">{team.error}</p> : null}
+      {notes.error ? <p className="auth-error">{notes.error}</p> : null}
       {!team.loading ? (
         <p className="depth-summary">
           {empty === 0
@@ -145,6 +169,16 @@ export function DepthChartPage() {
             editable={canEdit(current.id)}
             onSave={(ids) => team.saveDepth(current.id, ids)}
             onClose={() => setOpenSlot(null)}
+            notes={notes}
+          />
+        ) : null}
+        {focus != null ? (
+          <PlayerNotesPanel
+            key={focus.id}
+            player={focus}
+            depth={depth}
+            notes={notes}
+            onClose={clearFocus}
           />
         ) : null}
       </div>
@@ -201,6 +235,7 @@ function SlotPanel({
   editable,
   onSave,
   onClose,
+  notes,
 }: {
   slot: DepthSlot
   ids: string[]
@@ -210,8 +245,10 @@ function SlotPanel({
   editable: boolean
   onSave: (ids: string[]) => Promise<void>
   onClose: () => void
+  notes: DepthNotesApi
 }) {
   const [error, setError] = useState<string | null>(null)
+  const [notesFor, setNotesFor] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const headingId = useId()
   const elsewhere = slotsByPlayer(depth, slotDisplay)
@@ -249,7 +286,8 @@ function SlotPanel({
           const player = byId.get(id)
           if (player == null) return null
           const extra = also(id)
-          return (
+          const playerNotes: DepthNote[] | undefined = notes.byPlayer.get(id)
+          return [
             <li key={id} className="depth-row">
               <span className="depth-rank">{RANK[index]}</span>
               <span className="depth-who">
@@ -259,6 +297,12 @@ function SlotPanel({
                     'No position'}
                   {extra.length > 0 ? ` · also ${extra.join(', ')}` : ''}
                 </span>
+                <NotesControl
+                  player={player}
+                  notes={playerNotes}
+                  open={notesFor === id}
+                  onToggle={() => setNotesFor(notesFor === id ? null : id)}
+                />
               </span>
               {editable ? (
                 <span className="depth-moves">
@@ -291,8 +335,19 @@ function SlotPanel({
                   </button>
                 </span>
               ) : null}
-            </li>
-          )
+            </li>,
+            notesFor === id ? (
+              <li key={`${id}-notes`} className="depth-thread">
+                <NotesThread
+                  player={player}
+                  notes={playerNotes}
+                  api={notes}
+                  slot={slot.id}
+                  onClose={() => setNotesFor(null)}
+                />
+              </li>
+            ) : null,
+          ]
         })}
       </ol>
       {editable && ids.length < MAX_DEPTH ? (
@@ -347,5 +402,40 @@ function PlayerOption({ player, also }: { player: RosterPlayer; also: string[] }
     <option value={player.id}>
       {playerLabel(player)} ({pos}){also.length > 0 ? ` · ${also.join(', ')}` : ''}
     </option>
+  )
+}
+
+/** One player's spots and notes, opened from a link (?player= or ?user=) with no position picked. */
+function PlayerNotesPanel({
+  player,
+  depth,
+  notes,
+  onClose,
+}: {
+  player: RosterPlayer
+  depth: DepthMap
+  notes: DepthNotesApi
+  onClose: () => void
+}) {
+  const headingId = useId()
+  const spots = Object.entries(depth)
+    .flatMap(([slotId, ids]) => {
+      const index = ids.indexOf(player.id)
+      return index < 0 ? [] : [`${slotDisplay(slotId)}, ${rankLabel(index + 1)}`]
+    })
+    .sort()
+  return (
+    <section className="depth-panel" aria-labelledby={headingId} data-testid="player-notes-panel">
+      <header className="assign-head">
+        <h2 id={headingId}>{playerLabel(player)}</h2>
+        <button type="button" className="btn" onClick={onClose}>
+          Close
+        </button>
+      </header>
+      <p className="assign-hint">
+        {spots.length === 0 ? 'Not on the depth chart yet.' : spots.join(' · ')}
+      </p>
+      <NotesThread player={player} notes={notes.byPlayer.get(player.id)} api={notes} />
+    </section>
   )
 }

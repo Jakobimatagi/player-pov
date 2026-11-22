@@ -15,7 +15,10 @@ import {
   type RosterPlayer,
   type RosterSort,
 } from './roster'
+import { NotesControl, NotesThread } from './NotesThread'
+import { LABEL_PRIVATE, LABEL_SHARED } from './depthNotes'
 import { TeamShell } from './TeamShell'
+import { useDepthNotes } from './useDepthNotes'
 import { useTeamRoster } from './useTeamRoster'
 import './team.css'
 
@@ -37,6 +40,9 @@ const SORTS: { id: RosterSort; label: string }[] = [
 export function RosterSheetPage() {
   const team = useTeamRoster()
   const { snap, demo, players } = team
+  const notes = useDepthNotes(snap, demo)
+  const [notesFor, setNotesFor] = useState<string | null>(null)
+  const threadPlayer = players.find((player) => player.id === notesFor) ?? null
   const [filter, setFilter] = useState<RosterFilter>('all')
   const [sort, setSort] = useState<RosterSort>('jersey')
   const [search, setSearch] = useState('')
@@ -131,6 +137,18 @@ export function RosterSheetPage() {
       ) : null}
       {team.loading ? <p className="loading-line">Loading…</p> : null}
       {team.error ? <p className="auth-error">{team.error}</p> : null}
+      {notes.error ? <p className="auth-error">{notes.error}</p> : null}
+      {threadPlayer != null ? (
+        <div className="sheet-thread">
+          <NotesThread
+            key={threadPlayer.id}
+            player={threadPlayer}
+            notes={notes.byPlayer.get(threadPlayer.id)}
+            api={notes}
+            onClose={() => setNotesFor(null)}
+          />
+        </div>
+      ) : null}
 
       <p className="sheet-count">
         {shown.length === players.length
@@ -149,6 +167,7 @@ export function RosterSheetPage() {
             <col className="c-wt" />
             <col className="c-account" />
             <col className="c-notes" />
+            <col className="c-depthnotes" />
             <col className="c-actions" />
           </colgroup>
           <thead>
@@ -169,7 +188,8 @@ export function RosterSheetPage() {
               <th className="col-num">Ht</th>
               <th className="col-num">Wt</th>
               <th>Account</th>
-              <th className="col-notes">Staff notes</th>
+              <th className="col-notes">{LABEL_PRIVATE}</th>
+              <th>Depth notes</th>
               <th>
                 <span className="visually-hidden">Actions</span>
               </th>
@@ -292,11 +312,25 @@ export function RosterSheetPage() {
                   )}
                 </td>
                 <td className="col-notes">
+                  <span className="sheet-notes-label">{LABEL_PRIVATE}</span>
                   <Cell
-                    label={`Staff notes for ${player.name}`}
+                    label={`Private staff notes for ${player.name}`}
                     value={player.notes}
                     parse={(raw) => raw.slice(0, 1000)}
-                    onCommit={(notes) => patch(player, { notes: notes ?? '' })}
+                    onCommit={(text) => patch(player, { notes: text ?? '' })}
+                  />
+                </td>
+                <td className="col-depthnotes">
+                  <DepthNotesCell
+                    shared={
+                      notes.byPlayer.get(player.id)?.filter((note) => note.shared).length ?? 0
+                    }
+                  />
+                  <NotesControl
+                    player={player}
+                    notes={notes.byPlayer.get(player.id)}
+                    open={notesFor === player.id}
+                    onToggle={() => setNotesFor(notesFor === player.id ? null : player.id)}
                   />
                 </td>
                 <td className="col-actions">
@@ -339,7 +373,8 @@ export function RosterSheetPage() {
       <AddRow onAdd={(row) => run(() => team.add([row]), `${row.name} added`)} />
       <p className="sheet-hint">
         Changes save when you leave a cell or press Enter. Players with an app account come from
-        invites; remove them on the Members tab. Staff notes are never shown to players.
+        invites; remove them on the Members tab. Staff notes are never shown to players. Depth notes
+        are read by every coach; a player reads only the ones marked {LABEL_SHARED}.
       </p>
     </TeamShell>
   )
@@ -407,6 +442,14 @@ function Cell<T>({
       onBlur={commit}
       onKeyDown={onKey}
     />
+  )
+}
+
+function DepthNotesCell({ shared }: { shared: number }) {
+  return (
+    <span className="sheet-notes-label" data-shared={shared > 0}>
+      {shared > 0 ? `${LABEL_SHARED} (${shared})` : 'Not shared'}
+    </span>
   )
 }
 
