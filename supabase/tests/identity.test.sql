@@ -99,7 +99,12 @@ begin
     end if;
 
     if not known then
-      execute format('select count(*) from public.%I', r.relname) into n;
+      -- A service-role-only table (no grant to authenticated) hides every row.
+      begin
+        execute format('select count(*) from public.%I', r.relname) into n;
+      exception when insufficient_privilege then
+        n := 0;
+      end;
       if n <> 0 then
         raise exception 't2 can read % rows from unclassified public table %', n, r.relname;
       end if;
