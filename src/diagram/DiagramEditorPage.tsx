@@ -53,7 +53,17 @@ import {
 } from './types'
 import { diagramFromFormation } from './formations'
 import { FormationPicker } from './FormationPicker'
-import { applyPreset, BLANK_LINE, clearSide, PRESETS, type Preset } from './presets'
+import {
+  applyPreset,
+  BLANK_LINE,
+  clearSide,
+  PRESETS,
+  type Preset,
+  type PresetSide,
+} from './presets'
+import { liveTemplates, templatePreset } from './templates'
+import { useFormationTemplates } from './useFormationTemplates'
+import { canEditSide } from '../auth/sides'
 import { useBook, type BookState } from './useBook'
 import { useScenePalette } from './useScenePalette'
 import type { SaveStatus } from './saver'
@@ -154,6 +164,7 @@ export function DiagramEditorPage() {
           playbookId={playbookId}
           roster={roster}
           lookup={lookup}
+          demo={demo}
         />
       )}
     </CoachLayout>
@@ -164,16 +175,22 @@ function DiagramEditor({
   playbookId,
   roster,
   lookup,
+  demo,
 }: {
   playbookId: string | null
   roster: string | null
   lookup: BookState
+  demo: boolean
 }) {
   const { book, remote, synced } = lookup
   const palette = useScenePalette()
+  const snap = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
+  const templates = useFormationTemplates(demo ? null : snap.teamId, demo)
+  const canEditTemplates = (side: PresetSide) =>
+    demo || canEditSide(snap.role, snap.side, side, snap.specialCoordinator)
   const key = storageKey(playbookId)
   const rosterQuery = roster === 'demo' ? '&roster=demo' : ''
-  const base = useMemo(() => diagramFromFormation(book?.formation ?? null), [book])
+  const base = useMemo(() => diagramFromFormation(book?.formation ?? null, book?.templates), [book])
   // Where the first script comes from: the database, else a draft left on this device
   // (which gets pushed up), else the base alignment.
   const [start] = useState(() => {
@@ -448,7 +465,16 @@ function DiagramEditor({
 
   // One click sets a formation: from the picker, or by typing its name in the search box.
   // It is one undo step, and the other side and any notes stay.
-  const presetNames = useMemo(() => [...PRESETS, BLANK_LINE], [])
+  // The team's own formations come first, so their name wins over a built-in's.
+  const presetNames = useMemo(
+    () => [
+      ...liveTemplates(templates.templates, 'offense').map(templatePreset),
+      ...liveTemplates(templates.templates, 'defense').map(templatePreset),
+      ...PRESETS,
+      BLANK_LINE,
+    ],
+    [templates.templates],
+  )
   function applyFormation(preset: Preset) {
     dispatch({ type: 'replace', diagram: applyPreset(state.diagram, preset) })
   }
@@ -599,6 +625,9 @@ function DiagramEditor({
                 (p) => p.side !== 'defense' && p.shape !== 'text',
               )}
               hasDefense={state.diagram.players.some((p) => p.side === 'defense')}
+              diagram={state.diagram}
+              templates={templates}
+              canEdit={canEditTemplates}
               onApply={applyFormation}
               onClear={(side) =>
                 dispatch({ type: 'replace', diagram: clearSide(state.diagram, side) })
