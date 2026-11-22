@@ -480,10 +480,13 @@ begin
   end if;
   v_distance := sqrt(power(p_x - v_rep.target_x, 2) + power(p_y - v_rep.target_y, 2));
   v_passed := v_distance <= v_rep.tolerance_yd;
+  -- clock_timestamp, not now(): two attempts in one transaction must still sort in the
+  -- order they were made, or "first try" could pick the wrong one.
   insert into public.rep_attempts (
-    team_id, assignment_id, rep_id, user_id, end_x, end_y, distance_yd, passed
+    team_id, assignment_id, rep_id, user_id, end_x, end_y, distance_yd, passed, created_at
   ) values (
-    v_team, p_assignment, v_rep.id, uid, p_x, p_y, v_distance, v_passed
+    v_team, p_assignment, v_rep.id, uid, p_x, p_y, v_distance, v_passed,
+    pg_catalog.clock_timestamp()
   )
   returning id into v_id;
 
