@@ -6,6 +6,8 @@ Vercel Hobby is for an unpaid personal pilot only. Move to Vercel Pro before any
 
 `deploy.yml` pushes migrations on every merge to `main`, after the GitHub `production` environment approves the job. The frontend deploys from the Vercel GitHub integration, not from that workflow. `vercel.json` sends every path to `index.html`. Keep-alive and backup are GitHub Actions schedules, not Vercel Cron. GitHub turns scheduled workflows off after 60 days with no repository activity.
 
+Billing runs on Stripe through two Edge Functions. Their secrets, the webhook endpoint and the deploy commands are in `scenarios/billing.md` (Setup). Stripe keys go in Supabase secrets only, never in Vercel.
+
 Do not apply `supabase/seed.sql` on the hosted project. The password in that file is for the local demo only.
 
 ## Infra, in order
