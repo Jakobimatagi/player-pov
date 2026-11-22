@@ -64,6 +64,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `performance.md`               | Quality ladder and frame budget            |
 | `blocky-and-facemask.md`       | Blocky players and the POV facemask        |
 | `auth.md`                      | Sign in, reset, invite, sign out           |
+| `landing.md`                   | Logged-out landing page and plans          |
 | `team-management.md`           | Create team, roster, invites               |
 | `play-compile.md`              | Source compile, looks, validator parity    |
 | `waypoint-cap.md`              | 12-waypoint cap and route thinning         |
