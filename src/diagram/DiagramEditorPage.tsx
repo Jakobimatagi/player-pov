@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
-import { Link, Navigate, useLocation, useSearchParams } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { CoachLayout } from '../app/CoachLayout'
 import { getAuthSnap, subscribeAuth } from '../auth/session'
 import { supabase } from '../data/supabase'
@@ -66,6 +66,7 @@ import { useFormationTemplates } from './useFormationTemplates'
 import { canEditSide } from '../auth/sides'
 import { useBook, type BookState } from './useBook'
 import { useScenePalette } from './useScenePalette'
+import { diagramDraft, stashDraft } from './draftPreview'
 import type { SaveStatus } from './saver'
 import { useRemoteSave } from './useRemoteSave'
 import './diagram.css'
@@ -485,6 +486,29 @@ function DiagramEditor({
     return true
   }
   const [search, setSearch] = useState('')
+  const navigate = useNavigate()
+  // Watch in 3D: which side of the drawing is the play; the other side is the scout look.
+  const [previewSide, setPreviewSide] = useState<'offense' | 'defense'>('offense')
+  const [previewError, setPreviewError] = useState<string | null>(null)
+
+  function watchDraft() {
+    const draft = diagramDraft(state.diagram, {
+      ourSide: previewSide,
+      name: script.plays[script.index]?.name ?? '',
+      ...(preset != null ? { yardLine: FIELD_PRESETS[preset].yardLine } : {}),
+    })
+    if (!draft.ok) {
+      setPreviewError(draft.error)
+      return
+    }
+    const key = stashDraft({ source: draft.source, look: draft.look })
+    if (key == null) {
+      setPreviewError('This browser won’t keep a draft, so it can’t open the preview.')
+      return
+    }
+    setPreviewError(null)
+    void navigate(`/watch/draft/${key}`)
+  }
   const [formationsOpen, setFormationsOpen] = useState(false)
 
   const play = script.plays[script.index]
@@ -542,6 +566,32 @@ function DiagramEditor({
             >
               {saveLabel(synced, saveStatus)}
             </span>
+            <label className="dge-preview-side">
+              <select
+                aria-label="Our side in the 3D preview"
+                data-testid="preview-side"
+                value={previewSide}
+                onChange={(event) =>
+                  setPreviewSide(event.currentTarget.value === 'defense' ? 'defense' : 'offense')
+                }
+              >
+                <option value="offense">Our offense vs look</option>
+                <option value="defense">Our defense vs look</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              className="dge-btn"
+              data-testid="watch-draft"
+              onClick={watchDraft}
+            >
+              Watch in 3D
+            </button>
+            {previewError != null ? (
+              <span className="dge-saved" data-status="error" role="alert">
+                {previewError}
+              </span>
+            ) : null}
             {saveStatus === 'conflict' ? (
               <button type="button" className="dge-btn" onClick={() => window.location.reload()}>
                 Reload

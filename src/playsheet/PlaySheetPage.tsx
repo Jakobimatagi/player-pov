@@ -36,6 +36,9 @@ import {
   type VariantTarget,
 } from '../data/variants'
 import { compileChart } from '../editor/compileAdapter'
+import { watchUrl } from '../play/lookChoice'
+import { LookSelect } from '../viewer/LookSelect'
+import { useWatchLooks } from '../viewer/useWatchLooks'
 import { detectTags, FORMATION_LIBRARY, tagSummary } from '../formations/library'
 import { honorDemoRoster } from '../playbook/archive'
 import type { LookSource, PlaySource } from '../play/sourceTypes'
@@ -52,6 +55,8 @@ interface SheetPlay {
   name: string
   side: Team
   publishedAt: string | null
+  /** The look the play was charted against (`plays.default_look_id`). */
+  defaultLookId: string | null
   file: PlayFile
   /** The editable chart and the look it was saved against, for re-aligning the board. */
   source: PlaySource | null
@@ -117,6 +122,7 @@ export function PlaySheetPage() {
               name: demo.name,
               side: 'defense',
               publishedAt: null,
+              defaultLookId: null,
               file: demo.file,
               source: demo.play.source,
               look: { id: demo.play.look.id, source: demo.play.look },
@@ -130,6 +136,7 @@ export function PlaySheetPage() {
               name: DEMO_PLAY_NAME,
               side: 'offense',
               publishedAt: null,
+              defaultLookId: null,
               file: demoPlay(),
               source: null,
               look: null,
@@ -180,6 +187,7 @@ export function PlaySheetPage() {
             name: stored.row.name,
             side: stored.row.side,
             publishedAt: stored.row.published_at,
+            defaultLookId: stored.row.default_look_id,
             file: stored.compiled,
             source: stored.source,
             look: stored.look == null ? null : { id: stored.look.id, source: stored.look.source },
@@ -204,6 +212,15 @@ export function PlaySheetPage() {
   }, [fixture, playId, playerView, signedIn, userId])
 
   const ready = load.status === 'ready' ? load.play : null
+
+  // Which scout look Watch in 3D opens against. Picked here, fixed for that open.
+  const watchLooks = useWatchLooks({
+    teamId: fixture ? null : (ready?.teamId ?? null),
+    playSide: fixture ? null : (ready?.side ?? null),
+    defaultLookId: ready?.defaultLookId ?? null,
+  })
+  const [watchLook, setWatchLook] = useState<string | null>(() => params.get('look'))
+  const watchLookId = watchLook ?? ready?.defaultLookId ?? null
 
   // A defense also plans against the offense formations its coaches saved. Staff only:
   // players can't read templates.
@@ -458,7 +475,17 @@ export function PlaySheetPage() {
               </span>
             ) : null}
             <span className="sheet-actions">
-              <Link className="btn" to={`/watch/${ready.id}`}>
+              <LookSelect
+                playSide={ready.side}
+                looks={watchLooks.looks}
+                value={watchLookId}
+                onChange={setWatchLook}
+              />
+              <Link
+                className="btn"
+                data-testid="watch-3d"
+                to={watchUrl(ready.id, watchLookId, ready.defaultLookId)}
+              >
                 Watch in 3D
               </Link>
               {canPublish ? (
