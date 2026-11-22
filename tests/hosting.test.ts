@@ -76,5 +76,11 @@ describe('hosting', () => {
     expect(scan('import "node:crypto"').status).toBe(1)
     expect(scan('import "node:crypto"').stderr).toContain('node: import')
     expect(scan('{node:1}').status).toBe(0)
+    // Minified object keys after a comma are not imports (icon and canvas libraries use them).
+    expect(scan('x={name:1,node:t,size:2};y=new Z({...e,node:this})').status).toBe(0)
+    // Every quoted form of a real built-in still fails.
+    expect(scan('require("node:fs")').status).toBe(1)
+    expect(scan("import('node:path')").status).toBe(1)
+    expect(scan('import x from`node:url`').status).toBe(1)
   })
 })
