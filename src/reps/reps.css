@@ -161,6 +161,12 @@
     gap: 0.5rem;
   }
 
+  .rep-row-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
   .rep-list {
     list-style: none;
     margin: 0;

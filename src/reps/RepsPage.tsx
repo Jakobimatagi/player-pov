@@ -755,6 +755,7 @@ export function RepResults({
                 <th>First try</th>
                 <th>Best</th>
                 <th>Tries</th>
+                <th>Due</th>
               </tr>
             </thead>
             <tbody>
@@ -778,10 +779,8 @@ export function RepResults({
                     </td>
                     <td data-label="Tries" className="num">
                       {row.attempts}
-                      {row.dueAt != null ? (
-                        <span className="rep-list-meta">Due {dueLabel(row.dueAt)}</span>
-                      ) : null}
                     </td>
+                    <td data-label="Due">{row.dueAt == null ? '—' : dueLabel(row.dueAt)}</td>
                   </tr>
                 )
               })}
