@@ -70,6 +70,7 @@ npm run typecheck && npm run lint && npm test && npm run build
 | `playbook-data.md`             | Play RLS, assigned reads, version conflict |
 | `scout-packages.md`            | Package looks, slots, other team           |
 | `scout-packs.md`               | Opponent packs, delegation, coach rooms    |
+| `scout-reps.md`                | Rep homework: target spot, attempts, RLS   |
 | `playbook.md`                  | Play list, rename, delete, player view     |
 | `editor.md`                    | Editor core: render, select, undo          |
 | `formation-templates.md`       | Save, reuse, base alignment, side rules    |
