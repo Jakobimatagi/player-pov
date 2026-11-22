@@ -1,0 +1,222 @@
+/* Scout packs: the pack board, the delegate control and the coach task list. Built to fit
+   a 390px phone with no sideways scroll: every row wraps, nothing has a fixed width. */
+
+.scout-pack-form .auth-field,
+.delegate-form .auth-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.scout-pack-form .auth-field input,
+.delegate-form .auth-field input,
+.delegate-form .auth-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.pack-board {
+  margin: 0 0 16px;
+  min-width: 0;
+}
+
+.pack-board h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pack-sections,
+.pack-tasks,
+.scout-task-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pack-section {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.pack-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pack-section-name {
+  min-height: 44px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: left;
+  color: var(--foreground);
+  background: none;
+  border: 0;
+  overflow-wrap: anywhere;
+}
+
+.pack-state {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+
+.pack-state[data-state='in_progress'] {
+  color: rgb(252 211 77);
+  background: rgb(245 158 11 / 0.14);
+}
+
+.pack-state[data-state='ready'] {
+  color: rgb(110 231 183);
+  background: rgb(16 185 129 / 0.14);
+}
+
+.pack-state[data-state='published'] {
+  color: rgb(147 197 253);
+  background: rgb(59 130 246 / 0.16);
+}
+
+.pack-meta,
+.pack-by,
+.pack-note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.pack-task {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-width: 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.pack-who {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.pack-due {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.pack-due[data-due='soon'] {
+  color: rgb(252 211 77);
+}
+
+.pack-due[data-due='overdue'] {
+  color: rgb(252 165 165);
+}
+
+.pack-note,
+.pack-by {
+  flex-basis: 100%;
+}
+
+.pack-task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.pack-task-actions select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 8px;
+  color: var(--foreground);
+  background: transparent;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+}
+
+.pack-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.delegate-form {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.delegate-form .playbook-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Coach Home task list. */
+.scout-tasks {
+  margin: 0 0 24px;
+}
+
+.scout-tasks h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.scout-task {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.scout-task a {
+  flex: 1 1 12rem;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.scout-task a strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.scout-task a span {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}

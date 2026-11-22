@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CoachLayout } from './CoachLayout'
+import { ScoutTaskList } from './ScoutTaskList'
 
 interface Destination {
   to: string
@@ -56,12 +57,13 @@ function greeting(hour: number): string {
   return 'Good evening'
 }
 
-export function CoachHome({ name }: { name: string }) {
+export function CoachHome({ name, demo = false }: { name: string; demo?: boolean }) {
   const places = destinations()
   const [feature, ...rest] = places
   return (
     <CoachLayout title={greeting(new Date().getHours())} eyebrow="Coach home" account={name}>
       <p className="mb-6 text-sm text-muted-foreground">Jump back into your playbook or team.</p>
+      <ScoutTaskList demo={demo} />
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {feature ? (
           <li className="sm:col-span-2 lg:row-span-2 lg:col-span-1">

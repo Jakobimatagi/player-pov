@@ -47,6 +47,39 @@ import {
 import type { PositionGroup } from '../data/database.types'
 import { listTeamPlayers, type TeamPlayer } from '../data/slots'
 import { AssignPanel } from './AssignPanel'
+import {
+  createScoutPack,
+  createScoutTask,
+  deleteScoutTask,
+  listPacks,
+  listScoutTasks,
+  listStaff,
+  loadMyGroups,
+  setScoutTaskStatus,
+  type StaffMember,
+} from '../data/scoutTasks'
+import { DEMO_HEAD_COACH, DEMO_PACK_FOLDERS, DEMO_PACKS, DEMO_STAFF, DEMO_TASKS } from './scoutDemo'
+import {
+  canDelegate,
+  canManageTask,
+  canSetStatus,
+  myCoveringTask,
+  ownsFolder,
+  packFolders,
+  packOf,
+  planPack,
+  sectionState,
+  type Pack,
+  type PackInput,
+  type ScoutTask,
+} from './scoutPacks'
+import {
+  NewScoutPackForm,
+  PackBoard,
+  type BoardSection,
+  type DelegateInput,
+} from './ScoutPackPanels'
+import type { PositionGroup as RoomGroup, ScoutTaskStatus } from '../data/database.types'
 import '../diagram/diagram.css'
 import { AddPlaysPanel, GeneratePlaybookPanel, NewFolderForm, type AddMode } from './FolderForms'
 import { findTemplate } from './playbooks'
@@ -77,6 +110,7 @@ type Panel =
   | { kind: 'add'; mode: AddMode }
   | { kind: 'generate' }
   | { kind: 'assign'; folderId: string }
+  | { kind: 'pack' }
   | null
 
 function useAuth() {
@@ -130,8 +164,17 @@ export function PlaybookPage() {
   )
   const [archived, setArchived] = useState<PlayRow[]>(() => (fixture && staff ? DEMO_ARCHIVED : []))
   const [folders, setFolders] = useState<Folder[]>(() =>
-    fixture ? (playerView ? DEMO_FOLDERS.filter((f) => f.id === 'base') : DEMO_FOLDERS) : [],
+    fixture
+      ? playerView
+        ? DEMO_FOLDERS.filter((f) => f.id === 'base')
+        : [...DEMO_FOLDERS, ...DEMO_PACK_FOLDERS]
+      : [],
   )
+  const demoStaff = fixture && !playerView
+  const [tasks, setTasks] = useState<ScoutTask[]>(() => (demoStaff ? DEMO_TASKS : []))
+  const [packs, setPacks] = useState<Pack[]>(() => (demoStaff ? DEMO_PACKS : []))
+  const [staffList, setStaffList] = useState<StaffMember[]>(() => (demoStaff ? DEMO_STAFF : []))
+  const [myGroups, setMyGroups] = useState<RoomGroup[]>([])
   const [links, setLinks] = useState<FolderLink[]>(fixture ? DEMO_LINKS : [])
   const [assignments, setAssignments] = useState<Assignment[]>(() =>
     fixture && !playerView ? DEMO_ASSIGNMENTS : [],
@@ -164,6 +207,7 @@ export function PlaybookPage() {
   const refresh = useCallback(async () => {
     if (supabase == null || snap.teamId == null) return
     const teamId = snap.teamId
+    const userId = snap.session?.user.id ?? null
     const [nextPlays, tree, nextArchived, nextAssignments, nextPlayers] = await Promise.all([
       listPlays(teamId),
       listFolders(teamId),
@@ -171,13 +215,28 @@ export function PlaybookPage() {
       staff ? listAssignments(teamId) : Promise.resolve([] as Assignment[]),
       staff ? listTeamPlayers(teamId).catch(() => [] as TeamPlayer[]) : Promise.resolve([]),
     ])
+    // Scout packs are staff-only. A failure here leaves the rest of the page working.
+    const [nextTasks, nextPacks, nextStaff, nextGroups] = staff
+      ? await Promise.all([
+          listScoutTasks(teamId).catch(() => [] as ScoutTask[]),
+          listPacks(teamId).catch(() => [] as Pack[]),
+          listStaff(teamId).catch(() => [] as StaffMember[]),
+          userId == null
+            ? Promise.resolve([] as RoomGroup[])
+            : loadMyGroups(teamId, userId).catch(() => [] as RoomGroup[]),
+        ])
+      : [[] as ScoutTask[], [] as Pack[], [] as StaffMember[], [] as RoomGroup[]]
+    setTasks(nextTasks)
+    setPacks(nextPacks)
+    setStaffList(nextStaff)
+    setMyGroups(nextGroups)
     setPlays(nextPlays)
     setFolders(tree.folders)
     setLinks(tree.links)
     setArchived(nextArchived)
     setAssignments(nextAssignments)
     setTeamPlayers(nextPlayers)
-  }, [snap.teamId, staff])
+  }, [snap.teamId, snap.session?.user.id, staff])
 
   useEffect(() => {
     startAuth()
@@ -207,7 +266,15 @@ export function PlaybookPage() {
   const canEdit = (side: StaffSide | null) =>
     fixture || canEditSide(role, mySide, side, snap.specialCoordinator)
   const hereSide = effectiveSide(live, current)
-  const editHere = staff && canEdit(hereSide)
+  const me = fixture ? DEMO_HEAD_COACH : { userId: snap.session?.user.id ?? null, groups: myGroups }
+  /** A scout task on this folder or above it: edit rights whatever the side (app.owns_section). */
+  const owns = (id: string | null) => staff && ownsFolder(live, tasks, me, id)
+  const editHere = staff && (canEdit(hereSide) || owns(current))
+  const herePack = staff ? packOf(live, packs, current) : null
+  const packSides: (StaffSide | null)[] =
+    fixture || role === 'head_coach' || mySide == null
+      ? ['defense', 'offense', 'special', null]
+      : [mySide, null]
   /** Starter books this coach may generate here: the folder's side, or any side they edit. */
   const starters = STARTERS.filter(
     (starter) => (hereSide == null || hereSide === starter.side) && canEdit(starter.side),
@@ -531,6 +598,100 @@ export function PlaybookPage() {
     setAssignments((rows) => rows.filter((row) => row.id !== assignment.id))
   }
 
+  async function createPack(input: PackInput) {
+    const result = planPack(input)
+    if (!result.ok) throw new Error(result.error)
+    const plan = result.plan
+    let packId: string
+    if (fixture) {
+      const made = packFolders(live, packs, plan, demoId)
+      if (!made.ok) throw new Error(made.error)
+      packId = made.pack.id
+      setFolders((rows) => [...rows, ...made.added])
+      setPacks((rows) => [...rows, { id: packId, week: plan.week }])
+    } else {
+      if (snap.teamId == null) throw new Error('No team')
+      packId = await createScoutPack(snap.teamId, plan)
+      await refresh()
+    }
+    openFolder(packId)
+    done(`Scout pack for ${plan.opponent} created: ${plan.weekName}`)
+  }
+
+  function boardSections(pack: Pack): BoardSection[] {
+    const path = breadcrumb(live, current).map((folder) => folder.id)
+    const below = path.slice(path.indexOf(pack.id) + 1)
+    const sections =
+      below.length === 0
+        ? childFolders(live, pack.id)
+        : live.filter((folder) => folder.id === below[0])
+    return sections.map((folder) => {
+      const sideRights = canEdit(effectiveSide(live, folder.id))
+      const inside = subtreeIds(live, folder.id)
+      const playIds = new Set(
+        links.filter((link) => inside.has(link.folderId)).map((link) => link.playId),
+      )
+      const inSection = plays.filter((play) => playIds.has(play.id))
+      const own = tasks.filter((task) => task.folderId === folder.id)
+      return {
+        folder,
+        state: sectionState(own, {
+          total: inSection.length,
+          published: inSection.filter((play) => play.published_at != null).length,
+        }),
+        tasks: own.map((task) => ({
+          task,
+          canSetStatus: canSetStatus(task, me, sideRights),
+          canRemove: canManageTask(task, me, sideRights),
+        })),
+        playCount: inSection.length,
+        canDelegate: canDelegate(sideRights, owns(folder.id)),
+        canAssign: sideRights,
+      }
+    })
+  }
+
+  async function delegate(folderId: string, input: DelegateInput) {
+    const sideRights = canEdit(effectiveSide(live, folderId))
+    const parent = sideRights ? null : myCoveringTask(live, tasks, me, folderId)
+    let row: ScoutTask
+    if (fixture) {
+      row = {
+        id: demoId(),
+        folderId,
+        parentTaskId: parent?.id ?? null,
+        ...input,
+        status: 'todo',
+        statusBy: null,
+        statusAt: null,
+        createdBy: me.userId,
+      }
+    } else {
+      if (snap.teamId == null || snap.session == null) throw new Error('No team')
+      row = await createScoutTask({
+        teamId: snap.teamId,
+        folderId,
+        parentTaskId: parent?.id ?? null,
+        ...input,
+        createdBy: snap.session.user.id,
+      })
+    }
+    setTasks((rows) => [...rows, row])
+    done('Section delegated')
+  }
+
+  async function changeStatus(task: ScoutTask, status: ScoutTaskStatus) {
+    const next = fixture
+      ? { ...task, status, statusBy: me.userId, statusAt: new Date().toISOString() }
+      : await setScoutTaskStatus(task.id, status)
+    setTasks((rows) => rows.map((row) => (row.id === task.id ? next : row)))
+  }
+
+  async function removeTask(task: ScoutTask) {
+    if (!fixture) await deleteScoutTask(task.id)
+    setTasks((rows) => rows.filter((row) => row.id !== task.id))
+  }
+
   const candidates = current == null ? [] : plays.filter((play) => !folderPlayIds.has(play.id))
 
   return (
@@ -654,6 +815,16 @@ export function PlaybookPage() {
               New folder
             </button>
           ) : null}
+          {herePack == null && (current == null || here?.kind === 'opponent') ? (
+            <button
+              type="button"
+              className="playbook-action"
+              aria-expanded={panel?.kind === 'pack'}
+              onClick={() => setPanel(panel?.kind === 'pack' ? null : { kind: 'pack' })}
+            >
+              New scout pack
+            </button>
+          ) : null}
           {canAddSubfolder(live, current) && starters.length > 0 ? (
             <button
               type="button"
@@ -689,6 +860,21 @@ export function PlaybookPage() {
           initialSide={mySide ?? (sideFilter === 'all' ? null : sideFilter)}
           onCreate={createSubfolder}
           onCancel={() => setPanel(null)}
+        />
+      ) : null}
+      {panel?.kind === 'pack' ? (
+        <NewScoutPackForm sides={packSides} onCreate={createPack} onCancel={() => setPanel(null)} />
+      ) : null}
+      {herePack != null && !viewingArchived && !searching ? (
+        <PackBoard
+          title={herePack.id === current ? 'Pack board' : 'Section'}
+          sections={boardSections(herePack)}
+          staff={staffList}
+          onOpen={openFolder}
+          onDelegate={delegate}
+          onStatus={changeStatus}
+          onRemove={removeTask}
+          onAssign={(folderId) => setPanel({ kind: 'assign', folderId })}
         />
       ) : null}
       {panel?.kind === 'generate' ? (
@@ -832,22 +1018,24 @@ export function PlaybookPage() {
                       })()}
                     </span>
                   </button>
-                  {staff && canEdit(effectiveSide(live, folder.id)) ? (
+                  {staff && (canEdit(effectiveSide(live, folder.id)) || owns(folder.id)) ? (
                     <span className="playbook-actions">
-                      <button
-                        type="button"
-                        className="playbook-action"
-                        aria-expanded={panel?.kind === 'assign' && panel.folderId === folder.id}
-                        onClick={() =>
-                          setPanel(
-                            panel?.kind === 'assign' && panel.folderId === folder.id
-                              ? null
-                              : { kind: 'assign', folderId: folder.id },
-                          )
-                        }
-                      >
-                        Assign
-                      </button>
+                      {canEdit(effectiveSide(live, folder.id)) ? (
+                        <button
+                          type="button"
+                          className="playbook-action"
+                          aria-expanded={panel?.kind === 'assign' && panel.folderId === folder.id}
+                          onClick={() =>
+                            setPanel(
+                              panel?.kind === 'assign' && panel.folderId === folder.id
+                                ? null
+                                : { kind: 'assign', folderId: folder.id },
+                            )
+                          }
+                        >
+                          Assign
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         className="playbook-action"

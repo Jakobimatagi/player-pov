@@ -55,6 +55,7 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
 
 export function HomePage() {
   const snap = useAuth()
+  const location = useLocation()
   const lostAccess =
     snap.session != null && localStorage.getItem(HAD_TEAM_KEY) === snap.session.user.id
   const kind = destination({
@@ -66,6 +67,10 @@ export function HomePage() {
     membershipError: snap.membershipError,
     lostAccess,
   })
+  // No backend: /?home=coach shows Coach Home with demo scout tasks.
+  if (kind === 'viewer' && new URLSearchParams(location.search).get('home') === 'coach') {
+    return <CoachHome name="Coach Diaz" demo />
+  }
   if (kind === 'viewer') return <App />
   if (kind === 'loading') return <p className="loading-line">Loading…</p>
   if (kind === 'login') return <Navigate to={`/login?next=${encodeURIComponent('/')}`} replace />

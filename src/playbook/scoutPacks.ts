@@ -1,4 +1,6 @@
+import { POSITION_GROUPS } from '../data/assignments'
 import type { PositionGroup, ScoutTaskStatus, StaffSide } from '../data/database.types'
+import type { StaffMember } from '../data/scoutTasks'
 import { breadcrumb, folderNameError, type Folder } from './folders'
 
 /**
@@ -303,4 +305,19 @@ export function myOpenTasks(tasks: readonly ScoutTask[], me: Me): ScoutTask[] {
       if (b.dueAt == null) return -1
       return a.dueAt.localeCompare(b.dueAt)
     })
+}
+
+/** "Coach Diaz", or "Linebackers room (Coach Diaz)". */
+export function taskAssigneeLabel(task: ScoutTask, staff: readonly StaffMember[]): string {
+  if (task.userId != null) {
+    return staff.find((member) => member.userId === task.userId)?.name ?? 'A coach'
+  }
+  const group = task.group
+  if (group == null) return 'Nobody'
+  const label = POSITION_GROUPS.find((item) => item.id === group)?.label ?? group
+  const names = staff
+    .filter((member) => member.groups.includes(group))
+    .map((member) => member.name)
+    .join(', ')
+  return `${label} room${names.length > 0 ? ` (${names})` : ''}`
 }

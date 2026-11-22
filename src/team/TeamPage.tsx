@@ -3,7 +3,9 @@ import { useSyncExternalStore } from 'react'
 import { Navigate, useSearchParams } from 'react-router'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import { SIDE_LABEL, staffTitle } from '../auth/sides'
-import type { PositionCode, StaffSide, TeamRole } from '../data/database.types'
+import type { PositionCode, PositionGroup, StaffSide, TeamRole } from '../data/database.types'
+import { POSITION_GROUPS } from '../data/assignments'
+import { setCoachGroups } from '../data/scoutTasks'
 import { supabase } from '../data/supabase'
 import { MoreHorizontal, UserPlus } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -31,6 +33,8 @@ type Row = {
   position: string
   /** Coordinator side for staff. */
   side?: StaffSide | null
+  /** Coach rooms (position groups) a coach runs. Scout pack sections can go to a room. */
+  groups?: PositionGroup[]
   status: 'Active' | 'Pending' | 'Removed'
   kind: 'coach' | 'player' | 'pending'
   email?: string
@@ -58,6 +62,27 @@ const DEMO: Row[] = [
     role: 'Head coach',
     roleCode: 'head_coach',
     position: '—',
+    status: 'Active',
+    kind: 'coach',
+  },
+  {
+    id: 'diaz',
+    name: 'Coach Diaz',
+    role: 'Defensive coordinator',
+    roleCode: 'coach',
+    position: '—',
+    side: 'defense',
+    groups: ['LB'],
+    status: 'Active',
+    kind: 'coach',
+  },
+  {
+    id: 'reyes',
+    name: 'Coach Reyes',
+    role: 'Coach',
+    roleCode: 'coach',
+    position: '—',
+    groups: ['DL'],
     status: 'Active',
     kind: 'coach',
   },
@@ -153,7 +178,7 @@ export function TeamPage() {
         return
       }
       const [{ data: members }, { data: profiles }, { data: invites }] = await Promise.all([
-        client.from('memberships').select('user_id, role, position, coordinates'),
+        client.from('memberships').select('user_id, role, position, coordinates, coach_groups'),
         client.from('profiles').select('user_id, display_name'),
         client.from('invites').select('id, display_name, role, position, accepted_at, expires_at'),
       ])
@@ -168,6 +193,7 @@ export function TeamPage() {
         roleCode: row.role,
         position: row.position ?? '—',
         side: row.coordinates,
+        groups: row.coach_groups ?? [],
         status: 'Active',
         kind: row.role === 'player' ? 'player' : 'coach',
       }))
@@ -226,6 +252,27 @@ export function TeamPage() {
     })
     setNotice(error ? error.message : 'Invite sent.')
     setInviteOpen(false)
+  }
+
+  async function toggleRoom(group: PositionGroup) {
+    const row = menuRow
+    if (row == null) return
+    const current = row.groups ?? []
+    const next = current.includes(group)
+      ? current.filter((item) => item !== group)
+      : POSITION_GROUPS.map((item) => item.id).filter((id) => id === group || current.includes(id))
+    if (!(fixture || supabase == null || snap.teamId == null)) {
+      try {
+        await setCoachGroups(snap.teamId, row.id, next)
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : 'Could not change coach rooms.')
+        return
+      }
+    }
+    setRows((rows) => rows.map((item) => (item.id === row.id ? { ...item, groups: next } : item)))
+    setNotice(
+      next.length === 0 ? `${row.name} runs no room.` : `${row.name} runs ${next.join(', ')}.`,
+    )
   }
 
   async function runAction(
@@ -423,7 +470,10 @@ export function TeamPage() {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{row.role}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {row.role}
+                  {row.groups != null && row.groups.length > 0 ? ` · ${row.groups.join(', ')}` : ''}
+                </TableCell>
                 <TableCell>
                   {row.position === '—' ? (
                     <span className="text-muted-foreground">—</span>
@@ -465,7 +515,10 @@ export function TeamPage() {
             <MemberAvatar name={row.name} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{row.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{row.role}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {row.role}
+                {row.groups != null && row.groups.length > 0 ? ` · ${row.groups.join(', ')}` : ''}
+              </p>
             </div>
             {row.position === '—' ? null : <Badge variant="secondary">{row.position}</Badge>}
             <StatusDot status={row.status} />
@@ -537,6 +590,25 @@ export function TeamPage() {
                   </select>
                 </label>
               )}
+              {menuRow.kind === 'coach' ? (
+                <fieldset className="coach-rooms">
+                  <legend>Coach rooms</legend>
+                  <p>Scout pack sections can be delegated to a room.</p>
+                  <div>
+                    {POSITION_GROUPS.map((group) => (
+                      <button
+                        key={group.id}
+                        type="button"
+                        aria-pressed={(menuRow.groups ?? []).includes(group.id)}
+                        aria-label={`${group.label} room for ${menuRow.name}`}
+                        onClick={() => void toggleRoom(group.id)}
+                      >
+                        {group.id}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              ) : null}
               <button type="button" onClick={() => void runAction('remove')}>
                 Remove
               </button>

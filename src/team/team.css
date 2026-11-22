@@ -528,3 +528,42 @@
     outline-offset: 2px;
   }
 }
+
+/* Coach rooms: which position groups a coach runs (scout pack delegation). */
+.row-menu .coach-rooms {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.row-menu .coach-rooms legend {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.row-menu .coach-rooms p {
+  margin: 2px 0 8px;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.row-menu .coach-rooms div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.row-menu .coach-rooms button {
+  min-height: 44px;
+  padding: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.row-menu .coach-rooms button[aria-pressed='true'] {
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-color: var(--primary);
+}
