@@ -1944,3 +1944,52 @@
     }
   }
 }
+
+.play-add-card {
+  padding: 0;
+  border-style: dashed;
+}
+
+.play-add-card a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 72px;
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+
+.play-add-card a:hover {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.play-add-plus {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px dashed currentColor;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.base-alignment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  color: var(--muted-foreground);
+}
+
+.base-alignment select {
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--input);
+  background: transparent;
+  color: var(--foreground);
+}

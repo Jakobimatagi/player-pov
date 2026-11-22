@@ -332,6 +332,7 @@ export type Database = {
           parent_id: string | null
           kind: 'playbook' | 'opponent'
           side: StaffSide | null
+          base_formation: string | null
           created_by: string | null
           created_at: string
         }
@@ -344,6 +345,7 @@ export type Database = {
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
           side?: StaffSide | null
+          base_formation?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -356,6 +358,7 @@ export type Database = {
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
           side?: StaffSide | null
+          base_formation?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -379,6 +382,30 @@ export type Database = {
           play_id?: string
           sort?: number
           pinned_version?: number | null
+        }
+        Relationships: []
+      }
+      playbook_scripts: {
+        Row: {
+          playbook_id: string
+          script: Json
+          version: number
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          playbook_id: string
+          script: Json
+          version?: number
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          playbook_id?: string
+          script?: Json
+          version?: number
+          updated_by?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

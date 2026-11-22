@@ -327,6 +327,7 @@ function asFolder(row: {
   kind: string
   archived_at: string | null
   side: string | null
+  base_formation?: string | null
 }): Folder {
   return {
     id: row.id,
@@ -336,10 +337,11 @@ function asFolder(row: {
     archived: row.archived_at != null,
     side:
       row.side === 'offense' || row.side === 'defense' || row.side === 'special' ? row.side : null,
+    baseFormation: row.base_formation ?? null,
   }
 }
 
-const FOLDER_COLUMNS = 'id, name, parent_id, kind, archived_at, side'
+const FOLDER_COLUMNS = 'id, name, parent_id, kind, archived_at, side, base_formation'
 
 /** Every folder the caller can see, archived ones included for staff, plus what is filed where. */
 export async function listFolders(
@@ -372,6 +374,7 @@ export async function createFolder(input: {
   parentId: string | null
   kind: FolderKind
   side?: StaffSide | null
+  baseFormation?: string | null
 }): Promise<Folder> {
   const db = client()
   const { data, error } = await db
@@ -382,12 +385,28 @@ export async function createFolder(input: {
       parent_id: input.parentId,
       kind: input.kind,
       side: input.side ?? null,
+      base_formation: input.baseFormation ?? null,
     })
     .select(FOLDER_COLUMNS)
     .maybeSingle()
   if (error) throw new Error(error.message)
   if (data == null) throw new Error('forbidden')
   return asFolder(data)
+}
+
+/** Set or clear (null) the formation new plays drawn in this book start from. */
+export async function setFolderFormation(
+  folderId: string,
+  baseFormation: string | null,
+): Promise<void> {
+  const db = client()
+  const { data, error } = await db
+    .from('playbooks')
+    .update({ base_formation: baseFormation })
+    .eq('id', folderId)
+    .select('id')
+  if (error) throw new Error(error.message)
+  if (data == null || data.length === 0) throw new Error('forbidden')
 }
 
 export async function renameFolder(folderId: string, name: string): Promise<void> {

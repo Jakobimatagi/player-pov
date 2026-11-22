@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSyncExternalStore } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
@@ -21,7 +21,9 @@ import {
   renameFolder,
   renamePlay,
   restorePlay,
+  setFolderFormation,
 } from '../data/plays'
+import { OFFENSE_PRESETS } from '../diagram/presets'
 import { supabase } from '../data/supabase'
 import {
   afterRestore,
@@ -45,7 +47,9 @@ import {
 import type { PositionGroup } from '../data/database.types'
 import { listTeamPlayers, type TeamPlayer } from '../data/slots'
 import { AssignPanel } from './AssignPanel'
+import '../diagram/diagram.css'
 import { AddPlaysPanel, GeneratePlaybookPanel, NewFolderForm, type AddMode } from './FolderForms'
+import { findTemplate } from './playbooks'
 import { findStarter, STARTERS } from './starters'
 import {
   breadcrumb,
@@ -56,6 +60,7 @@ import {
   matchesSide,
   type SideFilter,
   defaultKind,
+  effectiveFormation,
   folderNameError,
   KIND_LABEL,
   liveFolders,
@@ -77,6 +82,11 @@ type Panel =
 function useAuth() {
   return useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
 }
+
+// Konva is heavy, so the thumbnails load only when a playbook is opened.
+const DiagramStrip = lazy(() =>
+  import('./DiagramStrip').then((module) => ({ default: module.DiagramStrip })),
+)
 
 let demoSerial = 0
 
@@ -262,6 +272,27 @@ export function PlaybookPage() {
       : listStatus({ loading, count: shown.length, archived: viewingArchived })
   const emptyFolder = status === 'No plays' && current != null ? 'This folder is empty' : status
 
+  async function changeBaseFormation(folder: Folder, value: string) {
+    const next = value === '' ? null : value
+    if (!fixture) {
+      try {
+        await setFolderFormation(folder.id, next)
+      } catch (error) {
+        failed(error, 'Could not change the base alignment')
+        return
+      }
+    }
+    // The demo has no database, so the draw page reads the demo folders: keep them in step.
+    if (fixture) {
+      const demo = DEMO_FOLDERS.find((row) => row.id === folder.id)
+      if (demo != null) demo.baseFormation = next
+    }
+    setFolders((rows) =>
+      rows.map((row) => (row.id === folder.id ? { ...row, baseFormation: next } : row)),
+    )
+    done(next == null ? 'Base alignment cleared' : 'Base alignment saved')
+  }
+
   async function commitRename(playId: string) {
     const name = draftName.trim()
     if (name.length < 1) return
@@ -419,6 +450,7 @@ export function PlaybookPage() {
     const template = findStarter(templateId)
     if (template == null) throw new Error('Unknown playbook')
     const plays = template.build()
+    const baseFormation = findTemplate(templateId)?.formation ?? null
     let folder: Folder
     if (fixture) {
       folder = {
@@ -428,6 +460,7 @@ export function PlaybookPage() {
         kind: 'playbook',
         archived: false,
         side: hereSide ?? template.side,
+        baseFormation,
       }
     } else {
       if (snap.teamId == null) throw new Error('No team')
@@ -437,6 +470,7 @@ export function PlaybookPage() {
         parentId: current,
         kind: 'playbook',
         side: hereSide ?? template.side,
+        baseFormation,
       })
     }
     setFolders((rows) => [...rows, folder])
@@ -583,6 +617,29 @@ export function PlaybookPage() {
             </span>
           ) : null}
         </nav>
+      ) : null}
+
+      {here != null &&
+      editHere &&
+      !viewingArchived &&
+      here.kind === 'playbook' &&
+      (hereSide == null || hereSide === 'offense') ? (
+        <label className="base-alignment">
+          <span>Base alignment</span>
+          <select
+            value={here.baseFormation ?? ''}
+            onChange={(event) => void changeBaseFormation(here, event.target.value)}
+          >
+            <option value="">
+              {effectiveFormation(live, here.id) != null ? 'Inherited' : 'Not set'}
+            </option>
+            {OFFENSE_PRESETS.map((preset) => (
+              <option key={preset.key} value={preset.key}>
+                {preset.name}
+              </option>
+            ))}
+          </select>
+        </label>
       ) : null}
 
       {editHere && !viewingArchived && !searching ? (
@@ -903,7 +960,36 @@ export function PlaybookPage() {
             )}
           </li>
         ))}
+        {here != null &&
+        here.kind === 'playbook' &&
+        editHere &&
+        !viewingArchived &&
+        !searching &&
+        (hereSide == null || hereSide === 'offense') ? (
+          <li className="playbook-row play-add-card">
+            <Link
+              to={`/diagram?playbook=${here.id}${fixture && supabase != null ? '&roster=demo' : ''}`}
+              aria-label={`Draw a new play in ${here.name}`}
+              data-testid="draw-play-card"
+            >
+              <span className="play-add-plus" aria-hidden="true">
+                +
+              </span>
+              <span>Draw a play</span>
+            </Link>
+          </li>
+        ) : null}
       </ul>
+      {staff && here != null && here.kind === 'playbook' && !viewingArchived && !searching ? (
+        <Suspense fallback={null}>
+          <DiagramStrip
+            key={here.id}
+            folderId={here.id}
+            rosterQuery={fixture && supabase != null ? '&roster=demo' : ''}
+            remote={!fixture}
+          />
+        </Suspense>
+      ) : null}
     </CoachLayout>
   )
 }
