@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import {
+  Activity,
   ArrowLeft,
   BookOpen,
   House,
@@ -61,6 +62,7 @@ function coachSections(): NavSection[] {
         { to: '/team', label: 'Team', icon: Users, end: true },
         { to: '/team/roster', label: 'Roster sheet', icon: SheetIcon },
         { to: '/team/depth', label: 'Depth chart', icon: ListOrdered },
+        { to: '/team/activity', label: 'Activity', icon: Activity },
       ],
     },
   ]

@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { listAssignedPlays, type AssignedPlay } from '../data/slots'
 import { ChevronRight, Clapperboard, Play } from 'lucide-react'
 import { CoachLayout } from './CoachLayout'
+import { PlayerActivityCard, type MyActivity } from './PlayerActivityCard'
 
 type Load = { status: 'loading' } | { status: 'error' } | { status: 'ready'; plays: AssignedPlay[] }
 
@@ -12,12 +13,15 @@ export function PlayerHome({
   teamId,
   userId,
   initial,
+  initialActivity,
 }: {
   name: string
   teamId: string | null
   userId: string | null
   /** Rendered rows for tests and fixtures; skips the fetch. */
   initial?: AssignedPlay[]
+  /** Rendered study stats for tests and fixtures. */
+  initialActivity?: MyActivity
 }) {
   const [load, setLoad] = useState<Load>(
     initial != null ? { status: 'ready', plays: initial } : { status: 'loading' },
@@ -40,6 +44,7 @@ export function PlayerHome({
 
   return (
     <CoachLayout title="Player Home" eyebrow="Your plays" account={name} nav={false}>
+      <PlayerActivityCard teamId={teamId} userId={userId} initial={initialActivity} />
       {load.status === 'loading' && <p className="text-sm text-muted-foreground">Loading…</p>}
       {load.status === 'error' && <p>Couldn&apos;t load your plays.</p>}
       {load.status === 'ready' && load.plays.length === 0 && (
