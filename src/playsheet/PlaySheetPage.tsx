@@ -90,6 +90,9 @@ export function PlaySheetPage() {
   const playerView = params.get('roster') === 'player' || (!fixture && snap.role === 'player')
   const staff = !playerView && (fixture || snap.role === 'head_coach' || snap.role === 'coach')
   const userId = snap.session?.user.id ?? null
+  // Who is signed in, not the session object: a token refresh hands out a new session
+  // object, and refetching on it would remount the card and wipe what a coach is typing.
+  const signedIn = snap.session != null
   // The picked player and formation live in state so they change at once; the URL only
   // mirrors them (for links and reloads), because router updates land a render later.
   const [pos, setPos] = useState<string | null>(() => params.get('pos'))
@@ -144,7 +147,7 @@ export function PlaySheetPage() {
   }, [])
 
   useEffect(() => {
-    if (fixture || snap.session == null) return
+    if (fixture || !signedIn) return
     let dead = false
     void (async () => {
       try {
@@ -192,7 +195,7 @@ export function PlaySheetPage() {
     return () => {
       dead = true
     }
-  }, [fixture, playId, playerView, snap.session, userId])
+  }, [fixture, playId, playerView, signedIn, userId])
 
   const ready = load.status === 'ready' ? load.play : null
 

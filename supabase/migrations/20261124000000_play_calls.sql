@@ -28,8 +28,9 @@ alter table public.plays
   add column published_by uuid references auth.users on delete set null;
 
 -- Our-side slots still missing an answer, with what each one is missing. Empty when
--- the play is complete. Reads version `v`, or the play's current version when v is null.
-create function app.play_rule_gaps(p uuid, v int default null)
+-- the play is complete. Reads version `v` and side `s`, or the play's current ones when
+-- null (a BEFORE UPDATE trigger passes the incoming values).
+create function app.play_rule_gaps(p uuid, v int default null, s text default null)
 returns table (slot text, missing text[])
 language sql
 stable
@@ -52,7 +53,7 @@ as $$
   cross join lateral jsonb_array_elements(coalesce(pv.compiled -> 'players', '[]'::jsonb)) pj
   left join public.position_rules r on r.play_id = pl.id and r.slot = pj ->> 'id'
   where pl.id = p
-    and pj ->> 'team' = pl.side
+    and pj ->> 'team' = coalesce(s, pl.side)
     and (
       r.slot is null
       or coalesce(btrim(r.alignment), '') = ''
@@ -71,14 +72,19 @@ stable
 security definer
 set search_path = ''
 as $$
+  -- At least one position on the play's own side, and none of them missing an answer.
   select exists (
-    select 1 from public.plays where id = p and current_version is not null
+    select 1
+    from public.plays pl
+    join public.play_versions pv on pv.play_id = pl.id and pv.version = pl.current_version
+    cross join lateral jsonb_array_elements(coalesce(pv.compiled -> 'players', '[]'::jsonb)) pj
+    where pl.id = p and pj ->> 'team' = pl.side
   ) and not exists (select 1 from app.play_rule_gaps(p))
 $$;
 
-revoke all on function app.play_rule_gaps(uuid, int) from public, anon, authenticated;
+revoke all on function app.play_rule_gaps(uuid, int, text) from public, anon, authenticated;
 revoke all on function app.play_is_complete(uuid) from public, anon, authenticated;
-grant execute on function app.play_rule_gaps(uuid, int) to service_role;
+grant execute on function app.play_rule_gaps(uuid, int, text) to service_role;
 grant execute on function app.play_is_complete(uuid) to service_role;
 
 -- Publish: the head coach, or the coordinator of the play's side, once every answer is in.
@@ -148,17 +154,28 @@ revoke all on function public.unpublish_play(uuid) from public, anon;
 grant execute on function public.publish_play(uuid) to authenticated;
 grant execute on function public.unpublish_play(uuid) to authenticated;
 
--- A new version that leaves a position unanswered sends the play back to Draft.
+-- A new version (or a new side) that leaves a position unanswered sends the play back
+-- to Draft. The gap check reads the incoming version and side, not the stored row.
 create function app.recheck_published_play()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_ours int;
 begin
-  if new.published_at is not null
-     and new.current_version is distinct from old.current_version
-     and exists (select 1 from app.play_rule_gaps(new.id, new.current_version)) then
+  if new.published_at is null
+     or (new.current_version is not distinct from old.current_version
+         and new.side is not distinct from old.side) then
+    return new;
+  end if;
+  select count(*) into v_ours
+  from public.play_versions pv
+  cross join lateral jsonb_array_elements(coalesce(pv.compiled -> 'players', '[]'::jsonb)) pj
+  where pv.play_id = new.id and pv.version = new.current_version and pj ->> 'team' = new.side;
+  if v_ours = 0
+     or exists (select 1 from app.play_rule_gaps(new.id, new.current_version, new.side)) then
     new.published_at := null;
     new.published_by := null;
   end if;
@@ -167,7 +184,7 @@ end;
 $$;
 
 create trigger plays_recheck_published
-  before update of current_version on public.plays
+  before update of current_version, side on public.plays
   for each row execute function app.recheck_published_play();
 
 revoke all on function app.recheck_published_play() from public, anon, authenticated, service_role;
@@ -199,6 +216,15 @@ create trigger position_rules_guard_published
   for each row execute function app.guard_published_rules();
 
 revoke all on function app.guard_published_rules() from public, anon, authenticated, service_role;
+
+-- Re-stamp position rules only when their content changes. A user delete cascades
+-- `updated_by` to null, and that must not re-run the slot check (the slot may have left
+-- the play since) or the delete is rolled back.
+drop trigger position_rules_stamp on public.position_rules;
+create trigger position_rules_stamp
+  before insert or update of slot, alignment, assignment, adjustment, key_read, recognize, react, notes
+  on public.position_rules
+  for each row execute function app.stamp_position_rule();
 
 -- 3. Players read published plays only.
 create or replace function app.can_view_play(p uuid)

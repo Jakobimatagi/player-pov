@@ -1,5 +1,5 @@
 begin;
-select plan(25);
+select plan(28);
 set local search_path = public, extensions, auth;
 
 -- Users: 11 head coach, 12 offensive coordinator, 15 defensive coordinator,
@@ -211,6 +211,49 @@ select is(
   (select published_at from public.plays where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'),
   null,
   'the play is a draft again'
+);
+
+-- Re-saving a published play as the other side, with nobody on it answered, reverts it.
+reset role;
+update public.plays set published_at = now() where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01';
+update public.plays set side = 'defense' where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01';
+select is(
+  (select published_at from public.plays where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01'),
+  null,
+  'switching a published play to a side with no answers reverts it to Draft'
+);
+update public.plays set side = 'offense' where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01';
+
+-- A play with nobody on its own side has nothing to publish.
+insert into public.plays (id, team_id, name, side, current_version) values
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccc02', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'Look only', 'offense', 1);
+insert into public.play_versions (
+  play_id, version, source, compiled, source_schema, compiled_schema, compiler_version, checksum
+) values (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccc02', 1, '{}'::jsonb,
+  '{"players":[{"id":"fs","team":"defense"}]}'::jsonb, 1, 1, 'test', 'x'
+);
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11","role":"authenticated"}', true);
+select throws_ok(
+  $$select public.publish_play('cccccccc-cccc-4ccc-8ccc-cccccccccc02')$$,
+  '23514', null,
+  'a play with no positions on its own side cannot be published'
+);
+
+-- Deleting a coach whose rule is for a slot the play no longer has still works.
+reset role;
+insert into public.play_versions (
+  play_id, version, source, compiled, source_schema, compiled_schema, compiler_version, checksum
+) values (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccc01', 3, '{}'::jsonb,
+  '{"players":[{"id":"qb","team":"offense"}]}'::jsonb, 1, 1, 'test', 'x'
+);
+update public.plays set current_version = 3 where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01';
+select lives_ok(
+  $$delete from auth.users where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'$$,
+  'deleting a coach whose old rule is for a removed slot succeeds'
 );
 
 reset role;

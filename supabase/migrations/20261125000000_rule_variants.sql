@@ -47,8 +47,11 @@ create index position_rule_variants_play_idx on public.position_rule_variants (p
 
 -- Same stamping as position_rules: team and side come from the play, and the slot must
 -- be in its current version.
+-- Content changes only: a user delete cascading `updated_by` to null must not re-run
+-- the slot check.
 create trigger position_rule_variants_stamp
-  before insert or update on public.position_rule_variants
+  before insert or update of slot, alignment, assignment, adjustment, key_read, recognize, react, notes
+  on public.position_rule_variants
   for each row execute function app.stamp_position_rule();
 
 alter table public.position_rule_variants enable row level security;

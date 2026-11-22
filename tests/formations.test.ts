@@ -12,7 +12,8 @@ import {
   type RuleVariant,
 } from '../src/data/variants'
 import { compileChart } from '../src/editor/compileAdapter'
-import { chartLayout } from '../src/editor/state'
+import { editorReducer } from '../src/editor/actions'
+import { chartLayout, createEditorState } from '../src/editor/state'
 import {
   detectTags,
   findLibraryFormation,
@@ -125,6 +126,29 @@ describe('anchored defenders', () => {
       expect(drawn[0]!.y).toBeCloseTo(compiled[0]!.y, 5)
       expect(drawn[1]!.y).toBeCloseTo(compiled[1]!.y, 5)
     }
+  })
+
+  it('drags a mirrored defender and its drop to where the coach put them', () => {
+    // Gun Spread is 2x2, so the strength is the offense's right and strong-side
+    // defenders are mirrored: their stored sideways yards point the other way.
+    const spread = look('gun-spread')
+    let state = createEditorState({ source: coverThree!.source, look: spread })
+    const ref = { side: 'ours' as const, slot: 'cb_s' }
+    const at = () => chartLayout(state).players.find((p) => p.ref.slot === 'cb_s')!.points
+    const los = chartLayout(state).los
+    const ballY = chartLayout(state).ballY
+    const start = at()[0]!
+    const target = { dx: start.x - los, dy: start.y - ballY - 2 }
+    state = editorReducer(state, { type: 'moveAlign', ref, ...target })
+    expect(at()[0]!.y - ballY).toBeCloseTo(target.dy, 5)
+    const drop = { dx: target.dx + 6, dy: target.dy - 3 }
+    state = editorReducer(state, { type: 'addLeg', ref, to: drop })
+    const end = at()[at().length - 1]!
+    expect(end.x - los).toBeCloseTo(drop.dx, 5)
+    expect(end.y - ballY).toBeCloseTo(drop.dy, 5)
+    const compiled = compileChart(state.source, spread).play!
+    const track = compiled.players.find((p) => p.id === 'cb_s')!.waypoints
+    expect(track[track.length - 1]!.y - compiled.meta.ballY).toBeCloseTo(drop.dy, 5)
   })
 
   it('leaves plays without anchors exactly where they were', () => {

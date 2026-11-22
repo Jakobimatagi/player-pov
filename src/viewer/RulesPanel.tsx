@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { Link } from 'react-router'
 import { canEditSide, SIDE_LABEL } from '../auth/sides'
 import { cameraState } from '../camera/cameraState'
 import type { Side, StaffSide, TeamRole } from '../data/database.types'
@@ -72,8 +73,8 @@ export function RulesPanel({
           </header>
           <p className="assign-hint">
             Players see the rules for their own position while they watch.{' '}
-            <a href={`/plays/${playId}`}>Open the play sheet</a> to see every position on the board,
-            check what is missing, and publish.
+            <Link to={`/plays/${playId}`}>Open the play sheet</Link> to see every position on the
+            board, check what is missing, and publish.
             {(mySide === 'offense' || mySide === 'defense') && role !== 'head_coach'
               ? ` As ${mySide === 'offense' ? 'offensive' : 'defensive'} coordinator you edit ${SIDE_LABEL[mySide].toLowerCase()} players.`
               : ''}

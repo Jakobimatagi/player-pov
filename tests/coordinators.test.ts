@@ -1,5 +1,6 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { canEditSide, staffTitle } from '../src/auth/sides'
 import { cameraState } from '../src/camera/cameraState'
@@ -144,6 +145,36 @@ describe('position rules', () => {
     expect(html).not.toContain('Coaching points')
   })
 
+  it('applies a vs exception for the formation the play was charted against', () => {
+    cameraState.attached = 1
+    const html = renderToStaticMarkup(
+      createElement(RuleCard, {
+        play,
+        rules,
+        locked: true,
+        facing: {
+          id: 'lib:gun-trips-rt',
+          name: 'Gun Trips Right',
+          tags: { personnel: '11', structure: '3x1', backfield: 'gun', strength: 'right' },
+        },
+        variants: [
+          {
+            ...rules[0]!,
+            alignment: 'Over #3 at 10',
+            assignment: '',
+            keyRead: '',
+            scope: 'structure',
+            match: '3x1',
+          },
+        ],
+      }),
+    )
+    expect(html).toContain('Over #3 at 10')
+    expect(html).toMatch(/class="rule-vs">vs (<!-- -->)?3x1</)
+    expect(html).toContain('Deep half')
+    expect(html).not.toContain('12 yards, split the hashes')
+  })
+
   it('tells a locked player when there are no rules, and stays hidden otherwise', () => {
     expect(card(0, true)).toContain('hasn&#x27;t written rules')
     expect(card(0, false)).toBe('')
@@ -156,18 +187,23 @@ describe('position rules', () => {
       hopOrder: { offense: new Uint8Array([0]), defense: new Uint8Array([1]) },
     } as unknown as CompiledPlay
     const html = renderToStaticMarkup(
-      createElement(RulesPanel, {
-        play: full,
-        playId: 'p',
-        teamId: 't',
-        role: 'coach',
-        mySide: 'defense',
-        rules,
-        onSaved: () => {},
-        open: true,
-        setOpen: () => {},
-      }),
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(RulesPanel, {
+          play: full,
+          playId: 'p',
+          teamId: 't',
+          role: 'coach',
+          mySide: 'defense',
+          rules,
+          onSaved: () => {},
+          open: true,
+          setOpen: () => {},
+        }),
+      ),
     )
+    expect(html).toContain('href="/plays/p"')
     expect(html).toContain('As defensive coordinator you edit defense players.')
     expect(html.indexOf('<h3>Defense</h3>')).toBeGreaterThan(-1)
     expect(html).toContain('Offense · view only')

@@ -30,13 +30,17 @@ as $$
 $$;
 
 drop trigger position_rules_guard_published on public.position_rules;
+drop trigger position_rules_stamp on public.position_rules;
+create trigger position_rules_stamp
+  before insert or update on public.position_rules
+  for each row execute function app.stamp_position_rule();
 drop function app.guard_published_rules();
 drop trigger plays_recheck_published on public.plays;
 drop function app.recheck_published_play();
 drop function public.unpublish_play(uuid);
 drop function public.publish_play(uuid);
 drop function app.play_is_complete(uuid);
-drop function app.play_rule_gaps(uuid, int);
+drop function app.play_rule_gaps(uuid, int, text);
 
 alter table public.plays drop column published_by, drop column published_at;
 alter table public.position_rules

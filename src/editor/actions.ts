@@ -113,7 +113,22 @@ function originRel(s: EditorState, ref: PlayerRef): Point {
   return { dx: abs.x - origins.los, dy: abs.y - origins.ballY }
 }
 
-/** Ball-relative points: [alignment, end of leg 0, end of leg 1, …]. */
+/**
+ * -1 for an anchored defender whose sideways yards are measured outside and flip with
+ * the offense's strength; 1 for everyone else. Mirroring is its own inverse, so
+ * `toField` converts stored legs to field yards and back.
+ */
+function mirrorOf(s: EditorState, ref: PlayerRef): 1 | -1 {
+  if (ref.side !== 'ours') return 1
+  return alignOrigins(s.source, s.look).oursMirror.get(ref.slot) ?? 1
+}
+
+function toField(legs: readonly Leg[], mirror: 1 | -1): Leg[] {
+  if (mirror === 1) return [...legs]
+  return legs.map((leg) => ({ ...leg, to: { dx: leg.to.dx, dy: -leg.to.dy } }))
+}
+
+/** Ball-relative points: [alignment, end of leg 0, end of leg 1, …]. Pass field-space legs. */
 function pointsRel(s: EditorState, ref: PlayerRef, legs: readonly Leg[]): Point[] {
   const out = [originRel(s, ref)]
   let { dx, dy } = out[0] ?? { dx: 0, dy: 0 }
@@ -164,7 +179,7 @@ function moveAlign(s: EditorState, ref: PlayerRef, target: Point): EditorState {
     const align = {
       ...player.align,
       dx: player.align.dx + shift.dx,
-      dy: player.align.dy + shift.dy,
+      dy: player.align.dy + mirrorOf(s, ref) * shift.dy,
     }
     return { ...player, align }
   })
@@ -172,8 +187,9 @@ function moveAlign(s: EditorState, ref: PlayerRef, target: Point): EditorState {
 
 function addLeg(s: EditorState, ref: PlayerRef, target: Point, at?: number): EditorState {
   const to = snapPoint(target, s.snap)
+  const mirror = mirrorOf(s, ref)
   return updatePlayer(s, ref, (player) => {
-    const legs = player.legs
+    const legs = toField(player.legs, mirror)
     if (legs.length >= MAX_LEGS) return null
     const index = at ?? legs.length
     if (!Number.isInteger(index) || index < 0 || index > legs.length) return null
@@ -202,15 +218,16 @@ function addLeg(s: EditorState, ref: PlayerRef, target: Point, at?: number): Edi
       if (split.interp != null) inserted.interp = split.interp
       nextLegs.splice(index, 1, inserted, remaining)
     }
-    return { ...player, legs: nextLegs }
+    return { ...player, legs: toField(nextLegs, mirror) }
   })
 }
 
 function moveLeg(s: EditorState, ref: LegRef, target: Point): EditorState {
   if (ref.leg === -1) return moveAlign(s, ref, target)
   const to = snapPoint(target, s.snap)
+  const mirror = mirrorOf(s, ref)
   return updatePlayer(s, ref, (player) => {
-    const legs = player.legs
+    const legs = toField(player.legs, mirror)
     const leg = legs[ref.leg]
     if (leg == null) return null
     const points = pointsRel(s, ref, legs)
@@ -222,7 +239,7 @@ function moveLeg(s: EditorState, ref: LegRef, target: Point): EditorState {
     const after = legs[ref.leg + 1]
     const afterEnd = points[ref.leg + 2]
     if (after != null && afterEnd != null) nextLegs[ref.leg + 1] = withTo(after, sub(afterEnd, to))
-    return { ...player, legs: nextLegs }
+    return { ...player, legs: toField(nextLegs, mirror) }
   })
 }
 

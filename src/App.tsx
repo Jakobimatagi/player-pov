@@ -44,6 +44,7 @@ import { watchLabel } from './ui/watchLabel'
 import { AssignSlots } from './viewer/AssignSlots'
 import { RuleCard } from './viewer/RuleCard'
 import { RulesPanel } from './viewer/RulesPanel'
+import { useExceptions } from './viewer/useExceptions'
 import { useRules } from './viewer/useRules'
 import { useViewerAccess } from './viewer/useViewerAccess'
 import { Scrubber } from './ui/Scrubber'
@@ -203,6 +204,7 @@ export function App() {
   const lockIndex = access.kind === 'locked' ? access.index : -1
   const savedId = isSavedPlayId(playId) ? playId : null
   const { rules, version: rulesVersion, replace: replaceRule } = useRules(savedId)
+  const exceptions = useExceptions(savedId)
   const [coachPanel, setCoachPanel] = useState<'assign' | 'rules' | null>(null)
 
   // Lock before paint so a locked player never sees another player's view.
@@ -363,7 +365,13 @@ export function App() {
           </p>
         )}
         {savedId != null && coachPanel == null && (
-          <RuleCard play={loaded.play} rules={rules} locked={lockIndex >= 0} />
+          <RuleCard
+            play={loaded.play}
+            rules={rules}
+            locked={lockIndex >= 0}
+            variants={exceptions.variants}
+            facing={exceptions.facing}
+          />
         )}
       </div>
       {loaded.warnings.length > 0 && (
