@@ -500,6 +500,7 @@ export type Database = {
           team_id: string
           playbook_id: string | null
           package_id: string | null
+          rep_id: string | null
           assignee_user: string | null
           assignee_group: PositionGroup | null
           due_at: string | null
@@ -511,6 +512,7 @@ export type Database = {
           team_id: string
           playbook_id?: string | null
           package_id?: string | null
+          rep_id?: string | null
           assignee_user?: string | null
           assignee_group?: PositionGroup | null
           due_at?: string | null
@@ -522,6 +524,7 @@ export type Database = {
           team_id?: string
           playbook_id?: string | null
           package_id?: string | null
+          rep_id?: string | null
           assignee_user?: string | null
           assignee_group?: PositionGroup | null
           due_at?: string | null
@@ -716,6 +719,60 @@ export type Database = {
         Update: Record<string, never>
         Relationships: []
       }
+      /** A coach's target spot for one (play, look, slot). Staff only. */
+      scout_reps: {
+        Row: {
+          id: string
+          team_id: string
+          play_id: string
+          look_id: string
+          slot: string
+          target_x: number
+          target_y: number
+          tolerance_yd: number
+          note: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          play_id: string
+          look_id: string
+          slot: string
+          target_x: number
+          target_y: number
+          tolerance_yd?: number
+          note?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          target_x?: number
+          target_y?: number
+          tolerance_yd?: number
+          note?: string | null
+        }
+        Relationships: []
+      }
+      /** Every try at a rep. Read-only to clients; submit_rep_attempt is the only writer. */
+      rep_attempts: {
+        Row: {
+          id: string
+          team_id: string
+          assignment_id: string
+          rep_id: string
+          user_id: string
+          end_x: number
+          end_y: number
+          distance_yd: number
+          passed: boolean
+          created_at: string
+        }
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
     }
     Views: {
       roster_public: {
@@ -874,6 +931,59 @@ export type Database = {
           plays_opened: number
           days_active: number
           last_day: string | null
+        }[]
+      }
+      submit_rep_attempt: {
+        Args: { p_assignment: string; p_x: number; p_y: number }
+        Returns: {
+          attempt_id: string
+          distance_yd: number
+          passed: boolean
+          target_x: number
+          target_y: number
+          tolerance_yd: number
+          attempts: number
+        }[]
+      }
+      my_rep_homework: {
+        Args: { p_team: string }
+        Returns: {
+          assignment_id: string
+          rep_id: string
+          play_id: string
+          play_name: string
+          play_side: string
+          look_id: string
+          look_name: string
+          slot: string
+          due_at: string | null
+          assigned_at: string
+          attempts: number
+          passed: boolean
+          best_distance: number | null
+          last_x: number | null
+          last_y: number | null
+          last_distance: number | null
+          last_passed: boolean | null
+          target_x: number | null
+          target_y: number | null
+          tolerance_yd: number | null
+          note: string | null
+        }[]
+      }
+      rep_results: {
+        Args: { p_team: string }
+        Returns: {
+          assignment_id: string
+          rep_id: string
+          user_id: string
+          due_at: string | null
+          attempts: number
+          first_distance: number | null
+          first_passed: boolean | null
+          best_distance: number | null
+          passed: boolean
+          last_at: string | null
         }[]
       }
       assignment_progress: {
