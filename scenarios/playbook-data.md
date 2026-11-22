@@ -119,3 +119,9 @@ Do not point this at the hosted project, and do not run `seed.sql` anywhere but 
 **Expected:**
 
 - The call fails with `P0002` and the message `play not found`.
+
+## Saved versions are pruned
+
+Each save writes a new play version and a new look version. Only the current version and the 4 before it are kept (`supabase/migrations/20261212000000_prune_versions.sql`, checked by `supabase/tests/prune_versions.test.sql`). Every reader asks for `current_version`, so nothing in the app reads a pruned version. The current version is never deleted.
+
+In a local load test of 100 teams with 15 plays saved 10 times each, this cut storage from 125 MB to 63 MB, and storage per play no longer grows with each save.
