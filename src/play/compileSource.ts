@@ -146,6 +146,68 @@ function lookOrigin(
   return { x: los + player.align.dx, y: ballY + player.align.dy }
 }
 
+/** Which side the offense's strength is on: more receivers, or the right when even. */
+function strengthSide(snaps: readonly SnapPoint[]): 'L' | 'R' {
+  const receivers = snaps.filter((player) => player.position === 'WR' || player.position === 'TE')
+  const left = receivers.filter((player) => player.dy > 0.5).length
+  const right = receivers.filter((player) => player.dy < -0.5).length
+  return left > right ? 'L' : 'R'
+}
+
+interface Placement {
+  origin: { x: number; y: number }
+  /** +1 or -1: how a leg's `dy` maps to field y. Anchored defenders measure outside. */
+  mirror: 1 | -1
+}
+
+/**
+ * Where one of our players lines up. A defender with an `anchor` lines up off the
+ * offense's receivers in the look (or the ball, set to the strength); everyone else is
+ * fixed yards from the ball.
+ */
+function placeOurs(
+  player: SourcePlayer,
+  side: PlaySource['side'],
+  lookSnaps: readonly SnapPoint[],
+  los: number,
+  ballY: number,
+): Placement {
+  const anchor = side === 'defense' ? player.anchor : undefined
+  if (anchor == null || anchor === 'ball') {
+    return { origin: { x: los + player.align.dx, y: ballY + player.align.dy }, mirror: 1 }
+  }
+  const strong = strengthSide(lookSnaps)
+  const weak = strong === 'L' ? 'R' : 'L'
+  const towards = anchor.startsWith('strong') ? strong : weak
+  const mirror = towards === 'L' ? 1 : -1
+  const base =
+    anchor === 'strong' || anchor === 'weak'
+      ? { y: ballY }
+      : resolveAnchor(anchor, lookSnaps, ballY)
+  // Depth is always from the line of scrimmage, so a receiver lined up off the ball
+  // doesn't pull his defender offside.
+  return {
+    origin: { x: los + player.align.dx, y: base.y + mirror * player.align.dy },
+    mirror,
+  }
+}
+
+function mirrored(legs: readonly Leg[], mirror: 1 | -1): Leg[] {
+  if (mirror === 1) return [...legs]
+  return legs.map((leg) => ({ ...leg, to: { dx: leg.to.dx, dy: -leg.to.dy } }))
+}
+
+/** The look's players at the snap, for anchoring our defenders to its receivers. */
+function lookSnapPoints(look: LookSource, los: number, ballY: number): SnapPoint[] {
+  return look.players.map((player) => ({
+    slot: player.slot,
+    position: player.position,
+    x: los + player.align.dx,
+    y: ballY + player.align.dy,
+    dy: player.align.dy,
+  }))
+}
+
 export interface AlignOrigins {
   /** Absolute field yards of the line of scrimmage and the ball's lateral spot. */
   los: number
@@ -153,6 +215,8 @@ export interface AlignOrigins {
   /** Absolute alignment point per slot, with look anchors resolved exactly as compileSource does. */
   ours: Map<string, { x: number; y: number }>
   theirs: Map<string, { x: number; y: number }>
+  /** -1 for an anchored defender whose sideways yards flip with the strength. */
+  oursMirror: Map<string, 1 | -1>
 }
 
 /** Where every player lines up at the snap. The editor draws from this so it matches the compiler. */
@@ -164,11 +228,16 @@ export function alignOrigins(
   const los = 10 + source.ballSpot.yardLine
   const ballY = hashToY(source.ballSpot.hash, config)
   const snaps = snapPoints(source, los, ballY)
-  const ours = new Map(snaps.map((snap) => [snap.slot, { x: snap.x, y: snap.y }]))
+  const lookSnaps = lookSnapPoints(look, los, ballY)
+  const placed = source.players.map(
+    (player) => [player.slot, placeOurs(player, source.side, lookSnaps, los, ballY)] as const,
+  )
+  const ours = new Map(placed.map(([slot, place]) => [slot, place.origin]))
+  const oursMirror = new Map(placed.map(([slot, place]) => [slot, place.mirror]))
   const theirs = new Map(
     look.players.map((player) => [player.slot, lookOrigin(player, snaps, los, ballY)]),
   )
-  return { los, ballY, ours, theirs }
+  return { los, ballY, ours, theirs, oursMirror }
 }
 
 function snapPoints(source: PlaySource, los: number, ballY: number): SnapPoint[] {
@@ -208,23 +277,25 @@ export function compileSource(
   const adjustment = matchingAdjustment(source, look)
   const sourceMap: SourceMapEntry[] = []
   const snaps = snapPoints(source, los, ballY)
-  const ours = source.players.map((player, index) =>
-    trackFrom(
+  const lookSnaps = lookSnapPoints(look, los, ballY)
+  const ours = source.players.map((player, index) => {
+    const { origin, mirror } = placeOurs(player, source.side, lookSnaps, los, ballY)
+    return trackFrom(
       player.slot,
       source.side,
       player.position,
       player.jersey ?? index + 1,
       player.role,
       player.face,
-      los + player.align.dx,
-      ballY + player.align.dy,
-      legsFor(player, adjustment),
+      origin.x,
+      origin.y,
+      mirrored(legsFor(player, adjustment), mirror),
       index,
       `players[${player.slot}]`,
       sourceMap,
       source.duration,
-    ),
-  )
+    )
+  })
   const theirs = look.players.map((player, index) => {
     const origin = lookOrigin(player, snaps, los, ballY)
     return trackFrom(

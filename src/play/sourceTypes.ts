@@ -3,6 +3,8 @@ import type { BallSegment, Position } from './types'
 export type HashMark = 'L' | 'M' | 'R'
 export type PlaySide = 'offense' | 'defense'
 export type AnchorName = 'ball' | 'strong#1' | 'strong#2' | 'weak#1' | 'weak#2'
+/** Anchors for our own defenders: the look's anchors, plus the ball set to the strength. */
+export type DefenderAnchor = AnchorName | 'strong' | 'weak'
 
 export interface Leg {
   to: { dx: number; dy: number }
@@ -19,6 +21,14 @@ export interface SourcePlayer {
   jersey?: number
   role?: string
   face?: number
+  /**
+   * Defense plays only: line up relative to one of the offense's receivers, or to the
+   * ball set to the strength (`strong` / `weak`), instead of fixed yards, so one call
+   * re-aligns against every formation. With an anchor other than `ball`, `align.dy`
+   * and every leg's `dy` mean yards *outside* (toward that side's sideline), so the
+   * same call works whichever way the offense sets its strength.
+   */
+  anchor?: DefenderAnchor
   align: { dx: number; dy: number }
   legs: Leg[]
 }
