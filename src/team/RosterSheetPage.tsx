@@ -16,7 +16,7 @@ import {
   type RosterSort,
 } from './roster'
 import { NotesControl, NotesThread } from './NotesThread'
-import { LABEL_PRIVATE, LABEL_SHARED } from './depthNotes'
+import { LABEL_PRIVATE, LABEL_SHARED, summarizeNotes, type DepthNote } from './depthNotes'
 import { TeamShell } from './TeamShell'
 import { useDepthNotes } from './useDepthNotes'
 import { useTeamRoster } from './useTeamRoster'
@@ -312,7 +312,9 @@ export function RosterSheetPage() {
                   )}
                 </td>
                 <td className="col-notes">
-                  <span className="sheet-notes-label">{LABEL_PRIVATE}</span>
+                  {player.notes !== '' ? (
+                    <span className="sheet-notes-label">{LABEL_PRIVATE}</span>
+                  ) : null}
                   <Cell
                     label={`Private staff notes for ${player.name}`}
                     value={player.notes}
@@ -321,11 +323,7 @@ export function RosterSheetPage() {
                   />
                 </td>
                 <td className="col-depthnotes">
-                  <DepthNotesCell
-                    shared={
-                      notes.byPlayer.get(player.id)?.filter((note) => note.shared).length ?? 0
-                    }
-                  />
+                  <DepthNotesCell notes={notes.byPlayer.get(player.id)} />
                   <NotesControl
                     player={player}
                     notes={notes.byPlayer.get(player.id)}
@@ -445,10 +443,18 @@ function Cell<T>({
   )
 }
 
-function DepthNotesCell({ shared }: { shared: number }) {
+/** Who can read this player's depth notes: shared count, private count, or nothing. */
+function DepthNotesCell({ notes }: { notes: readonly DepthNote[] | undefined }) {
+  const { shared, private: hidden } = summarizeNotes(notes)
+  if (shared + hidden === 0) return null
   return (
     <span className="sheet-notes-label" data-shared={shared > 0}>
-      {shared > 0 ? `${LABEL_SHARED} (${shared})` : 'Not shared'}
+      {[
+        shared > 0 ? `${LABEL_SHARED} (${shared})` : null,
+        hidden > 0 ? `Private (${hidden})` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
     </span>
   )
 }
