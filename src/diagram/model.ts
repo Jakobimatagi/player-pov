@@ -67,6 +67,8 @@ export function createState(diagram: Diagram = blankDiagram()): DiagramState {
 
 export type DiagramAction =
   | { type: 'load'; diagram: Diagram }
+  /** Swap the whole diagram as one undoable edit, e.g. when a formation is picked. */
+  | { type: 'replace'; diagram: Diagram }
   | { type: 'tool'; tool: Tool }
   | { type: 'select'; ids: string[]; additive?: boolean }
   | { type: 'addToken'; shape: Shape; at: Pt }
@@ -233,6 +235,10 @@ export function diagramReducer(s: DiagramState, a: DiagramAction): DiagramState 
   switch (a.type) {
     case 'load':
       return createState(a.diagram)
+    case 'replace':
+      return a.diagram === s.diagram
+        ? s
+        : tidy(commit(s, a.diagram, { selection: [], popover: null }))
     case 'tool':
       return a.tool === s.tool ? s : { ...s, tool: a.tool, popover: null }
     case 'select': {

@@ -2,11 +2,15 @@ import type Konva from 'konva'
 import { memo } from 'react'
 import { Circle, Group, Layer, Line, Rect, RegularPolygon, Stage, Text, Wedge } from 'react-konva'
 import { COLOR_HEX, lineHex, onHex } from './colors'
-import { fieldView, lineShape, LOS_Y, tokenRadius } from './geometry'
+import { fieldView, fromStage, lineShape, LOS_Y, stagePlacement, tokenRadius } from './geometry'
 import type { Diagram, DLine, DNote, DPlayer, FieldPreset, LineType, Pt } from './types'
 
-const SELECT = '#ffd84a'
-const GRASS = '#2f6b35'
+const SELECT = '#2d9cdb'
+const FIELD = '#f4f5f6'
+const END_ZONE = '#e7e9eb'
+const YARD = '#c9cbce'
+const NUMBER = '#d7d9db'
+const LOS = '#4a5fd9'
 
 export interface Ghost {
   from: Pt
@@ -20,6 +24,9 @@ export interface DiagramSceneProps {
   width: number
   height: number
   preset?: FieldPreset | null
+  /** View only: mirror left and right, and zoom about the line of scrimmage. */
+  flip?: boolean
+  zoom?: number
   /** False for thumbnails: the same scene, drawn at any size, with no events. */
   interactive?: boolean
   selection?: readonly string[]
@@ -52,7 +59,7 @@ function Token({
   const x = player.x * w
   const y = player.y * h
   const fill = COLOR_HEX[player.color]
-  const stroke = '#141414'
+  const stroke = '#1f2328'
   const split = player.fillStyle === 'split'
   const label = player.label
   if (player.shape === 'text') {
@@ -62,9 +69,7 @@ function Token({
           text={label ?? 'Ab'}
           fontSize={Math.max(8, r * 1.5)}
           fontStyle="bold"
-          fill="#ffffff"
-          stroke="#141414"
-          strokeWidth={0.6}
+          fill="#1f2328"
           offsetX={r * 1.5}
           offsetY={r * 0.8}
           width={r * 3}
@@ -92,7 +97,7 @@ function Token({
         y={r * 0.15}
         fill={fill}
         stroke={stroke}
-        strokeWidth={1.4}
+        strokeWidth={2}
       />
     ) : player.square ? (
       <>
@@ -103,15 +108,15 @@ function Token({
           height={r * 2}
           fill={split ? '#f4f1ea' : fill}
           stroke={stroke}
-          strokeWidth={1.4}
+          strokeWidth={2}
         />
         {split ? <Rect x={-r} y={-r} width={r} height={r * 2} fill={fill} /> : null}
       </>
     ) : (
       <>
-        <Circle radius={r} fill={split ? '#f4f1ea' : fill} stroke={stroke} strokeWidth={1.4} />
+        <Circle radius={r} fill={split ? '#f4f1ea' : fill} stroke={stroke} strokeWidth={2} />
         {split ? <Wedge radius={r} angle={180} rotation={90} fill={fill} /> : null}
-        <Circle radius={r} stroke={stroke} strokeWidth={1.4} />
+        <Circle radius={r} stroke={stroke} strokeWidth={2} />
       </>
     )
   return (
@@ -228,6 +233,8 @@ export const DiagramScene = memo(function DiagramScene({
   width,
   height,
   preset = null,
+  flip = false,
+  zoom = 1,
   interactive = true,
   selection = [],
   ghost = null,
@@ -241,9 +248,26 @@ export const DiagramScene = memo(function DiagramScene({
   const field = fieldView(preset)
   const unit = tokenRadius(width)
   const picked = new Set(selection)
+  const place = stagePlacement({ width, height, zoom, flip })
+  const mirror = (p: Pt): Pt => (flip ? { x: 1 - p.x, y: p.y } : p)
+  // Flip is view only: the diagram is mirrored here, and pointer points are mirrored back.
+  const shown: Diagram = flip
+    ? {
+        ...diagram,
+        players: diagram.players.map((p) => ({ ...p, x: 1 - p.x })),
+        notes: diagram.notes.map((n) => ({ ...n, x: 1 - n.x })),
+        lines: diagram.lines.map((l) => ({ ...l, points: l.points.map(mirror) })),
+      }
+    : diagram
+  const shownGhost =
+    ghost != null && flip ? { ...ghost, from: mirror(ghost.from), to: mirror(ghost.to) } : ghost
+  const shownMarquee =
+    marquee != null && flip ? { a: mirror(marquee.a), b: mirror(marquee.b) } : marquee
+  const shownLasso = lasso != null && flip ? lasso.map(mirror) : lasso
+  // The relative pointer position already undoes the Stage's zoom.
   const norm = (stage: Konva.Stage | null): Pt | null => {
-    const p = stage?.getPointerPosition()
-    return p == null ? null : { x: p.x / width, y: p.y / height }
+    const p = stage?.getRelativePointerPosition()
+    return p == null ? null : fromStage(p, { width, height, flip })
   }
   const stagePhase =
     (phase: 'down' | 'move' | 'up') => (e: Konva.KonvaEventObject<PointerEvent | MouseEvent>) => {
@@ -256,35 +280,39 @@ export const DiagramScene = memo(function DiagramScene({
     const at = norm(e.target.getStage())
     if (at != null) onItemDown?.(id, at, e.evt)
   }
-  const playersById = new Map(diagram.players.map((p) => [p.id, p]))
+  const playersById = new Map(shown.players.map((p) => [p.id, p]))
 
   return (
     <Stage
       width={width}
       height={height}
       listening={interactive}
+      scaleX={zoom}
+      scaleY={zoom}
+      x={place.x}
+      y={place.y}
       onPointerDown={stagePhase('down')}
       onPointerMove={stagePhase('move')}
       onPointerUp={stagePhase('up')}
       style={{ touchAction: 'none', display: 'block' }}
     >
       <Layer listening={false}>
-        <Rect width={width} height={height} fill={GRASS} />
+        <Rect x={-width} y={-height} width={width * 3} height={height * 3} fill={FIELD} />
         {field.endZones.map((zone, i) => (
           <Rect
             key={i}
+            x={-width}
             y={zone.y0 * height}
-            width={width}
+            width={width * 3}
             height={(zone.y1 - zone.y0) * height}
-            fill="#244f29"
+            fill={END_ZONE}
           />
         ))}
         {field.marks.map((mark) => (
           <Group key={mark.y}>
             <Line
-              points={[0, mark.y * height, width, mark.y * height]}
-              stroke="#ffffff"
-              opacity={mark.kind === 'goal' ? 0.9 : 0.28}
+              points={[-width, mark.y * height, width * 2, mark.y * height]}
+              stroke={mark.kind === 'goal' ? '#9aa0a6' : YARD}
               strokeWidth={mark.kind === 'goal' ? 2.5 : 1}
             />
             {mark.label != null && width > 160 ? (
@@ -295,8 +323,7 @@ export const DiagramScene = memo(function DiagramScene({
                   y={mark.y * height - unit * 0.7}
                   fontSize={unit * 1.5}
                   fontStyle="bold"
-                  fill="#ffffff"
-                  opacity={0.3}
+                  fill={NUMBER}
                 />
                 <Text
                   text={String(mark.label)}
@@ -304,21 +331,20 @@ export const DiagramScene = memo(function DiagramScene({
                   y={mark.y * height - unit * 0.7}
                   fontSize={unit * 1.5}
                   fontStyle="bold"
-                  fill="#ffffff"
-                  opacity={0.3}
+                  fill={NUMBER}
                 />
               </>
             ) : null}
           </Group>
         ))}
         <Line
-          points={[0, LOS_Y * height, width, LOS_Y * height]}
-          stroke="#4aa3ff"
+          points={[-width, LOS_Y * height, width * 2, LOS_Y * height]}
+          stroke={LOS}
           strokeWidth={interactive ? 3 : 2}
         />
       </Layer>
       <Layer>
-        {diagram.lines.map((line) => {
+        {shown.lines.map((line) => {
           const player = playersById.get(line.playerId)
           const end = line.points[line.points.length - 1]
           if (player == null || end == null) return null
@@ -335,12 +361,12 @@ export const DiagramScene = memo(function DiagramScene({
             </Group>
           )
         })}
-        {ghost ? (
+        {shownGhost ? (
           <Strokes
-            type={ghost.type}
-            from={{ x: ghost.from.x * width, y: ghost.from.y * height }}
-            to={{ x: ghost.to.x * width, y: ghost.to.y * height }}
-            color={lineHex(ghost.color)}
+            type={shownGhost.type}
+            from={{ x: shownGhost.from.x * width, y: shownGhost.from.y * height }}
+            to={{ x: shownGhost.to.x * width, y: shownGhost.to.y * height }}
+            color={lineHex(shownGhost.color)}
             unit={unit}
             selected={false}
             ghost
@@ -348,7 +374,7 @@ export const DiagramScene = memo(function DiagramScene({
         ) : null}
       </Layer>
       <Layer>
-        {diagram.players.map((player) => (
+        {shown.players.map((player) => (
           <Group
             key={player.id}
             onPointerDown={(e) => itemDown(e, player.id)}
@@ -364,7 +390,7 @@ export const DiagramScene = memo(function DiagramScene({
             />
           </Group>
         ))}
-        {diagram.notes.map((note) => (
+        {shown.notes.map((note) => (
           <Group
             key={note.id}
             onPointerDown={(e) => itemDown(e, note.id)}
@@ -382,24 +408,24 @@ export const DiagramScene = memo(function DiagramScene({
         ))}
       </Layer>
       <Layer listening={false}>
-        {marquee ? (
+        {shownMarquee ? (
           <Rect
-            x={Math.min(marquee.a.x, marquee.b.x) * width}
-            y={Math.min(marquee.a.y, marquee.b.y) * height}
-            width={Math.abs(marquee.b.x - marquee.a.x) * width}
-            height={Math.abs(marquee.b.y - marquee.a.y) * height}
+            x={Math.min(shownMarquee.a.x, shownMarquee.b.x) * width}
+            y={Math.min(shownMarquee.a.y, shownMarquee.b.y) * height}
+            width={Math.abs(shownMarquee.b.x - shownMarquee.a.x) * width}
+            height={Math.abs(shownMarquee.b.y - shownMarquee.a.y) * height}
             stroke={SELECT}
             dash={[6, 4]}
-            fill="rgba(255,216,74,0.12)"
+            fill="rgba(45,156,219,0.12)"
           />
         ) : null}
-        {lasso && lasso.length > 1 ? (
+        {shownLasso && shownLasso.length > 1 ? (
           <Line
-            points={lasso.flatMap((p) => [p.x * width, p.y * height])}
+            points={shownLasso.flatMap((p) => [p.x * width, p.y * height])}
             stroke={SELECT}
             dash={[6, 4]}
             closed
-            fill="rgba(255,216,74,0.12)"
+            fill="rgba(45,156,219,0.12)"
           />
         ) : null}
       </Layer>

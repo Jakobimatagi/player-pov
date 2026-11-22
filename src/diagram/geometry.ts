@@ -174,7 +174,37 @@ export function pointInRect(p: Pt, a: Pt, b: Pt): boolean {
   )
 }
 
+/** Zoom levels the view offers. 1 is the whole field width. */
+export const ZOOMS = [1, 1.25, 1.5, 2] as const
+
+/** How the field is looked at. View only: none of it is saved in the diagram. */
+export interface ViewState {
+  width: number
+  height: number
+  zoom: number
+  /** Mirror left and right. */
+  flip: boolean
+}
+
+/** Where a zoomed Stage sits so the zoom holds the line of scrimmage and the middle in place. */
+export function stagePlacement(v: ViewState): { x: number; y: number } {
+  return { x: (v.width / 2) * (1 - v.zoom), y: LOS_Y * v.height * (1 - v.zoom) }
+}
+
+/** A diagram point (0..1) as pixels on screen, through flip and zoom. */
+export function toScreen(p: Pt, v: ViewState): Pt {
+  const x = v.flip ? 1 - p.x : p.x
+  const place = stagePlacement(v)
+  return { x: place.x + x * v.width * v.zoom, y: place.y + p.y * v.height * v.zoom }
+}
+
+/** A point on the Stage's own canvas (already past zoom) as a diagram point, undoing flip. */
+export function fromStage(p: Pt, v: Pick<ViewState, 'width' | 'height' | 'flip'>): Pt {
+  const x = p.x / v.width
+  return { x: v.flip ? 1 - x : x, y: p.y / v.height }
+}
+
 /** Token radius in px for a field this wide. */
 export function tokenRadius(width: number): number {
-  return Math.max(3, width * 0.022)
+  return Math.max(3, width * 0.019)
 }

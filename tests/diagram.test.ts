@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { diagramFromFormation } from '../src/diagram/formations'
-import { fieldView, lineShape, LOS_Y, pointInPolygon, pointInRect } from '../src/diagram/geometry'
+import { COLOR_HEX, lineHex, onHex } from '../src/diagram/colors'
+import {
+  fieldView,
+  fromStage,
+  lineShape,
+  LOS_Y,
+  pointInPolygon,
+  pointInRect,
+  stagePlacement,
+  toScreen,
+  ZOOMS,
+} from '../src/diagram/geometry'
 import {
   blankDiagram,
   createState,
@@ -256,5 +267,54 @@ describe('script', () => {
     st.setItem('worse', 'not json')
     expect(loadScript('worse', st).plays[0]?.name).toBe('Play 1')
     expect(saveScript('k', sc, null)).toBe(false)
+  })
+})
+
+describe('view: flip and zoom', () => {
+  const base = { width: 800, height: 520, zoom: 1, flip: false }
+
+  it('maps a diagram point to the screen and back, through flip and zoom', () => {
+    for (const flip of [false, true]) {
+      for (const zoom of ZOOMS) {
+        const view = { ...base, zoom, flip }
+        const p = { x: 0.3, y: 0.7 }
+        const screen = toScreen(p, view)
+        // The Stage's own canvas is the screen point undone from its zoom placement.
+        const place = stagePlacement(view)
+        const onStage = { x: (screen.x - place.x) / zoom, y: (screen.y - place.y) / zoom }
+        const back = fromStage(onStage, view)
+        expect(back.x).toBeCloseTo(p.x)
+        expect(back.y).toBeCloseTo(p.y)
+      }
+    }
+  })
+
+  it('mirrors left and right on flip and holds the line of scrimmage under zoom', () => {
+    expect(toScreen({ x: 0.2, y: 0.5 }, { ...base, flip: true }).x).toBeCloseTo(0.8 * base.width)
+    for (const zoom of ZOOMS) {
+      const at = toScreen({ x: 0.5, y: LOS_Y }, { ...base, zoom })
+      expect(at.x).toBeCloseTo(base.width / 2)
+      expect(at.y).toBeCloseTo(LOS_Y * base.height)
+    }
+  })
+})
+
+describe('replace and colours', () => {
+  it('swaps the diagram as one undoable edit and ignores the same one', () => {
+    const s = fresh()
+    const next = diagramFromFormation('pro-rt')
+    const swapped = run(s, { type: 'select', ids: ['p1'] }, { type: 'replace', diagram: next })
+    expect(swapped.diagram).toBe(next)
+    expect(swapped.selection).toEqual([])
+    expect(run(swapped, { type: 'undo' }).diagram).toBe(s.diagram)
+    expect(run(swapped, { type: 'replace', diagram: next })).toBe(swapped)
+  })
+
+  it('keeps the reference palette, draws a white player dark and reads on every colour', () => {
+    expect(COLOR_HEX.red).toBe('#e5473b')
+    expect(lineHex('white')).not.toBe(COLOR_HEX.white)
+    expect(lineHex('blue')).toBe(COLOR_HEX.blue)
+    expect(onHex('white')).toBe('#1f2328')
+    expect(onHex('purple')).toBe('#ffffff')
   })
 })
