@@ -7,6 +7,7 @@ import { BillingPage } from '../src/team/BillingPage'
 import {
   DEMO_BILLING,
   checkoutReturn,
+  isCheckoutEnabled,
   graceEnds,
   hasRunningPlan,
   limitLabel,
@@ -69,6 +70,13 @@ describe('billing view helpers', () => {
     expect(hasRunningPlan(manual, Date.parse('2027-09-01T00:00:00Z'))).toBe(false)
   })
 
+  it('keeps checkout off unless the switch is exactly true', () => {
+    expect(isCheckoutEnabled(undefined)).toBe(false)
+    expect(isCheckoutEnabled('')).toBe(false)
+    expect(isCheckoutEnabled('false')).toBe(false)
+    expect(isCheckoutEnabled('true')).toBe(true)
+  })
+
   it('reads the Checkout return', () => {
     expect(checkoutReturn('?checkout=success')).toBe('success')
     expect(checkoutReturn('?checkout=canceled')).toBe('canceled')
@@ -78,9 +86,13 @@ describe('billing view helpers', () => {
 })
 
 describe('billing page (no backend)', () => {
-  const render = (path: string) =>
+  const render = (path: string, checkoutEnabled = true) =>
     renderToStaticMarkup(
-      createElement(MemoryRouter, { initialEntries: [path] }, createElement(BillingPage)),
+      createElement(
+        MemoryRouter,
+        { initialEntries: [path] },
+        createElement(BillingPage, { checkoutEnabled }),
+      ),
     )
 
   it('shows Starter usage against its limits and both upgrades', () => {
@@ -92,6 +104,15 @@ describe('billing page (no backend)', () => {
     expect(html).toContain('Upgrade to Team')
     expect(html).toContain('Upgrade to Program')
     expect(html).not.toContain('Manage billing')
+  })
+
+  it('shows Coming soon instead of the upgrades while checkout is off', () => {
+    const html = render('/team/billing', false)
+    expect(html).toContain('Coming soon')
+    expect(html).toContain('Paid plans are coming soon.')
+    expect(html).not.toContain('Upgrade to Team')
+    expect(html).not.toContain('Upgrade to Program')
+    expect(html).not.toContain('Stripe’s secure page')
   })
 
   it('confirms a canceled checkout', () => {

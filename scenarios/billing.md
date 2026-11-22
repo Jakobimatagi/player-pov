@@ -22,6 +22,17 @@ The **Billing** tab (`/team/billing`, `src/team/BillingPage.tsx`) shows the plan
 
 Nothing in the browser can change a plan. Clients have no write grant on `billing_accounts` and cannot call either billing function in the database.
 
+## Checkout switch
+
+Paid plans are off until launch. With the switch off, the Billing tab shows **Coming soon** in place of the Upgrade buttons, and the `billing` function answers a checkout request with 503 `Paid plans are coming soon`. Manage billing (the portal) still works for any team that already has a Stripe customer.
+
+To turn checkout on, set both, then redeploy the site:
+
+- Vercel: `VITE_CHECKOUT_ENABLED=true` (the build reads it).
+- Supabase: `supabase secrets set --project-ref bfaopibbbldsxvjprfdx CHECKOUT_ENABLED=true`.
+
+Any other value, or no value, keeps checkout off.
+
 ## Setup (test mode)
 
 Do this in the Stripe sandbox **Player POV** first. Live mode repeats it after the live account is activated.
@@ -34,6 +45,7 @@ Do this in the Stripe sandbox **Player POV** first. Live mode repeats it after t
    STRIPE_SECRET_KEY=sk_test_...
    STRIPE_WEBHOOK_SECRET=whsec_...
    APP_URL=http://localhost:5173
+   CHECKOUT_ENABLED=true
    ```
 
 4. Local webhook: install the Stripe CLI, then forward events and copy the `whsec_…` it prints into the file above:
@@ -118,7 +130,7 @@ The Stripe keys live in Supabase only, never in Vercel or the browser build.
 
 ## Scenario 5 — Billing tab
 
-**Preconditions:** Signed in as `coach@demo.local` with the local stack and functions served.
+**Preconditions:** Signed in as `coach@demo.local` with the local stack and functions served, `VITE_CHECKOUT_ENABLED=true` in `.env.local` and `CHECKOUT_ENABLED=true` in `supabase/functions/.env`.
 
 **Steps:**
 
@@ -137,6 +149,7 @@ The Stripe keys live in Supabase only, never in Vercel or the browser build.
 - An assistant coach sees the plan and usage, no buttons, and `Ask your head coach to upgrade.`
 - The player is sent to `/team` and sees no billing anywhere.
 - At 390 px there is no sideways scroll.
+- With `VITE_CHECKOUT_ENABLED` unset, both cards show a disabled **Coming soon** button and `Paid plans are coming soon. Your team keeps everything it has today in the meantime.` A checkout POST to the function without `CHECKOUT_ENABLED=true` returns 503 `Paid plans are coming soon`.
 
 ## Starter limits
 
