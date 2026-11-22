@@ -57,6 +57,18 @@ describe('billing view helpers', () => {
     expect(limitPercent(3, null)).toBeNull()
   })
 
+  it('shows a manual plan as running, with its end date', () => {
+    const manual = {
+      ...paid,
+      status: null,
+      hasCustomer: false,
+      manualUntil: '2027-08-01T12:00:00Z',
+    }
+    expect(statusLine(manual)).toEqual({ tone: 'good', text: 'Included until Aug 1, 2027' })
+    expect(hasRunningPlan(manual, Date.parse('2026-11-22T00:00:00Z'))).toBe(true)
+    expect(hasRunningPlan(manual, Date.parse('2027-09-01T00:00:00Z'))).toBe(false)
+  })
+
   it('reads the Checkout return', () => {
     expect(checkoutReturn('?checkout=success')).toBe('success')
     expect(checkoutReturn('?checkout=canceled')).toBe('canceled')

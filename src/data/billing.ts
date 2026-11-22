@@ -14,6 +14,8 @@ export interface TeamBilling {
   renewsAt: string | null
   pastDueSince: string | null
   hasCustomer: boolean
+  /** A plan set by hand (grandfathered team, school invoice), until this time. */
+  manualUntil: string | null
 }
 
 function client() {
@@ -42,6 +44,7 @@ export async function getTeamBilling(teamId: string): Promise<TeamBilling | null
     renewsAt: row.renews_at,
     pastDueSince: row.past_due_since,
     hasCustomer: row.has_customer === true,
+    manualUntil: row.manual_until,
   }
 }
 

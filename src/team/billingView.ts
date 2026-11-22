@@ -32,6 +32,7 @@ export const DEMO_BILLING: TeamBilling = {
   renewsAt: null,
   pastDueSince: null,
   hasCustomer: false,
+  manualUntil: null,
 }
 
 const GRACE_DAYS = 14
@@ -71,13 +72,20 @@ export function statusLine(b: TeamBilling): { tone: StatusTone; text: string } |
     case 'incomplete':
       return { tone: 'warn', text: 'Checkout was not finished.' }
     default:
+      if (manualActive(b) && b.manualUntil) {
+        return { tone: 'good', text: `Included until ${dateLabel(b.manualUntil)}` }
+      }
       return null
   }
 }
 
 /** True while a subscription is running, so the coach manages it instead of buying again. */
-export function hasRunningPlan(b: TeamBilling): boolean {
-  return b.status != null && PAID_STATUSES.includes(b.status)
+export function hasRunningPlan(b: TeamBilling, now = Date.now()): boolean {
+  return (b.status != null && PAID_STATUSES.includes(b.status)) || manualActive(b, now)
+}
+
+function manualActive(b: TeamBilling, now = Date.now()): boolean {
+  return b.manualUntil != null && Date.parse(b.manualUntil) > now
 }
 
 export function limitLabel(used: number, max: number | null): string {
