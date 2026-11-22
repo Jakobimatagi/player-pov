@@ -1,10 +1,12 @@
 import { fieldConfig, type FieldConfig } from '../field/fieldConfig'
 import { alignOrigins } from '../play/compileSource'
+import { legEnd } from './routeKinds'
 import type {
   Leg,
   LookPlayer,
   LookSource,
   PlaySource,
+  RouteEnd,
   RouteKind,
   SourcePlayer,
 } from '../play/sourceTypes'
@@ -51,6 +53,8 @@ export interface EditorState {
   tool: Tool
   /** What the route tool draws: route, block, motion or path. */
   routeKind: RouteKind
+  /** End the route tool gives the next line. Null = the default for the line type. */
+  routeEnd: RouteEnd | null
   snap: Snap
   dirty: boolean
   /** True between beginDrag and endDrag, so a whole drag is one undo entry. */
@@ -84,6 +88,7 @@ export function createEditorState(init: EditorInit): EditorState {
     selection: null,
     tool: 'select',
     routeKind: 'route',
+    routeEnd: null,
     snap: 'coarse',
     dirty: false,
     dragging: false,
@@ -139,6 +144,10 @@ export interface ChartPlayer {
   labels: (string | undefined)[]
   /** kinds[i] is how leg i is drawn. */
   kinds: RouteKind[]
+  /** ends[i] is what ends leg i. Only the last one is drawn. */
+  ends: RouteEnd[]
+  /** Text for the circle, when the coach set one. */
+  mark: string | undefined
 }
 
 export interface ChartLayout {
@@ -169,6 +178,8 @@ export function chartLayout(
       ),
       labels: player.legs.map((leg) => leg.label),
       kinds: player.legs.map((leg) => leg.kind ?? 'route'),
+      ends: player.legs.map((leg) => legEnd(leg)),
+      mark: player.mark,
     })
   }
   for (const player of s.source.players) add('ours', player)

@@ -127,4 +127,28 @@
   .editor-script-num {
     font-weight: 700;
   }
+
+  .editor-back {
+    color: var(--muted-foreground);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .editor-stage {
+    position: relative;
+  }
+
+  .editor-mark-input {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 52px;
+    height: 30px;
+    text-align: center;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 8px;
+    border: 2px solid #ffd84a;
+    background: #141414;
+    color: #fff;
+  }
 }

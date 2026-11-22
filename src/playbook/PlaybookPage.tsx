@@ -21,7 +21,10 @@ import {
   renameFolder,
   renamePlay,
   restorePlay,
+  setFolderFormation,
 } from '../data/plays'
+import { offenseFormations } from '../editor/formations'
+import { drawnDemoRows } from './drawnDemo'
 import { supabase } from '../data/supabase'
 import {
   afterRestore,
@@ -46,6 +49,7 @@ import type { PositionGroup } from '../data/database.types'
 import { listTeamPlayers, type TeamPlayer } from '../data/slots'
 import { AssignPanel } from './AssignPanel'
 import { AddPlaysPanel, GeneratePlaybookPanel, NewFolderForm, type AddMode } from './FolderForms'
+import { findTemplate } from './playbooks'
 import { findStarter, STARTERS } from './starters'
 import {
   breadcrumb,
@@ -56,6 +60,7 @@ import {
   matchesSide,
   type SideFilter,
   defaultKind,
+  effectiveFormation,
   folderNameError,
   KIND_LABEL,
   liveFolders,
@@ -111,18 +116,23 @@ export function PlaybookPage() {
 
   const [plays, setPlays] = useState<PlayRow[]>(() =>
     fixture
-      ? DEMO_PLAYS.filter((play) =>
-          playerView
-            ? DEMO_LINKS.some((link) => link.folderId === 'base' && link.playId === play.id)
-            : true,
-        )
+      ? [
+          ...DEMO_PLAYS.filter((play) =>
+            playerView
+              ? DEMO_LINKS.some((link) => link.folderId === 'base' && link.playId === play.id)
+              : true,
+          ),
+          ...(playerView ? [] : drawnDemoRows().rows),
+        ]
       : [],
   )
   const [archived, setArchived] = useState<PlayRow[]>(() => (fixture && staff ? DEMO_ARCHIVED : []))
   const [folders, setFolders] = useState<Folder[]>(() =>
     fixture ? (playerView ? DEMO_FOLDERS.filter((f) => f.id === 'base') : DEMO_FOLDERS) : [],
   )
-  const [links, setLinks] = useState<FolderLink[]>(fixture ? DEMO_LINKS : [])
+  const [links, setLinks] = useState<FolderLink[]>(
+    fixture ? [...DEMO_LINKS, ...(playerView ? [] : drawnDemoRows().links)] : [],
+  )
   const [assignments, setAssignments] = useState<Assignment[]>(() =>
     fixture && !playerView ? DEMO_ASSIGNMENTS : [],
   )
@@ -261,6 +271,22 @@ export function PlaybookPage() {
       ? null
       : listStatus({ loading, count: shown.length, archived: viewingArchived })
   const emptyFolder = status === 'No plays' && current != null ? 'This folder is empty' : status
+
+  async function changeBaseFormation(folder: Folder, value: string) {
+    const next = value === '' ? null : value
+    if (!fixture) {
+      try {
+        await setFolderFormation(folder.id, next)
+      } catch (error) {
+        failed(error, 'Could not change the base alignment')
+        return
+      }
+    }
+    setFolders((rows) =>
+      rows.map((row) => (row.id === folder.id ? { ...row, baseFormation: next } : row)),
+    )
+    done(next == null ? 'Base alignment cleared' : 'Base alignment saved')
+  }
 
   async function commitRename(playId: string) {
     const name = draftName.trim()
@@ -419,6 +445,7 @@ export function PlaybookPage() {
     const template = findStarter(templateId)
     if (template == null) throw new Error('Unknown playbook')
     const plays = template.build()
+    const baseFormation = findTemplate(templateId)?.formation ?? null
     let folder: Folder
     if (fixture) {
       folder = {
@@ -428,6 +455,7 @@ export function PlaybookPage() {
         kind: 'playbook',
         archived: false,
         side: hereSide ?? template.side,
+        baseFormation,
       }
     } else {
       if (snap.teamId == null) throw new Error('No team')
@@ -437,6 +465,7 @@ export function PlaybookPage() {
         parentId: current,
         kind: 'playbook',
         side: hereSide ?? template.side,
+        baseFormation,
       })
     }
     setFolders((rows) => [...rows, folder])
@@ -583,6 +612,29 @@ export function PlaybookPage() {
             </span>
           ) : null}
         </nav>
+      ) : null}
+
+      {here != null &&
+      editHere &&
+      !viewingArchived &&
+      here.kind === 'playbook' &&
+      (hereSide == null || hereSide === 'offense') ? (
+        <label className="base-alignment">
+          <span>Base alignment</span>
+          <select
+            value={here.baseFormation ?? ''}
+            onChange={(event) => void changeBaseFormation(here, event.target.value)}
+          >
+            <option value="">
+              {effectiveFormation(live, here.id) != null ? 'Inherited' : 'Not set'}
+            </option>
+            {offenseFormations().map(([key, name]) => (
+              <option key={key} value={key}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
       ) : null}
 
       {editHere && !viewingArchived && !searching ? (
@@ -903,6 +955,25 @@ export function PlaybookPage() {
             )}
           </li>
         ))}
+        {here != null &&
+        here.kind === 'playbook' &&
+        editHere &&
+        !viewingArchived &&
+        !searching &&
+        (hereSide == null || hereSide === 'offense') ? (
+          <li className="playbook-row play-add-card">
+            <Link
+              to={`/draw?playbook=${here.id}${fixture && supabase != null ? '&roster=demo' : ''}`}
+              aria-label={`Draw a new play in ${here.name}`}
+              data-testid="draw-play-card"
+            >
+              <span className="play-add-plus" aria-hidden="true">
+                +
+              </span>
+              <span>Draw a play</span>
+            </Link>
+          </li>
+        ) : null}
       </ul>
     </CoachLayout>
   )

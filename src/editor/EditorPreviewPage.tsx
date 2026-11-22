@@ -1,14 +1,31 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import tripsFlood from '../../fixtures/trips-flood.source.json'
 import tripsFloodFast from '../../fixtures/trips-flood-fast.source.json'
 import { Button } from '../components/ui/button'
+import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
+import { createPlay, listFolders } from '../data/plays'
+import { supabase } from '../data/supabase'
+import { DEMO_FOLDERS, honorDemoRoster } from '../playbook/archive'
+import { addDrawnDemo } from '../playbook/drawnDemo'
+import { effectiveFormation, type Folder } from '../playbook/folders'
+import { drawnPlayError, formationPlay } from '../playbook/newPlays'
 import { COVER_2_LOOK } from '../play/cover2Look'
-import type { PlaySource, RouteKind } from '../play/sourceTypes'
+import type { PlaySource, RouteEnd, RouteKind } from '../play/sourceTypes'
 import type { Position } from '../play/types'
 import { editorReducer } from './actions'
 import { EditorCanvas, type CanvasPointer } from './EditorCanvas'
+import { CLICK_YARDS, MIN_STEP, pathLength, simplifyStroke, type Pt } from './freehand'
 import { PlayThumbnail } from './PlayThumbnail'
-import { FIELD_PRESETS, ROUTE_KIND_LABEL, ROUTE_KINDS } from './routeKinds'
+import {
+  defaultEnd,
+  FIELD_PRESETS,
+  markOf,
+  ROUTE_END_LABEL,
+  ROUTE_ENDS,
+  ROUTE_KIND_LABEL,
+  ROUTE_KINDS,
+} from './routeKinds'
 import {
   blankPlay,
   copyPlay,
@@ -23,8 +40,10 @@ import {
 import {
   chartLayout,
   createEditorState,
+  sameRef,
   findPlayer,
   isLegRef,
+  MAX_LEGS,
   type EditorState,
   type LegRef,
   type PlayerRef,
@@ -67,7 +86,95 @@ export function EditorPreviewPage() {
   const [addPosition, setAddPosition] = useState<Position>('WR')
   const box = useRef<HTMLDivElement>(null)
   const drag = useRef<PlayerRef | LegRef | null>(null)
+  // A freehand stroke in progress: the points laid down so far, in absolute field yards.
+  const stroke = useRef<{ ref: PlayerRef; pts: Pt[] } | null>(null)
+  const [ghost, setGhost] = useState<Pt[] | null>(null)
+  // Double-click on a circle edits its text. Single click only selects and drags.
+  const [editing, setEditing] = useState<{
+    ref: PlayerRef
+    px: number
+    py: number
+    value: string
+  } | null>(null)
   const [size, setSize] = useState({ width: 480, height: 640 })
+
+  // /draw?playbook=<id>: one new play, lined up in that playbook's base alignment, filed into it.
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
+  const playbookId = params.get('playbook')
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
+  // No backend, or the dev demo roster the playbook page was opened with.
+  const demo = supabase == null || honorDemoRoster(params.get('roster'), true, import.meta.env.DEV)
+  const rosterQuery = supabase != null && demo ? '&roster=demo' : ''
+  const [book, setBook] = useState<{ folder: Folder; formation: string | null } | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [problem, setProblem] = useState<string | null>(null)
+
+  useEffect(() => {
+    startAuth()
+  }, [])
+
+  useEffect(() => {
+    if (playbookId == null) return
+    if (!demo && auth.teamId == null) return
+    let dead = false
+    void (async () => {
+      try {
+        const folders = demo ? DEMO_FOLDERS : (await listFolders(auth.teamId ?? '')).folders
+        const folder = folders.find((item) => item.id === playbookId)
+        if (dead) return
+        if (folder == null) {
+          setProblem('That playbook was not found')
+          return
+        }
+        const formation = effectiveFormation(folders, folder.id)
+        setBook({ folder, formation })
+        const play = formationPlay(formation, 'New play')
+        dispatch({
+          type: 'load',
+          source: play.source,
+          look: play.look,
+          playId: null,
+          baseVersion: null,
+          lookId: null,
+          lookBaseVersion: null,
+        })
+      } catch (error) {
+        if (!dead)
+          setProblem(error instanceof Error ? error.message : 'Could not load the playbook')
+      }
+    })()
+    return () => {
+      dead = true
+    }
+  }, [playbookId, demo, auth.teamId])
+
+  async function saveToPlaybook() {
+    if (book == null) return
+    const play = { source: { ...state.source, name: state.name.trim() }, look: state.look }
+    if (play.source.name.length === 0) {
+      setProblem('Give the play a name')
+      return
+    }
+    const bad = drawnPlayError(play)
+    if (bad != null) {
+      setProblem(bad)
+      return
+    }
+    setSaving(true)
+    setProblem(null)
+    try {
+      if (demo) addDrawnDemo(book.folder.id, play)
+      else {
+        if (auth.teamId == null) throw new Error('No team')
+        await createPlay({ teamId: auth.teamId, folderId: book.folder.id, play })
+      }
+      navigate(`/playbook?folder=${book.folder.id}${rosterQuery}`)
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : 'Could not save the play')
+      setSaving(false)
+    }
+  }
 
   // The chart the canvas draws. A field-position preset re-anchors the ball for the view
   // only: every point is ball-relative, so the play itself is never touched.
@@ -146,13 +253,9 @@ export function EditorPreviewPage() {
         sel != null &&
         (hit.kind === 'field' || hit.kind === 'segment')
       ) {
-        // Draw: each tap extends the selected player's line by one leg of the chosen kind.
-        dispatch({
-          type: 'addLeg',
-          ref: { side: sel.side, slot: sel.slot },
-          to: rel,
-          kind: state.routeKind,
-        })
+        // Draw: a tap adds a corner point, a drag draws freehand. Which one it was is
+        // known on release; until then the stroke is only previewed.
+        stroke.current = { ref: { side: sel.side, slot: sel.slot }, pts: [event.field] }
         return
       }
       if (hit.kind === 'field') {
@@ -168,14 +271,87 @@ export function EditorPreviewPage() {
         }
       }
     } else if (event.phase === 'move') {
+      const free = stroke.current
+      if (free != null) {
+        const last = free.pts[free.pts.length - 1]
+        if (last != null && Math.hypot(event.field.x - last.x, event.field.y - last.y) < MIN_STEP) {
+          return
+        }
+        free.pts.push(event.field)
+        const player = layout.players.find((p) => sameRef(p.ref, free.ref))
+        const end = player?.points[player.points.length - 1]
+        setGhost(end != null ? [end, ...free.pts] : [...free.pts])
+        return
+      }
       const ref = drag.current
       if (ref == null) return
       if (isLegRef(ref)) dispatch({ type: 'moveLeg', ref, to: rel })
       else dispatch({ type: 'moveAlign', ref, dx: rel.dx, dy: rel.dy })
+    } else if (stroke.current != null) {
+      const free = stroke.current
+      stroke.current = null
+      setGhost(null)
+      finishStroke(free.ref, free.pts, layout)
     } else if (drag.current != null) {
       drag.current = null
       dispatch({ type: 'endDrag' })
     }
+  }
+
+  const toRel = (p: Pt, layout: { los: number; ballY: number }) => ({
+    dx: p.x - layout.los,
+    dy: p.y - layout.ballY,
+  })
+
+  function finishStroke(ref: PlayerRef, pts: Pt[], layout: ReturnType<typeof chartLayout>) {
+    const draw = {
+      kind: state.routeKind,
+      ...(state.routeEnd != null ? { end: state.routeEnd } : {}),
+    }
+    const first = pts[0]
+    if (first == null) return
+    if (pathLength(pts) < CLICK_YARDS) {
+      dispatch({ type: 'addLeg', ref, to: toRel(first, layout), ...draw })
+      return
+    }
+    const owner = findPlayer(state, ref)
+    const room = MAX_LEGS - (owner?.legs.length ?? 0)
+    // Drop the first point: the line already starts at the player or its last waypoint.
+    const corners = simplifyStroke(pts, room).slice(1)
+    if (corners.length === 0) return
+    // One undo step for the whole stroke.
+    dispatch({ type: 'beginDrag' })
+    for (const corner of corners) {
+      dispatch({ type: 'addLeg', ref, to: toRel(corner, layout), ...draw })
+    }
+    dispatch({ type: 'endDrag' })
+  }
+
+  /** Give the selected route (its last leg) a flat or arrow end, or none. */
+  function pickEnd(end: RouteEnd) {
+    dispatch({ type: 'setDrawEnd', end })
+    if (sel == null) return
+    const owner = findPlayer(state, sel)
+    if (owner == null || owner.legs.length === 0) return
+    dispatch({
+      type: 'setLeg',
+      ref: { side: sel.side, slot: sel.slot, leg: owner.legs.length - 1 },
+      patch: { end },
+    })
+  }
+
+  const selectedOwner = state.selection != null ? findPlayer(state, state.selection) : undefined
+  const lastLeg = selectedOwner?.legs[selectedOwner.legs.length - 1]
+  const shownEnd: RouteEnd =
+    lastLeg != null
+      ? (lastLeg.end ?? defaultEnd(lastLeg.kind ?? 'route'))
+      : (state.routeEnd ?? defaultEnd(state.routeKind))
+
+  function commitMark() {
+    const edit = editing
+    setEditing(null)
+    if (edit == null) return
+    dispatch({ type: 'setPlayer', ref: edit.ref, patch: { mark: edit.value } })
   }
 
   const sel = state.selection
@@ -204,33 +380,56 @@ export function EditorPreviewPage() {
 
   return (
     <main className="editor-preview">
-      <div className="editor-script-nav" role="group" aria-label="Script">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => step(-1)}
-          disabled={script.index === 0}
-          aria-label="Previous play"
-        >
-          ‹ Prev
-        </Button>
-        <strong data-testid="script-position">{positionLabel(script)}</strong>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => step(1)}
-          disabled={script.index >= script.plays.length - 1}
-          aria-label="Next play"
-        >
-          Next ›
-        </Button>
-        <input
-          className="editor-name"
-          aria-label="Play name"
-          value={state.name}
-          onChange={(event) => dispatch({ type: 'rename', name: event.target.value })}
-        />
-      </div>
+      {playbookId != null ? (
+        <div className="editor-script-nav" role="group" aria-label="New play">
+          <Link className="editor-back" to={`/playbook?folder=${playbookId}${rosterQuery}`}>
+            ‹ {book?.folder.name ?? 'Playbook'}
+          </Link>
+          <input
+            className="editor-name"
+            aria-label="Play name"
+            value={state.name}
+            onChange={(event) => dispatch({ type: 'rename', name: event.target.value })}
+          />
+          <Button onClick={() => void saveToPlaybook()} disabled={book == null || saving}>
+            {saving ? 'Saving…' : 'Save to playbook'}
+          </Button>
+        </div>
+      ) : null}
+      {problem != null ? (
+        <p className="auth-error" role="alert">
+          {problem}
+        </p>
+      ) : null}
+      {playbookId != null ? null : (
+        <div className="editor-script-nav" role="group" aria-label="Script">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => step(-1)}
+            disabled={script.index === 0}
+            aria-label="Previous play"
+          >
+            ‹ Prev
+          </Button>
+          <strong data-testid="script-position">{positionLabel(script)}</strong>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => step(1)}
+            disabled={script.index >= script.plays.length - 1}
+            aria-label="Next play"
+          >
+            Next ›
+          </Button>
+          <input
+            className="editor-name"
+            aria-label="Play name"
+            value={state.name}
+            onChange={(event) => dispatch({ type: 'rename', name: event.target.value })}
+          />
+        </div>
+      )}
 
       <div className="editor-toolbar" role="toolbar" aria-label="Editor">
         {TOOLS.map(({ tool, label }) => (
@@ -253,12 +452,28 @@ export function EditorPreviewPage() {
                 aria-pressed={state.routeKind === kind}
                 onClick={() => {
                   dispatch({ type: 'setDrawKind', kind })
+                  dispatch({ type: 'setDrawEnd', end: null })
                   if (sel != null && !isLegRef(sel)) {
                     dispatch({ type: 'setRouteKind', ref: sel, kind })
                   }
                 }}
               >
                 {ROUTE_KIND_LABEL[kind]}
+              </Button>
+            ))}
+          </span>
+        ) : null}
+        {state.tool === 'route' ? (
+          <span className="editor-group" role="group" aria-label="Line end">
+            {ROUTE_ENDS.map((end) => (
+              <Button
+                key={end}
+                size="sm"
+                variant={chip(shownEnd === end)}
+                aria-pressed={shownEnd === end}
+                onClick={() => pickEnd(end)}
+              >
+                {ROUTE_END_LABEL[end]}
               </Button>
             ))}
           </span>
@@ -309,70 +524,106 @@ export function EditorPreviewPage() {
         </span>
       </div>
 
-      <div ref={box} className="editor-stage">
-        <EditorCanvas state={view} width={size.width} height={size.height} onPointer={onPointer} />
+      <div ref={box} className="editor-stage" hidden={playbookId != null && book == null}>
+        <EditorCanvas
+          state={view}
+          width={size.width}
+          height={size.height}
+          onPointer={onPointer}
+          ghost={ghost}
+          onEditPlayer={(ref, at) => {
+            const owner = findPlayer(state, ref)
+            const text = chartLayout(view).players.find((p) => sameRef(p.ref, ref))
+            setEditing({
+              ref,
+              px: at.px,
+              py: at.py,
+              value:
+                owner?.mark ?? (text != null ? markOf(text.ref.slot, text.position, ref.side) : ''),
+            })
+          }}
+        />
+        {editing != null ? (
+          <input
+            className="editor-mark-input"
+            aria-label="Circle text"
+            autoFocus
+            maxLength={4}
+            style={{ left: editing.px, top: editing.py }}
+            value={editing.value}
+            onFocus={(event) => event.currentTarget.select()}
+            onChange={(event) => setEditing({ ...editing, value: event.target.value })}
+            onBlur={commitMark}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur()
+              else if (event.key === 'Escape') setEditing(null)
+            }}
+          />
+        ) : null}
       </div>
 
-      <section className="editor-script" aria-label="Practice script">
-        <div className="editor-script-actions">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const base = parked()
-              open(insertAfter(base, blankPlay(state.source, `Play ${base.plays.length + 1}`)))
-            }}
-          >
-            Add play
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => open(insertAfter(parked(), copyPlay(state.source)))}
-          >
-            Duplicate
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={script.plays.length <= 1}
-            onClick={() => open(removeAt(parked(), script.index))}
-          >
-            Remove play
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={script.index === 0}
-            onClick={() => open(move(parked(), script.index, -1))}
-          >
-            Move up
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={script.index >= script.plays.length - 1}
-            onClick={() => open(move(parked(), script.index, 1))}
-          >
-            Move down
-          </Button>
-        </div>
-        <ol className="editor-script-list">
-          {parked().plays.map((play, index) => (
-            <li key={index} data-current={index === script.index ? 'true' : undefined}>
-              <button
-                type="button"
-                onClick={() => jump(index)}
-                aria-label={`Open play ${index + 1}: ${play.name}`}
-              >
-                <PlayThumbnail source={play} look={state.look} />
-                <span className="editor-script-num">{index + 1}</span>
-                <span className="editor-script-name">{play.name}</span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      </section>
+      {playbookId != null ? null : (
+        <section className="editor-script" aria-label="Practice script">
+          <div className="editor-script-actions">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const base = parked()
+                open(insertAfter(base, blankPlay(state.source, `Play ${base.plays.length + 1}`)))
+              }}
+            >
+              Add play
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => open(insertAfter(parked(), copyPlay(state.source)))}
+            >
+              Duplicate
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={script.plays.length <= 1}
+              onClick={() => open(removeAt(parked(), script.index))}
+            >
+              Remove play
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={script.index === 0}
+              onClick={() => open(move(parked(), script.index, -1))}
+            >
+              Move up
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={script.index >= script.plays.length - 1}
+              onClick={() => open(move(parked(), script.index, 1))}
+            >
+              Move down
+            </Button>
+          </div>
+          <ol className="editor-script-list">
+            {parked().plays.map((play, index) => (
+              <li key={index} data-current={index === script.index ? 'true' : undefined}>
+                <button
+                  type="button"
+                  onClick={() => jump(index)}
+                  aria-label={`Open play ${index + 1}: ${play.name}`}
+                >
+                  <PlayThumbnail source={play} look={state.look} />
+                  <span className="editor-script-num">{index + 1}</span>
+                  <span className="editor-script-name">{play.name}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </main>
   )
 }

@@ -1,4 +1,5 @@
 import starter from '../../fixtures/trips-flood.source.json'
+import { FORMATIONS } from '../editor/formations'
 import { compileChart } from '../editor/compileAdapter'
 import { COVER_2_LOOK, COVER_3_LOOK } from '../play/cover2Look'
 import { importPlayFile } from '../play/importPlayFile'
@@ -93,4 +94,57 @@ export function blankPlay(name: string): NewPlay {
   delete source.id
   delete source.description
   return { source, look: COVER_2_LOOK }
+}
+
+/** What a play drawn from scratch starts as when its book has no base alignment. */
+export const DEFAULT_FORMATION = 'gun-spread'
+
+const SNAP_SECONDS = 0.35
+const DRAWN_DURATION = 4
+
+/**
+ * An undrawn play lined up in one of our formation presets: every player at their spot
+ * with no routes, and the ball snapped to the QB who keeps it. The editor takes it from there.
+ */
+export function formationPlay(formationId: string | null, name: string): NewPlay {
+  const formation = FORMATIONS[formationId ?? DEFAULT_FORMATION] ?? FORMATIONS[DEFAULT_FORMATION]
+  if (formation == null || formation.side !== 'ours') throw new Error('no offense formation')
+  const underCenter = formation.players.some((spot) => spot.slot === 'qb' && spot.align.dx > -3)
+  const source: PlaySource = {
+    sourceVersion: 1,
+    name: name.trim(),
+    side: 'offense',
+    formation: formation.name,
+    ballSpot: { yardLine: 25, hash: 'M' },
+    duration: DRAWN_DURATION,
+    players: formation.players.map((spot) => ({
+      slot: spot.slot,
+      position: spot.position,
+      ...(spot.jersey != null ? { jersey: spot.jersey } : {}),
+      align: { dx: spot.align.dx, dy: spot.align.dy },
+      legs: [],
+    })),
+    defaultLookId: COVER_2_LOOK.id,
+    ball: {
+      snap: underCenter ? 'under-center' : 'shotgun',
+      segments: [
+        {
+          kind: 'flight',
+          t0: 0,
+          t1: SNAP_SECONDS,
+          from: 'c',
+          to: 'qb',
+          apex: underCenter ? 0 : 0.3,
+        },
+        { kind: 'carried', t0: SNAP_SECONDS, t1: DRAWN_DURATION, carrier: 'qb' },
+      ],
+    },
+    adjustments: [],
+  }
+  return { source, look: COVER_2_LOOK }
+}
+
+/** Compile errors for a drawn play, or null when it is ready to save. */
+export function drawnPlayError(play: NewPlay): string | null {
+  return compiles(play)
 }

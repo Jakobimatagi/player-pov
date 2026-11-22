@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { editorReducer, type EditorAction } from '../src/editor/actions'
 import { EditorCanvas } from '../src/editor/EditorCanvas'
+import { CLICK_YARDS, pathLength, simplifyStroke } from '../src/editor/freehand'
 import { PlayThumbnail } from '../src/editor/PlayThumbnail'
 import { playerColor, routeColor } from '../src/editor/routeKinds'
 import {
@@ -146,5 +147,69 @@ describe('script', () => {
     expect(blank.id).toBeUndefined()
     expect(blank.players.every((p) => p.legs.length === 0)).toBe(true)
     expect(copyPlay({ ...FIXTURE, id: 'x' }).id).toBeUndefined()
+  })
+})
+
+describe('line ends and circle text', () => {
+  const render = (source: PlaySource) =>
+    renderToStaticMarkup(
+      createElement(EditorCanvas, {
+        state: { source, look: COVER_2_LOOK, selection: null },
+        width: 480,
+        height: 640,
+      }),
+    )
+  const withLeg = (patch: Record<string, unknown>) => ({
+    ...FIXTURE,
+    players: FIXTURE.players.map((p) =>
+      p.slot === 'h' ? { ...p, legs: p.legs.map((l) => ({ ...l, ...patch })) } : p,
+    ),
+  })
+
+  it('lets any line type end in an arrow, a flat cap or nothing', () => {
+    expect(render(withLeg({ kind: 'route', end: 'block' }))).toContain('data-cap="block"')
+    expect(render(withLeg({ kind: 'block', end: 'arrow' }))).toContain('data-cap="arrow"')
+    expect(render(withLeg({ kind: 'route', end: 'none' }))).not.toContain('data-cap=')
+    expect(render(withLeg({ kind: 'block' }))).toContain('data-cap="block"')
+  })
+
+  it('stores end on a new leg and on setLeg, and a new line type resets it', () => {
+    const s = run(fresh(), { type: 'addLeg', ref: X, to: { dx: 8, dy: 14 }, end: 'block' })
+    expect(findPlayer(s, X)?.legs[0]?.end).toBe('block')
+    const none = run(s, { type: 'setLeg', ref: { ...X, leg: 0 }, patch: { end: 'none' } })
+    expect(findPlayer(none, X)?.legs[0]?.end).toBe('none')
+    expect(PlaySourceSchema.safeParse(none.source).success).toBe(true)
+    const motion = run(none, { type: 'setRouteKind', ref: X, kind: 'motion' })
+    expect(findPlayer(motion, X)?.legs[0]).not.toHaveProperty('end')
+    expect(run(fresh(), { type: 'setDrawEnd', end: 'block' }).routeEnd).toBe('block')
+  })
+
+  it('sets, trims and clears circle text', () => {
+    const named = run(fresh(), { type: 'setPlayer', ref: X, patch: { mark: ' 81 ' } })
+    expect(findPlayer(named, X)).toMatchObject({ mark: '81' })
+    expect(render(named.source)).toContain('>81<')
+    const cleared = run(named, { type: 'setPlayer', ref: X, patch: { mark: '' } })
+    expect(findPlayer(cleared, X)).not.toHaveProperty('mark')
+  })
+})
+
+describe('freehand strokes', () => {
+  const line = (n: number) => Array.from({ length: n }, (_, i) => ({ x: i, y: 0 }))
+
+  it('measures a stroke and treats a short one as a click', () => {
+    expect(pathLength(line(5))).toBe(4)
+    expect(pathLength(line(2))).toBeLessThan(CLICK_YARDS + 0.0001)
+  })
+
+  it('collapses a straight line to its two ends and keeps a corner', () => {
+    expect(simplifyStroke(line(30), 11)).toHaveLength(2)
+    const bent = [...line(10), ...Array.from({ length: 10 }, (_, i) => ({ x: 9, y: i + 1 }))]
+    expect(simplifyStroke(bent, 11)).toHaveLength(3)
+  })
+
+  it('never returns more than maxLegs points past the start', () => {
+    const wavy = Array.from({ length: 200 }, (_, i) => ({ x: i * 0.2, y: Math.sin(i / 3) * 4 }))
+    expect(simplifyStroke(wavy, 4).length - 1).toBeLessThanOrEqual(4)
+    expect(simplifyStroke(wavy, 0)).toHaveLength(1)
   })
 })

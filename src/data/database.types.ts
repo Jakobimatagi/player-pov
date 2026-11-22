@@ -332,6 +332,7 @@ export type Database = {
           parent_id: string | null
           kind: 'playbook' | 'opponent'
           side: StaffSide | null
+          base_formation: string | null
           created_by: string | null
           created_at: string
         }
@@ -344,6 +345,7 @@ export type Database = {
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
           side?: StaffSide | null
+          base_formation?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -356,6 +358,7 @@ export type Database = {
           parent_id?: string | null
           kind?: 'playbook' | 'opponent'
           side?: StaffSide | null
+          base_formation?: string | null
           created_by?: string | null
           created_at?: string
         }

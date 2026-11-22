@@ -13,18 +13,16 @@ import { DepthChartPage } from '../team/DepthChartPage'
 import { RosterSheetPage } from '../team/RosterSheetPage'
 import { TeamPage } from '../team/TeamPage'
 
+const editorRoute = (path: string): RouteObject => ({
+  path,
+  lazy: async () => {
+    const { EditorPreviewPage } = await import('../editor/EditorPreviewPage')
+    return { Component: EditorPreviewPage }
+  },
+})
+
 /** Dev-only editor harness (C5). Production builds drop it. */
-const devRoutes: RouteObject[] = import.meta.env.DEV
-  ? [
-      {
-        path: '/dev/editor',
-        lazy: async () => {
-          const { EditorPreviewPage } = await import('../editor/EditorPreviewPage')
-          return { Component: EditorPreviewPage }
-        },
-      },
-    ]
-  : []
+const devRoutes: RouteObject[] = import.meta.env.DEV ? [editorRoute('/dev/editor')] : []
 
 const router = createBrowserRouter([
   {
@@ -43,6 +41,8 @@ const router = createBrowserRouter([
       { path: '/team/depth', element: <DepthChartPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
       { path: '/plays/:playId', element: <PlaySheetPage /> },
+      // Draw a new play into a playbook: /draw?playbook=<folder id>.
+      editorRoute('/draw'),
       ...devRoutes,
     ],
   },

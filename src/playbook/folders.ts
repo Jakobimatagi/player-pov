@@ -11,6 +11,8 @@ export interface Folder {
   archived: boolean
   /** Offense or defense book. Null or missing is shared. */
   side?: StaffSide | null
+  /** Key of an offense formation preset. New plays drawn in this book start from it. */
+  baseFormation?: string | null
 }
 
 export type SideFilter = 'all' | StaffSide
@@ -22,6 +24,19 @@ export function effectiveSide(folders: readonly Folder[], id: string | null): St
   let current = id == null ? undefined : byId.get(id)
   while (current != null && !seen.has(current.id)) {
     if (current.side != null) return current.side
+    seen.add(current.id)
+    current = current.parentId == null ? undefined : byId.get(current.parentId)
+  }
+  return null
+}
+
+/** The folder's own base alignment, else the nearest folder above it with one, else null. */
+export function effectiveFormation(folders: readonly Folder[], id: string | null): string | null {
+  const byId = new Map(folders.map((folder) => [folder.id, folder]))
+  const seen = new Set<string>()
+  let current = id == null ? undefined : byId.get(id)
+  while (current != null && !seen.has(current.id)) {
+    if (current.baseFormation != null) return current.baseFormation
     seen.add(current.id)
     current = current.parentId == null ? undefined : byId.get(current.parentId)
   }

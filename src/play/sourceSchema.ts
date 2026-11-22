@@ -27,6 +27,7 @@ const legSchema = z.object({
   face: z.number().optional(),
   label: z.string().optional(),
   kind: z.enum(['route', 'block', 'motion', 'path']).optional(),
+  end: z.enum(['arrow', 'block', 'none']).optional(),
 })
 
 const alignSchema = z.union([
@@ -40,6 +41,7 @@ const alignSchema = z.union([
 
 const playerFields = {
   slot: z.string(),
+  mark: z.string().max(4).optional(),
   position: z.enum(positions),
   jersey: z.number().optional(),
   role: z.string().optional(),

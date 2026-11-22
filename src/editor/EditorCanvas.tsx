@@ -1,10 +1,17 @@
-import { useMemo, useRef, type PointerEvent, type ReactNode } from 'react'
+import { useMemo, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 import { FIELD_LENGTH, FIELD_WIDTH } from '../play/coords'
 import { fieldConfig, type FieldConfig } from '../field/fieldConfig'
-import type { RouteKind } from '../play/sourceTypes'
+import type { RouteEnd } from '../play/sourceTypes'
 import { fieldToScreen, fitView, hitTest, screenToField, type Hit, type View } from './hitTest'
-import { isLineman, onColor, playerColor, routeColor } from './routeKinds'
-import { chartLayout, isLegRef, type ChartPlayer, type EditorState } from './state'
+import { isLineman, markOf, onColor, playerColor, routeColor } from './routeKinds'
+import {
+  chartLayout,
+  isLegRef,
+  sameRef,
+  type ChartPlayer,
+  type EditorState,
+  type PlayerRef,
+} from './state'
 
 export interface CanvasPointer {
   phase: 'down' | 'move' | 'up'
@@ -27,6 +34,10 @@ export interface EditorCanvasProps {
   ahead?: number
   /** Small, static snapshot for lists: offense only is typical, no waypoints, labels or numbers. */
   compact?: boolean
+  /** A line being drawn right now, in absolute field yards. Dashed, not saved. */
+  ghost?: { x: number; y: number }[] | null
+  /** Double-click on a player: where its circle is, in canvas px. */
+  onEditPlayer?: (ref: PlayerRef, at: { px: number; py: number }) => void
   /** Draw the defensive look. Default true. */
   showDefense?: boolean
   /** Called on pointerdown with what was hit. The canvas itself never edits the chart. */
@@ -46,10 +57,8 @@ const COLORS = {
 }
 
 function label(p: ChartPlayer, slot: string): string {
-  if (p.ref.side === 'ours') return slot.length <= 2 ? slot.toUpperCase() : p.position
-  if (p.position === 'LB') return slot.charAt(0).toUpperCase()
-  if (p.position === 'S') return slot.slice(0, 2).toUpperCase()
-  return p.position
+  if (p.mark != null) return p.mark
+  return markOf(slot, p.position, p.ref.side)
 }
 
 const round = (v: number) => Math.round(v * 10) / 10
@@ -75,15 +84,15 @@ function squiggle(a: Px, b: Px, amp: number): string {
   return out.join(' ')
 }
 
-/** The end of a line: arrowhead (route, motion), block cap, or nothing (path). */
-function endCap(kind: RouteKind, a: Px, b: Px, color: string, size: number): ReactNode {
+/** The end of a line: an arrowhead, a flat block cap, or nothing. */
+function endCap(end: RouteEnd, a: Px, b: Px, color: string, size: number): ReactNode {
   const len = Math.hypot(b.px - a.px, b.py - a.py)
-  if (len < 1 || kind === 'path') return null
+  if (len < 1 || end === 'none') return null
   const ux = (b.px - a.px) / len
   const uy = (b.py - a.py) / len
   const nx = -uy
   const ny = ux
-  if (kind === 'block') {
+  if (end === 'block') {
     const half = size * 0.9
     return (
       <line
@@ -118,6 +127,8 @@ export function EditorCanvas({
   ahead = 25,
   compact = false,
   showDefense = true,
+  ghost = null,
+  onEditPlayer,
   onHit,
   onPointer,
 }: EditorCanvasProps) {
@@ -190,8 +201,29 @@ export function EditorCanvas({
     onHit?.(hit)
     if (onPointer == null) return
     pressed.current = { id: event.pointerId, hit }
-    event.currentTarget.setPointerCapture?.(event.pointerId)
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+    } catch {
+      // Not an active pointer (a synthetic event): the drag still works inside the box.
+    }
     emit('down', event, hit)
+  }
+  const onDoubleClick = (event: MouseEvent<SVGSVGElement>) => {
+    if (onEditPlayer == null) return
+    const box = event.currentTarget.getBoundingClientRect()
+    const hit = hitTest(
+      state,
+      event.clientX - box.left,
+      event.clientY - box.top,
+      view,
+      config,
+      layout,
+    )
+    if (hit.kind !== 'player') return
+    const player = layout.players.find((p) => sameRef(p.ref, hit.ref))
+    const origin = player?.points[0]
+    if (origin == null) return
+    onEditPlayer(hit.ref, at(origin.x, origin.y))
   }
   const onPointerMove = (event: PointerEvent<SVGSVGElement>) => {
     const p = pressed.current
@@ -217,6 +249,7 @@ export function EditorCanvas({
       aria-label={`Play chart: ${state.source.name}`}
       style={{ touchAction: 'none', display: 'block', background: COLORS.grass }}
       onPointerDown={onPointerDown}
+      onDoubleClick={onDoubleClick}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
@@ -320,9 +353,9 @@ export function EditorCanvas({
                 {(() => {
                   const a = points[last]
                   const b = points[last + 1]
-                  const kind = p.kinds[last]
-                  if (a == null || b == null || kind == null) return null
-                  return endCap(kind, a, b, color, capSize + (selected ? 1.5 : 0))
+                  const end = p.ends[last]
+                  if (a == null || b == null || end == null) return null
+                  return endCap(end, a, b, color, capSize + (selected ? 1.5 : 0))
                 })()}
                 {selected &&
                   points
@@ -360,6 +393,22 @@ export function EditorCanvas({
             )
           })}
       </g>
+      {ghost != null && ghost.length > 1 ? (
+        <polyline
+          data-ghost="true"
+          aria-hidden="true"
+          points={ghost
+            .map((point) => at(point.x, point.y))
+            .map((point) => `${point.px},${point.py}`)
+            .join(' ')}
+          fill="none"
+          stroke={COLORS.selected}
+          strokeWidth={stroke}
+          strokeDasharray="6 5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : null}
       <g className="editor-players">
         {visible.map((p) => {
           const { px, py } = at(p.points[0]?.x ?? 0, p.points[0]?.y ?? 0)

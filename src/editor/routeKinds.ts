@@ -1,4 +1,4 @@
-import type { Leg, RouteKind } from '../play/sourceTypes'
+import type { Leg, RouteEnd, RouteKind } from '../play/sourceTypes'
 import type { Position } from '../play/types'
 
 /**
@@ -12,6 +12,23 @@ export const ROUTE_KIND_LABEL: Record<RouteKind, string> = {
   block: 'Block',
   motion: 'Motion',
   path: 'Path',
+}
+
+export const ROUTE_ENDS: readonly RouteEnd[] = ['arrow', 'block', 'none']
+
+export const ROUTE_END_LABEL: Record<RouteEnd, string> = {
+  arrow: 'Arrow',
+  block: 'Flat',
+  none: 'None',
+}
+
+/** The end a line gets until the coach picks one: block lines end flat, paths end bare. */
+export function defaultEnd(kind: RouteKind): RouteEnd {
+  return kind === 'block' ? 'block' : kind === 'path' ? 'none' : 'arrow'
+}
+
+export function legEnd(leg: Pick<Leg, 'kind' | 'end'>): RouteEnd {
+  return leg.end ?? defaultEnd(legKind(leg))
 }
 
 export function legKind(leg: Pick<Leg, 'kind'>): RouteKind {
@@ -91,3 +108,11 @@ export const FIELD_PRESETS: readonly FieldPreset[] = [
   { id: 'goalline', label: 'Goalline', yardLine: 97 },
   { id: 'backed-up', label: 'Backed up', yardLine: 5 },
 ]
+
+/** Default circle text for a player with no mark of its own. */
+export function markOf(slot: string, position: Position, side: 'ours' | 'theirs'): string {
+  if (side === 'ours') return slot.length <= 2 ? slot.toUpperCase() : position
+  if (position === 'LB') return slot.charAt(0).toUpperCase()
+  if (position === 'S') return slot.slice(0, 2).toUpperCase()
+  return position
+}
