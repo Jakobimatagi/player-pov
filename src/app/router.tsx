@@ -9,6 +9,7 @@ import {
 import { HomePage, SessionLayout, WatchPage } from './HomeGate'
 import { PlaybookPage } from '../playbook/PlaybookPage'
 import { PlaySheetPage } from '../playsheet/PlaySheetPage'
+import { ActivityPage } from '../team/ActivityPage'
 import { DepthChartPage } from '../team/DepthChartPage'
 import { RosterSheetPage } from '../team/RosterSheetPage'
 import { TeamPage } from '../team/TeamPage'
@@ -34,6 +35,7 @@ const router = createBrowserRouter([
       { path: '/team', element: <TeamPage /> },
       { path: '/team/roster', element: <RosterSheetPage /> },
       { path: '/team/depth', element: <DepthChartPage /> },
+      { path: '/team/activity', element: <ActivityPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
       { path: '/plays/:playId', element: <PlaySheetPage /> },
       // Draw a play, optionally into a playbook: /diagram?playbook=<folder id>.

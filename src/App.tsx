@@ -48,6 +48,9 @@ import { useExceptions } from './viewer/useExceptions'
 import { useRules } from './viewer/useRules'
 import { useViewerAccess } from './viewer/useViewerAccess'
 import { Scrubber } from './ui/Scrubber'
+import { useActivityCapture } from './activity/useActivityCapture'
+import type { ViewerSample } from './activity/meter'
+import { supabase } from './data/supabase'
 import { ContextLossOverlay } from './ui/ContextLossOverlay'
 import { LoadError } from './ui/LoadError'
 import { NoWebGL } from './ui/NoWebGL'
@@ -206,6 +209,26 @@ export function App() {
   const { rules, version: rulesVersion, replace: replaceRule } = useRules(savedId)
   const exceptions = useExceptions(savedId)
   const [coachPanel, setCoachPanel] = useState<'assign' | 'rules' | null>(null)
+  // A player's mental reps: camera time while the play runs, and runs watched to the end.
+  const readViewer = useCallback((): ViewerSample | null => {
+    if (readyPlay == null) return null
+    const mode = cameraState.mode
+    const subject = cameraState.attached >= 0 ? cameraState.attached : cameraState.povSubject
+    return {
+      playing: clockState.playingRef.current,
+      t: clockState.tRef.current,
+      startT: clockState.startRef.current,
+      duration: clockState.durationRef.current,
+      mode,
+      slot: mode === 'pov' ? (readyPlay.ids[subject] ?? '') : '',
+    }
+  }, [readyPlay])
+  useActivityCapture({
+    enabled: supabase != null && access.role === 'player' && readyPlay != null,
+    teamId: access.teamId,
+    playId: savedId,
+    readViewer,
+  })
 
   // Lock before paint so a locked player never sees another player's view.
   useLayoutEffect(() => {

@@ -7,6 +7,8 @@ export type PositionGroup = 'QB' | 'RB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'DB
 export type Side = 'offense' | 'defense'
 /** Coordinator side and playbook side: a side of the ball, or special teams. */
 export type StaffSide = Side | 'special'
+/** What a second of study was spent on: the play sheet, or a viewer camera. */
+export type ActivityKind = 'playbook' | 'pov' | 'broadcast' | 'topdown'
 
 export type Database = {
   public: {
@@ -649,6 +651,24 @@ export type Database = {
         Update: Record<string, never>
         Relationships: []
       }
+      /** Daily study rollup. Read-only to clients; record_activity is the only writer. */
+      activity_daily: {
+        Row: {
+          team_id: string
+          user_id: string
+          day: string
+          play_id: string
+          kind: ActivityKind
+          slot: string
+          seconds: number
+          runs_started: number
+          runs_completed: number
+          updated_at: string
+        }
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
     }
     Views: {
       roster_public: {
@@ -767,6 +787,48 @@ export type Database = {
           version: number
           look_id: string
           look_version: number
+        }[]
+      }
+      record_activity: {
+        Args: {
+          p_team: string
+          p_play: string
+          p_day: string
+          p_kind: ActivityKind
+          p_slot: string
+          p_seconds: number
+          p_runs_started?: number
+          p_runs_completed?: number
+        }
+        Returns: undefined
+      }
+      activity_summary: {
+        Args: { p_team: string; p_from: string; p_to: string }
+        Returns: {
+          user_id: string
+          playbook_seconds: number
+          pov_seconds: number
+          broadcast_seconds: number
+          topdown_seconds: number
+          pov_reps: number
+          own_slot_reps: number
+          runs_started: number
+          plays_opened: number
+          days_active: number
+          last_day: string | null
+        }[]
+      }
+      assignment_progress: {
+        Args: { p_team: string }
+        Returns: {
+          assignment_id: string
+          playbook_id: string
+          playbook_name: string
+          due_at: string | null
+          user_id: string
+          plays_total: number
+          plays_opened: number
+          plays_repped: number
         }[]
       }
     }

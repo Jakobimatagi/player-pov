@@ -8,9 +8,10 @@ const TEAM_TABS = [
   { to: '/team', label: 'Members', end: true },
   { to: '/team/roster', label: 'Roster sheet', end: false },
   { to: '/team/depth', label: 'Depth chart', end: false },
+  { to: '/team/activity', label: 'Activity', end: false },
 ] as const
 
-/** Team sub-pages: Members, Roster sheet, Depth chart. */
+/** Team sub-pages: Members, Roster sheet, Depth chart, Activity. */
 export function TeamTabs() {
   return (
     <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Team">
