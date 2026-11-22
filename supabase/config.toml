@@ -116,7 +116,10 @@ port = 54324
 [storage]
 enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
-file_size_limit = "50MiB"
+# Game film (issue #59) uploads up to 20 GiB per file. The `film` bucket sets its own
+# limit; this global cap must be at least as large. On hosted projects, raise the
+# upload limit in the dashboard (Storage settings) as well.
+file_size_limit = "20GiB"
 
 # Uncomment to configure local storage buckets
 # [storage.buckets.images]
