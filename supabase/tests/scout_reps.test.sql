@@ -1,5 +1,5 @@
 begin;
-select plan(42);
+select plan(43);
 set local search_path = public, extensions, auth;
 
 -- Users: 11 head coach, 12 offensive coordinator, 15 defensive coordinator,
@@ -23,14 +23,6 @@ begin
     now(), now(), '', '', '', ''
   );
 end;
-$$;
-
-create function pg_temp.act_as(uid uuid)
-returns void
-language sql
-as $$
-  select set_config('request.jwt.claim.sub', uid::text, true);
-  select set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
 $$;
 
 do $$
@@ -62,7 +54,8 @@ set local search_path = public, extensions, auth;
 
 -- Plays: Flood (offense, look Cover A), Iso (offense, look Cover B, stays a draft),
 -- Bear (defense, look Trips, an offense look), and Team B's Dive (look Cover Z).
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11","role":"authenticated"}', true);
 select public.save_play_version(
   'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', null, null, 'Flood',
   '{"side":"offense"}'::jsonb,
@@ -87,7 +80,8 @@ select public.save_play_version(
   null, null, '{"side":"offense","name":"Trips"}'::jsonb,
   'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
 );
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21","role":"authenticated"}', true);
 select public.save_play_version(
   'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02', null, null, 'Dive',
   '{"side":"offense"}'::jsonb,
@@ -100,15 +94,19 @@ select public.save_play_version(
 reset role;
 set local search_path = public, extensions, auth;
 create temp table ids (name text primary key, id uuid);
-insert into ids select 'play:' || name, id from public.plays;
-insert into ids select 'look:' || name, id from public.scout_looks;
+insert into ids select 'play:' || name, id from public.plays
+  where team_id in ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02');
+insert into ids select 'look:' || name, id from public.scout_looks
+  where team_id in ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02');
 grant select on ids to authenticated;
-update public.plays set published_at = now() where name in ('Flood', 'Bear');
+update public.plays set published_at = now()
+  where team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01' and name in ('Flood', 'Bear');
 set local role authenticated;
 set local search_path = public, extensions, auth;
 
 -- 1. Creating reps.
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11","role":"authenticated"}', true);
 select lives_ok(
   $$insert into public.scout_reps (id, team_id, play_id, look_id, slot, target_x, target_y, tolerance_yd, note, created_by)
     values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeee01', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
@@ -116,7 +114,8 @@ select lives_ok(
       'x', 12, -10, 2, 'Sit in the hole', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11')$$,
   'head coach creates a rep on Flood vs Cover A for X'
 );
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
 select lives_ok(
   $$insert into public.scout_reps (id, team_id, play_id, look_id, slot, target_x, target_y, created_by)
     values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeee02', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
@@ -136,7 +135,8 @@ select lives_ok(
       'qb', -5, 0, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12')$$,
   'a rep can be drafted on an unpublished play'
 );
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15","role":"authenticated"}', true);
 select throws_ok(
   $$insert into public.scout_reps (team_id, play_id, look_id, slot, target_x, target_y, created_by)
     values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
@@ -152,7 +152,8 @@ select lives_ok(
       'fs', 10, 0, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15')$$,
   'DC creates a rep on a defense play'
 );
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11","role":"authenticated"}', true);
 select throws_ok(
   $$insert into public.scout_reps (team_id, play_id, look_id, slot, target_x, target_y, created_by)
     values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
@@ -174,7 +175,7 @@ select throws_ok(
     values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
       (select id from ids where name = 'play:Flood'), (select id from ids where name = 'look:Cover Z'),
       'x', 0, 0, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11')$$,
-  '23503', null,
+  '23514', 'look is not on this team',
   'another team''s look is rejected'
 );
 select throws_ok(
@@ -190,7 +191,8 @@ select throws_ok(
   '42501', null,
   'a rep''s slot cannot be changed'
 );
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15","role":"authenticated"}', true);
 select results_eq(
   $$with moved as (update public.scout_reps set target_x = 1 where id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee01' returning 1) select count(*)::int from moved$$,
   $$values (0)$$,
@@ -198,7 +200,8 @@ select results_eq(
 );
 
 -- 2. Assigning reps.
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11","role":"authenticated"}', true);
 select lives_ok(
   $$insert into public.assignments (id, team_id, rep_id, assignee_group, due_at, created_by)
     values ('ffffffff-ffff-4fff-8fff-ffffffffff01', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
@@ -239,14 +242,16 @@ select lives_ok(
       values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'dddddddd-dddd-4ddd-8ddd-dddddddddd01', 'QB', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11')$$,
   'head coach assigns a package with Cover B to quarterbacks'
 );
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
 select lives_ok(
   $$insert into public.assignments (id, team_id, rep_id, assignee_user, created_by)
     values ('ffffffff-ffff-4fff-8fff-ffffffffff02', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
       'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee02', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12')$$,
   'OC assigns the Cover B rep to the QB once the package reaches him'
 );
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15","role":"authenticated"}', true);
 select throws_ok(
   $$insert into public.assignments (team_id, rep_id, assignee_user, created_by)
     values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee01', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15')$$,
@@ -265,7 +270,8 @@ select is(
 );
 
 -- 3. What players see.
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14","role":"authenticated"}', true);
 select is((select count(*)::int from public.scout_reps), 0, 'a player reads no rep rows, so no targets');
 select is(
   (select count(*)::int from public.plays where name = 'Flood'),
@@ -318,7 +324,8 @@ select is(
   'players get no coach results'
 );
 
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13","role":"authenticated"}', true);
 select is(
   (select count(*)::int from public.rep_attempts),
   0,
@@ -335,7 +342,8 @@ select is(
   'the QB lists only his own rep'
 );
 
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa16');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa16', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa16","role":"authenticated"}', true);
 select is(
   (select count(*)::int from public.my_rep_homework('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01')),
   0,
@@ -343,7 +351,8 @@ select is(
 );
 
 -- 4. Coach results.
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15","role":"authenticated"}', true);
 select results_eq(
   $$select attempts, first_passed, round(first_distance::numeric, 2), round(best_distance::numeric, 2), passed
     from public.rep_results('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01')
@@ -357,7 +366,8 @@ select is(
   'the activity dashboard ignores rep assignments'
 );
 
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21","role":"authenticated"}', true);
 select is(
   (select count(*)::int from public.scout_reps) + (select count(*)::int from public.rep_attempts)
     + (select count(*)::int from public.rep_results('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01')),
@@ -368,10 +378,12 @@ select is(
 -- 5. Back to Draft: the rep goes quiet, and the coach can still move the due date.
 reset role;
 set local search_path = public, extensions, auth;
-update public.plays set published_at = null where name = 'Flood';
+update public.plays set published_at = null
+  where team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01' and name = 'Flood';
 set local role authenticated;
 set local search_path = public, extensions, auth;
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14","role":"authenticated"}', true);
 select is(
   (select count(*)::int from public.my_rep_homework('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01')),
   0,
@@ -382,7 +394,8 @@ select throws_ok(
   '42501', null,
   'and cannot be answered'
 );
-select pg_temp.act_as('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12');
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12","role":"authenticated"}', true);
 select lives_ok(
   $$update public.assignments set due_at = now() + interval '5 days' where id = 'ffffffff-ffff-4fff-8fff-ffffffffff01'$$,
   'OC moves the due date while the play is a draft'
