@@ -241,12 +241,18 @@ function DiagramEditor({
       const id = nextId(state.diagram, 'p')
       dispatch({ type: 'addToken', shape: tool, at })
       // A text token is only its text, so it asks for it straight away.
-      if (tool === 'text') setEditing({ id, value: 'Ab' })
+      if (tool === 'text') editSoon(id, 'Ab')
     } else if (tool === 'note') {
       const id = nextId(state.diagram, 'n')
       dispatch({ type: 'addNote', at })
-      setEditing({ id, value: 'Note' })
+      editSoon(id, 'Note')
     }
+  }
+
+  // Open the text box after the click has finished. A press moves focus as its last step, so
+  // an input opened during the press is blurred at once and the first keystrokes are lost.
+  function editSoon(id: string, value: string) {
+    setTimeout(() => setEditing({ id, value }), 0)
   }
 
   function onItemDown(id: string, at: Pt, event: PointerEvent | MouseEvent) {

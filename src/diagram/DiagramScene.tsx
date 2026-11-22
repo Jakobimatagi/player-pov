@@ -61,24 +61,29 @@ function Token({
   const split = player.fillStyle === 'split'
   const label = player.label
   if (player.shape === 'text') {
+    // One line, as wide as its text: a label like "BLITZ" must not wrap inside the token.
+    const text = label ?? 'Ab'
+    const size = Math.max(8, r * 1.5)
+    const boxW = Math.max(r * 3, text.length * size * 0.72)
     return (
       <Group id={player.id} x={x} y={y} opacity={hidden ? 0 : 1}>
         <Text
-          text={label ?? 'Ab'}
-          fontSize={Math.max(8, r * 1.5)}
+          text={text}
+          fontSize={size}
           fontStyle="bold"
           fill={palette.text}
-          offsetX={r * 1.5}
-          offsetY={r * 0.8}
-          width={r * 3}
+          offsetX={boxW / 2}
+          offsetY={size * 0.55}
+          width={boxW}
+          wrap="none"
           align="center"
         />
         {selected ? (
           <Rect
-            x={-r * 1.6}
-            y={-r * 1}
-            width={r * 3.2}
-            height={r * 2}
+            x={-boxW / 2 - 4}
+            y={-size * 0.55 - 4}
+            width={boxW + 8}
+            height={size * 1.1 + 8}
             stroke={palette.select}
             strokeWidth={2}
             cornerRadius={4}
