@@ -1014,6 +1014,7 @@ export type Database = {
           renews_at: string | null
           past_due_since: string | null
           has_customer: boolean | null
+          manual_until: string | null
         }[]
       }
       team_depth_notes: {

@@ -98,6 +98,16 @@ begin
   perform set_config('test.knights', team::text, true);
 end $$;
 
+-- Paid plan for Knights, so the coach and player checks below are not Starter limits.
+-- Starter limits are tested in plan_limits.test.sql.
+reset role;
+with paid as (
+  insert into public.billing_accounts (plan, manual_until) values ('program', 'infinity') returning id
+)
+update public.teams set billing_account_id = (select id from paid)
+where id = current_setting('test.knights', true)::uuid;
+set local role authenticated;
+
 select is(
   (select created_by from public.teams where id = current_setting('test.knights', true)::uuid),
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01'::uuid,

@@ -138,10 +138,55 @@ The Stripe keys live in Supabase only, never in Vercel or the browser build.
 - The player is sent to `/team` and sees no billing anywhere.
 - At 390 px there is no sideways scroll.
 
+## Starter limits
+
+`supabase/migrations/20261211000000_plan_limits.sql`, checked by `supabase/tests/plan_limits.test.sql`. The database refuses, so no client can get around them.
+
+| Limit         | Where it is checked                                       | Message (head coach)                                                                         |
+| ------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 15 live plays | new play, or an archived play brought back                | `Your plan includes up to 15 plays. Archive one or upgrade. Open Team → Billing to upgrade.` |
+| 1 coach       | new membership or role change; new coach invite           | `Your plan includes 1 coach. Open Team → Billing to upgrade.`                                |
+| 25 players    | new membership; new player invite (pending invites count) | `Your plan includes up to 25 players. Open Team → Billing to upgrade.`                       |
+| Rep homework  | new `scout_reps` row                                      | `Rep homework is not included in your plan. …`                                               |
+| Scout packs   | new pack week folder                                      | `Scout packs are not included in your plan. …`                                               |
+| Depth chart   | any depth chart change                                    | `The depth chart is not included in your plan. …`                                            |
+| Game film     | new film                                                  | `Game film is not included in your plan. …`                                                  |
+| Activity      | recorded in the background                                | Not recorded. The player sees no error.                                                      |
+
+Anyone other than the head coach reads `… Ask your head coach to upgrade.` instead. Every refusal has SQLSTATE `PLAN1` and the limit in the error hint (`plays`, `players`, `coaches`, `feature:film`, …), so a later screen can link straight to Billing.
+
+Assigning plays to players works on every plan: it is how Starter players see their plays in 3D.
+
+After a downgrade nothing is deleted. Plays, film, members and homework stay readable and existing plays stay editable. Only new things past a limit are refused.
+
+**Grandfathered teams.** Every team that existed when this migration ran got a manual Team plan until Aug 1, 2027 (`billing_accounts.manual_until`). The Billing tab shows `Included until Aug 1, 2027`. Extend or end one by hand:
+
+```sql
+update public.billing_accounts set manual_until = '2027-12-31 12:00+00'
+where id = (select billing_account_id from public.teams where name = 'Team name');
+```
+
+The same column covers a school that pays by invoice: create an account with `plan` and `manual_until`, and link the team.
+
+## Scenario 6 — Limits on a Starter team
+
+**Preconditions:** A team with no billing account (or one whose manual plan has ended), signed in as its head coach.
+
+**Steps:**
+
+1. Team → Invite, role Coach, any name and email, **Send invite**.
+2. Game film → add a film.
+
+**Expected:**
+
+- The invite form shows `Your plan includes 1 coach. Open Team → Billing to upgrade.` No invite is created and no email goes out.
+- Adding film shows `Game film is not included in your plan. Open Team → Billing to upgrade.` before any upload starts.
+
 ## Not in this step
 
-- Upgrade prompts where a Starter limit is hit, and the limits themselves (step 4). Until then the Billing tab is the only place a coach sees the plan.
+- A link button in the limit messages. Today the message names Team → Billing in words.
+- The Program plan's 4 teams versus `create_team`'s cap of 3 teams per user (issue #63 open question 2).
 - An invoice or purchase-order path for schools. Handle by hand in Stripe Invoicing for now.
 - Linking more teams to a Program account. Checkout links only the team it started from.
-- When the 14-day grace runs out with no new event, `plan_of` turns to Starter but `film_quota_bytes` stays until the next event. Step 4 enforces limits from `plan_of`.
+- When the 14-day grace runs out with no new event, `plan_of` turns to Starter and new film is refused, but `film_quota_bytes` still shows the old quota on the film page.
 - Stripe Tax, the founding coupon and trials (`marketing/pricing.md` section 4). Checkout already allows promotion codes.

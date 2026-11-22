@@ -117,6 +117,13 @@ function useAuth() {
   return useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
 }
 
+/** The function's own `{ error }` text (a plan limit, a bad email), not the generic status. */
+async function functionError(error: Error): Promise<string> {
+  const context = (error as { context?: Response }).context
+  const detail = context ? await context.json().catch(() => null) : null
+  return (detail as { error?: string } | null)?.error ?? error.message
+}
+
 export function TeamPage() {
   const snap = useAuth()
   const [params] = useSearchParams()
@@ -250,7 +257,7 @@ export function TeamPage() {
         consent,
       },
     })
-    setNotice(error ? error.message : 'Invite sent.')
+    setNotice(error ? await functionError(error) : 'Invite sent.')
     setInviteOpen(false)
   }
 
@@ -391,7 +398,7 @@ export function TeamPage() {
     const { error } = await supabase.functions.invoke('invite-member', {
       body: { resend: true, inviteId: row.id },
     })
-    setNotice(error ? error.message : 'Invite sent.')
+    setNotice(error ? await functionError(error) : 'Invite sent.')
     setMenuId(null)
   }
 

@@ -38,6 +38,18 @@ end $$;
 insert into public.teams (id, name, season_ends_on, created_by) values
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'Team A', '2026-12-31', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11'),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02', 'Team B', '2026-12-31', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa21');
+-- Paid plan for these fixtures; Starter limits are tested in plan_limits.test.sql.
+do $paid$
+declare
+  r record;
+  account uuid;
+begin
+  for r in select id from public.teams where billing_account_id is null loop
+    insert into public.billing_accounts (plan, manual_until) values ('program', 'infinity')
+    returning id into account;
+    update public.teams set billing_account_id = account where id = r.id;
+  end loop;
+end $paid$;
 
 insert into public.memberships (team_id, user_id, role, position, coordinates) values
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11', 'head_coach', null, null),

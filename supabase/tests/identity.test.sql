@@ -85,6 +85,10 @@ begin
     elsif r.relname = 'teams' then
       execute 'select count(*) from public.teams where id = $1' into n using team_a;
       known := true;
+    elsif r.relname = 'billing_accounts' then
+      execute 'select count(*) from public.billing_accounts where id = $1' into n
+        using nullif(current_setting('test.team_a_account', true), '')::uuid;
+      known := true;
     elsif exists (
       select 1 from information_schema.columns
       where table_schema = 'public' and table_name = r.relname and column_name = 'user_id'
@@ -178,6 +182,19 @@ end $$;
 insert into public.teams (id, name, season, hash_rule, season_ends_on, created_by) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Team A', '2026', 'NFHS', '2026-11-30', '11111111-1111-4111-8111-111111111111'),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Team B', '2026', 'NFHS', '2026-11-30', '55555555-5555-4555-8555-555555555555');
+-- Paid plan for these fixtures; Starter limits are tested in plan_limits.test.sql.
+do $paid$
+declare
+  r record;
+  account uuid;
+begin
+  for r in select id from public.teams where billing_account_id is null loop
+    insert into public.billing_accounts (plan, manual_until) values ('program', 'infinity')
+    returning id into account;
+    update public.teams set billing_account_id = account where id = r.id;
+  end loop;
+end $paid$;
+select set_config('test.team_a_account', (select billing_account_id::text from public.teams where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'), true);
 
 insert into public.profiles (user_id, display_name) values
   ('11111111-1111-4111-8111-111111111111', 'Head Coach'),
@@ -693,6 +710,18 @@ insert into public.teams (id, name, season, hash_rule, season_ends_on, created_b
   '2026-11-30',
   '88888888-8888-4888-8888-888888888888'
 );
+-- Paid plan for these fixtures; Starter limits are tested in plan_limits.test.sql.
+do $paid$
+declare
+  r record;
+  account uuid;
+begin
+  for r in select id from public.teams where billing_account_id is null loop
+    insert into public.billing_accounts (plan, manual_until) values ('program', 'infinity')
+    returning id into account;
+    update public.teams set billing_account_id = account where id = r.id;
+  end loop;
+end $paid$;
 insert into public.memberships (team_id, user_id, role, created_at) values
   (
     'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
