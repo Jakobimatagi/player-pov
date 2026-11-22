@@ -1,32 +1,22 @@
-/* The editor card, matched to the reference layout. It is light on purpose, in any app theme. */
+/* The editor card. Every colour is an app theme variable, so it follows the rest of the app. */
 .dge-page {
-  --accent-orange: #f47920;
-  --accent-blue: #2d9cdb;
-  --accent-green: #3ec28f;
-  --gray-bg: #f4f5f6;
-  --gray-border: #d8dadd;
-  --gray-text: #6b7280;
-  --dark-text: #1f2328;
-  min-height: 100vh;
-  padding: 24px 16px 60px;
-  background: #e9eaec;
-  color: var(--dark-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--foreground);
 }
 
 .dge {
   max-width: 1100px;
   margin: 0 auto;
-  background: #fff;
-  border-radius: 6px;
-  overflow: visible;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
 
 .dge-accent {
-  height: 6px;
-  background: var(--accent-orange);
-  border-radius: 6px 6px 0 0;
+  height: 4px;
+  background: var(--primary);
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .dge-header {
@@ -35,7 +25,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--gray-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .dge-title {
@@ -57,7 +47,7 @@
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
-  color: var(--dark-text);
+  color: var(--foreground);
   font: inherit;
   font-size: 22px;
   font-weight: 700;
@@ -67,12 +57,12 @@
 
 .dge-name:hover,
 .dge-name:focus {
-  border-color: var(--gray-border);
+  border-color: var(--input);
   outline: none;
 }
 
 .dge-count {
-  color: var(--gray-text);
+  color: var(--muted-foreground);
   font-size: 13px;
   white-space: nowrap;
 }
@@ -80,18 +70,22 @@
 .dge-step {
   width: 28px;
   height: 28px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--input);
   border-radius: 4px;
-  background: #fff;
-  color: var(--dark-text);
+  background: transparent;
+  color: var(--foreground);
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
 }
 
+.dge-step:hover:not(:disabled) {
+  background: var(--accent);
+}
+
 .dge-step:disabled {
-  color: #b7bac0;
-  border-color: #e3e5e7;
+  color: var(--muted-foreground);
+  opacity: 0.45;
   cursor: default;
 }
 
@@ -102,19 +96,19 @@
 }
 
 .dge-saved {
-  color: var(--gray-text);
+  color: var(--muted-foreground);
   font-size: 12px;
   max-width: 28ch;
 }
 
 .dge-saved[data-status='error'],
 .dge-saved[data-status='conflict'] {
-  color: #c0392b;
+  color: var(--destructive);
 }
 
 .dge-done {
-  background: var(--accent-blue);
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   padding: 9px 22px;
   border-radius: 18px;
   font-weight: 600;
@@ -122,48 +116,59 @@
   text-decoration: none;
 }
 
+.dge-done:hover {
+  opacity: 0.88;
+}
+
 .dge-secondary {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 20px;
-  border-bottom: 1px solid var(--gray-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .dge-search {
   flex: 1;
   min-width: 0;
   padding: 8px 12px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--input);
   border-radius: 4px;
-  background: #fff;
+  background: var(--background);
   font-size: 13px;
-  color: var(--dark-text);
+  color: var(--foreground);
+}
+
+.dge-search::placeholder {
+  color: var(--muted-foreground);
 }
 
 .dge-dropdown {
   padding: 8px 14px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--input);
   border-radius: 4px;
-  background: #fff;
+  background: var(--secondary);
   font-size: 13px;
   font-weight: 500;
-  color: var(--dark-text);
+  color: var(--secondary-foreground);
   cursor: pointer;
   white-space: nowrap;
 }
 
+.dge-dropdown:hover {
+  background: var(--accent);
+}
+
 .dge-flip[aria-pressed='true'] {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .dge-canvas {
-  background: var(--gray-bg);
+  background: var(--background);
   display: flex;
   justify-content: center;
-  padding: 0;
   overflow: hidden;
 }
 
@@ -176,11 +181,12 @@
 .dge-popover {
   position: absolute;
   z-index: 10;
-  background: #fff;
-  border: 1px solid var(--gray-border);
-  border-radius: 4px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: 6px;
   padding: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
 .dge-swatches {
@@ -197,12 +203,13 @@
   cursor: pointer;
 }
 
-.dge-swatch.white {
-  border-color: #1f2328;
+.dge-swatch.white,
+.dge-swatch.black {
+  border-color: var(--input);
 }
 
 .dge-swatch[aria-pressed='true'] {
-  border-color: var(--accent-blue);
+  border-color: var(--primary);
 }
 
 .dge-fills {
@@ -214,17 +221,17 @@
 .dge-fills button {
   flex: 1;
   padding: 4px 8px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--input);
   border-radius: 3px;
-  background: #fff;
-  color: var(--dark-text);
+  background: transparent;
+  color: var(--popover-foreground);
   font-size: 12px;
   cursor: pointer;
 }
 
 .dge-fills button[aria-pressed='true'] {
-  border-color: var(--accent-blue);
-  background: #e8f4fb;
+  border-color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 18%, transparent);
 }
 
 .dge-edit {
@@ -236,9 +243,9 @@
   text-align: center;
   font-weight: 700;
   border-radius: 4px;
-  border: 2px solid var(--accent-blue);
-  background: #fff;
-  color: var(--dark-text);
+  border: 2px solid var(--primary);
+  background: var(--popover);
+  color: var(--popover-foreground);
 }
 
 .dge-bottom {
@@ -248,9 +255,9 @@
   flex-wrap: wrap;
   gap: 6px;
   padding: 10px 14px;
-  background: var(--gray-bg);
-  border-top: 1px solid var(--gray-border);
-  border-radius: 0 0 6px 6px;
+  background: var(--muted);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
 }
 
 .dge-tb {
@@ -258,13 +265,17 @@
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--input);
   border-radius: 4px;
-  background: #fff;
-  color: var(--dark-text);
+  background: var(--secondary);
+  color: var(--secondary-foreground);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.dge-tb:hover:not(:disabled) {
+  background: var(--accent);
 }
 
 .dge-tb.icon {
@@ -272,20 +283,20 @@
 }
 
 .dge-tb.active-pointer {
-  background: var(--accent-green);
-  border-color: var(--accent-green);
-  color: #fff;
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--background);
 }
 
 .dge-tb.active-blue {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .dge-tb:disabled {
-  color: #b7bac0;
-  border-color: #e3e5e7;
+  color: var(--muted-foreground);
+  opacity: 0.45;
   cursor: default;
 }
 
@@ -294,9 +305,9 @@
   align-items: center;
   gap: 4px;
   padding: 4px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--input);
   border-radius: 4px;
-  background: #fff;
+  background: var(--secondary);
 }
 
 .dge-sub {
@@ -306,29 +317,38 @@
   border: 0;
   border-radius: 3px;
   background: transparent;
-  color: var(--dark-text);
+  color: var(--secondary-foreground);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 
+.dge-sub:hover {
+  background: var(--accent);
+}
+
 .dge-group.highlight {
-  background: var(--accent-blue);
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .dge-group.highlight .dge-sub {
-  color: #fff;
+  color: var(--primary-foreground);
+}
+
+.dge-group.highlight .dge-sub:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .dge-group.highlight .dge-sub.selected {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .dge-divider {
   width: 1px;
   height: 26px;
   margin: 0 4px;
-  background: var(--gray-border);
+  background: var(--border);
 }
 
 .dge-spacer {
@@ -344,13 +364,13 @@
   right: 10px;
   bottom: -34px;
   padding: 6px 14px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--input);
   border-radius: 14px;
-  background: #fff;
-  color: var(--dark-text);
+  background: var(--card);
+  color: var(--foreground);
   font-size: 12px;
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 }
 
@@ -363,10 +383,11 @@
   margin: 0;
   padding: 10px 14px;
   min-width: 280px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   font-size: 12.5px;
 }
 
@@ -383,7 +404,7 @@
 
 .dge-shortcut-list dd {
   margin: 0;
-  color: var(--gray-text);
+  color: var(--muted-foreground);
 }
 
 .dge-script {
@@ -399,17 +420,22 @@
 
 .dge-btn {
   padding: 8px 14px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--input);
   border-radius: 4px;
-  background: #fff;
-  color: var(--dark-text);
+  background: var(--secondary);
+  color: var(--secondary-foreground);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 
+.dge-btn:hover:not(:disabled) {
+  background: var(--accent);
+}
+
 .dge-btn:disabled {
-  color: #b7bac0;
+  color: var(--muted-foreground);
+  opacity: 0.45;
   cursor: default;
 }
 
@@ -427,18 +453,18 @@
   gap: 4px;
   width: 100%;
   padding: 6px;
-  border: 1px solid var(--gray-border);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
-  color: var(--dark-text);
+  background: var(--card);
+  color: var(--foreground);
   text-align: left;
   font-size: 0.8rem;
   cursor: pointer;
 }
 
 .dge-thumbs li[data-current='true'] button {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px rgba(45, 156, 219, 0.35);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--primary) 35%, transparent);
 }
 
 .dge-thumbs canvas {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { loadRemoteScript } from '../data/diagrams'
 import { DiagramScene } from '../diagram/DiagramScene'
+import { useScenePalette } from '../diagram/useScenePalette'
 import { browserStore, savedScript, storageKey, type DiagramScript } from '../diagram/script'
 
 /**
@@ -17,6 +18,7 @@ export function DiagramStrip({
   rosterQuery: string
   remote: boolean
 }) {
+  const palette = useScenePalette()
   const [script, setScript] = useState<DiagramScript | null>(() =>
     remote ? null : savedScript(storageKey(folderId), browserStore()),
   )
@@ -52,7 +54,13 @@ export function DiagramStrip({
               aria-label={`Open diagram ${index + 1}: ${play.name}`}
               className="dg-card"
             >
-              <DiagramScene diagram={play.diagram} width={96} height={128} interactive={false} />
+              <DiagramScene
+                diagram={play.diagram}
+                width={96}
+                height={128}
+                interactive={false}
+                palette={palette}
+              />
               <span className="dg-num">{index + 1}</span>
               <span>{play.name}</span>
             </Link>

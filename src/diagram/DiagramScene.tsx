@@ -3,15 +3,8 @@ import { memo } from 'react'
 import { Circle, Group, Layer, Line, Rect, RegularPolygon, Stage, Text, Wedge } from 'react-konva'
 import { COLOR_HEX, lineHex, onHex } from './colors'
 import { fieldView, fromStage, lineShape, LOS_Y, stagePlacement, tokenRadius } from './geometry'
+import { DEFAULT_PALETTE, type ScenePalette } from './theme'
 import type { Diagram, DLine, DNote, DPlayer, FieldPreset, LineType, Pt } from './types'
-
-const SELECT = '#2d9cdb'
-const FIELD = '#f4f5f6'
-const END_ZONE = '#e7e9eb'
-const YARD = '#c9cbce'
-const NUMBER = '#d7d9db'
-const LOS = '#4a5fd9'
-const GRID = '#dcdee0'
 
 export interface Ghost {
   from: Pt
@@ -25,6 +18,8 @@ export interface DiagramSceneProps {
   width: number
   height: number
   preset?: FieldPreset | null
+  /** Colours from the app theme. Defaults to the dark theme. */
+  palette?: ScenePalette
   /** View only: mirror left and right, and zoom about the line of scrimmage. */
   flip?: boolean
   zoom?: number
@@ -49,18 +44,20 @@ function Token({
   h,
   selected,
   hidden,
+  palette,
 }: {
   player: DPlayer
   w: number
   h: number
   selected: boolean
   hidden: boolean
+  palette: ScenePalette
 }) {
   const r = tokenRadius(w)
   const x = player.x * w
   const y = player.y * h
   const fill = COLOR_HEX[player.color]
-  const stroke = '#1f2328'
+  const stroke = palette.stroke
   const split = player.fillStyle === 'split'
   const label = player.label
   if (player.shape === 'text') {
@@ -70,7 +67,7 @@ function Token({
           text={label ?? 'Ab'}
           fontSize={Math.max(8, r * 1.5)}
           fontStyle="bold"
-          fill="#1f2328"
+          fill={palette.text}
           offsetX={r * 1.5}
           offsetY={r * 0.8}
           width={r * 3}
@@ -82,7 +79,7 @@ function Token({
             y={-r * 1}
             width={r * 3.2}
             height={r * 2}
-            stroke={SELECT}
+            stroke={palette.select}
             strokeWidth={2}
             cornerRadius={4}
           />
@@ -122,7 +119,7 @@ function Token({
     )
   return (
     <Group id={player.id} x={x} y={y} opacity={hidden ? 0 : 1}>
-      {selected ? <Circle radius={r + 4} stroke={SELECT} strokeWidth={2.5} /> : null}
+      {selected ? <Circle radius={r + 4} stroke={palette.select} strokeWidth={2.5} /> : null}
       {body}
       {label != null && label.length > 0 ? (
         <Text
@@ -135,7 +132,7 @@ function Token({
           verticalAlign="middle"
           fontSize={Math.max(6, r * 0.95)}
           fontStyle="bold"
-          fill={split ? '#141414' : onHex(player.color)}
+          fill={split ? palette.ink : onHex(player.color)}
           listening={false}
         />
       ) : null}
@@ -149,12 +146,14 @@ function Note({
   h,
   selected,
   hidden,
+  palette,
 }: {
   note: DNote
   w: number
   h: number
   selected: boolean
   hidden: boolean
+  palette: ScenePalette
 }) {
   const size = Math.max(8, w * 0.026)
   const boxW = Math.min(w * 0.4, Math.max(size * 5, note.text.length * size * 0.62 + size * 1.4))
@@ -164,7 +163,7 @@ function Note({
         width={boxW}
         height={size * 2.1}
         fill="#fff3a8"
-        stroke={selected ? SELECT : '#8a7a2b'}
+        stroke={selected ? palette.select : '#8a7a2b'}
         strokeWidth={selected ? 2.5 : 1}
         cornerRadius={3}
       />
@@ -189,7 +188,9 @@ function Strokes({
   unit,
   selected,
   ghost,
+  palette,
 }: {
+  palette: ScenePalette
   type: LineType
   from: Pt
   to: Pt
@@ -200,7 +201,7 @@ function Strokes({
 }) {
   const shape = lineShape(type, from, to, unit)
   const width = Math.max(1.5, unit * (selected ? 0.3 : 0.19))
-  const stroke = ghost ? SELECT : selected ? SELECT : color
+  const stroke = ghost || selected ? palette.select : color
   return (
     <>
       {shape.parts.map((part, i) => (
@@ -234,6 +235,7 @@ export const DiagramScene = memo(function DiagramScene({
   width,
   height,
   preset = null,
+  palette = DEFAULT_PALETTE,
   flip = false,
   zoom = 1,
   interactive = true,
@@ -298,7 +300,7 @@ export const DiagramScene = memo(function DiagramScene({
       style={{ touchAction: 'none', display: 'block' }}
     >
       <Layer listening={false}>
-        <Rect x={-width} y={-height} width={width * 3} height={height * 3} fill={FIELD} />
+        <Rect x={-width} y={-height} width={width * 3} height={height * 3} fill={palette.field} />
         {field.endZones.map((zone, i) => (
           <Rect
             key={i}
@@ -306,7 +308,7 @@ export const DiagramScene = memo(function DiagramScene({
             y={zone.y0 * height}
             width={width * 3}
             height={(zone.y1 - zone.y0) * height}
-            fill={END_ZONE}
+            fill={palette.endZone}
           />
         ))}
         {width >= 300
@@ -319,7 +321,7 @@ export const DiagramScene = memo(function DiagramScene({
                   -width + i * width * 0.0355,
                   height * 2,
                 ]}
-                stroke={GRID}
+                stroke={palette.grid}
                 strokeWidth={1}
               />
             ))
@@ -328,7 +330,7 @@ export const DiagramScene = memo(function DiagramScene({
           <Group key={mark.y}>
             <Line
               points={[-width, mark.y * height, width * 2, mark.y * height]}
-              stroke={mark.kind === 'goal' ? '#9aa0a6' : YARD}
+              stroke={mark.kind === 'goal' ? palette.goal : palette.yard}
               strokeWidth={mark.kind === 'goal' ? 2.5 : 1}
             />
             {mark.label != null && width > 160 ? (
@@ -339,7 +341,7 @@ export const DiagramScene = memo(function DiagramScene({
                   y={mark.y * height - width * 0.031 * 1.1}
                   fontSize={width * 0.031}
                   fontStyle="bold"
-                  fill={NUMBER}
+                  fill={palette.number}
                 />
                 <Text
                   text={String(mark.label)}
@@ -349,7 +351,7 @@ export const DiagramScene = memo(function DiagramScene({
                   align="right"
                   fontSize={width * 0.031}
                   fontStyle="bold"
-                  fill={NUMBER}
+                  fill={palette.number}
                 />
               </>
             ) : null}
@@ -357,7 +359,7 @@ export const DiagramScene = memo(function DiagramScene({
         ))}
         <Line
           points={[-width, LOS_Y * height, width * 2, LOS_Y * height]}
-          stroke={LOS}
+          stroke={palette.los}
           strokeWidth={interactive ? 3 : 2}
         />
       </Layer>
@@ -372,9 +374,10 @@ export const DiagramScene = memo(function DiagramScene({
                 type={line.type}
                 from={{ x: player.x * width, y: player.y * height }}
                 to={{ x: end.x * width, y: end.y * height }}
-                color={lineHex(line.color)}
+                color={lineHex(line.color, { white: palette.lineWhite, black: palette.lineBlack })}
                 unit={unit}
                 selected={picked.has(line.id)}
+                palette={palette}
               />
             </Group>
           )
@@ -384,10 +387,14 @@ export const DiagramScene = memo(function DiagramScene({
             type={shownGhost.type}
             from={{ x: shownGhost.from.x * width, y: shownGhost.from.y * height }}
             to={{ x: shownGhost.to.x * width, y: shownGhost.to.y * height }}
-            color={lineHex(shownGhost.color)}
+            color={lineHex(shownGhost.color, {
+              white: palette.lineWhite,
+              black: palette.lineBlack,
+            })}
             unit={unit}
             selected={false}
             ghost
+            palette={palette}
           />
         ) : null}
       </Layer>
@@ -405,6 +412,7 @@ export const DiagramScene = memo(function DiagramScene({
               h={height}
               selected={picked.has(player.id)}
               hidden={hidden === player.id}
+              palette={palette}
             />
           </Group>
         ))}
@@ -421,6 +429,7 @@ export const DiagramScene = memo(function DiagramScene({
               h={height}
               selected={picked.has(note.id)}
               hidden={hidden === note.id}
+              palette={palette}
             />
           </Group>
         ))}
@@ -432,18 +441,18 @@ export const DiagramScene = memo(function DiagramScene({
             y={Math.min(shownMarquee.a.y, shownMarquee.b.y) * height}
             width={Math.abs(shownMarquee.b.x - shownMarquee.a.x) * width}
             height={Math.abs(shownMarquee.b.y - shownMarquee.a.y) * height}
-            stroke={SELECT}
+            stroke={palette.select}
             dash={[6, 4]}
-            fill="rgba(45,156,219,0.12)"
+            fill={palette.selectFill}
           />
         ) : null}
         {shownLasso && shownLasso.length > 1 ? (
           <Line
             points={shownLasso.flatMap((p) => [p.x * width, p.y * height])}
-            stroke={SELECT}
+            stroke={palette.select}
             dash={[6, 4]}
             closed
-            fill="rgba(45,156,219,0.12)"
+            fill={palette.selectFill}
           />
         ) : null}
       </Layer>

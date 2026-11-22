@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, useSearchParams } from 'react-router'
+import { CoachLayout } from '../app/CoachLayout'
+import { getAuthSnap, subscribeAuth } from '../auth/session'
 import { offenseFormations } from '../editor/formations'
 import { COLOR_HEX } from './colors'
 import { DiagramScene, type Ghost } from './DiagramScene'
@@ -49,6 +51,7 @@ import {
 } from './types'
 import { diagramFromFormation } from './formations'
 import { useBook, type BookState } from './useBook'
+import { useScenePalette } from './useScenePalette'
 import type { SaveStatus } from './saver'
 import { useRemoteSave } from './useRemoteSave'
 import './diagram.css'
@@ -107,31 +110,41 @@ export function DiagramEditorPage() {
   const [params] = useSearchParams()
   const playbookId = params.get('playbook')
   const roster = params.get('roster')
+  const snap = useSyncExternalStore(subscribeAuth, getAuthSnap, getAuthSnap)
   // The base alignment and any saved script must be known before the first play is laid out.
   const lookup = useBook(playbookId, roster)
-  if (!lookup.settled) {
-    return (
-      <main className="dge-page">
+  const rosterQuery = roster === 'demo' ? '&roster=demo' : ''
+  const back =
+    playbookId != null
+      ? {
+          to: `/playbook?folder=${playbookId}${rosterQuery}`,
+          label: lookup.book?.name ?? 'Playbook',
+        }
+      : { to: '/playbook', label: 'Playbook' }
+  // Same app shell as every other coach page: sidebar, account menu, theme.
+  return (
+    <CoachLayout
+      title="Draw a play"
+      eyebrow="Coach"
+      back={back}
+      wide
+      account={snap.session?.user.email ?? 'Coach Kim'}
+    >
+      {!lookup.settled ? (
         <p className="loading-line">Loading…</p>
-      </main>
-    )
-  }
-  if (lookup.error != null) {
-    return (
-      <main className="dge-page">
+      ) : lookup.error != null ? (
         <p className="auth-error" role="alert">
           {lookup.error}
         </p>
-      </main>
-    )
-  }
-  return (
-    <DiagramEditor
-      key={playbookId ?? 'sandbox'}
-      playbookId={playbookId}
-      roster={roster}
-      lookup={lookup}
-    />
+      ) : (
+        <DiagramEditor
+          key={playbookId ?? 'sandbox'}
+          playbookId={playbookId}
+          roster={roster}
+          lookup={lookup}
+        />
+      )}
+    </CoachLayout>
   )
 }
 
@@ -145,6 +158,7 @@ function DiagramEditor({
   lookup: BookState
 }) {
   const { book, remote, synced } = lookup
+  const palette = useScenePalette()
   const key = storageKey(playbookId)
   const rosterQuery = roster === 'demo' ? '&roster=demo' : ''
   const base = useMemo(() => diagramFromFormation(book?.formation ?? null), [book])
@@ -538,6 +552,7 @@ function DiagramEditor({
               width={size.width}
               height={size.height}
               preset={preset}
+              palette={palette}
               flip={flip}
               zoom={zoom}
               selection={state.selection}
@@ -787,7 +802,13 @@ function DiagramEditor({
                 onClick={() => open(goTo(script, index))}
                 aria-label={`Open play ${index + 1}: ${item.name}`}
               >
-                <DiagramScene diagram={item.diagram} width={96} height={64} interactive={false} />
+                <DiagramScene
+                  diagram={item.diagram}
+                  width={96}
+                  height={64}
+                  interactive={false}
+                  palette={palette}
+                />
                 <span className="dg-num">{index + 1}</span>
                 <span>{item.name}</span>
               </button>

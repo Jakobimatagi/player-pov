@@ -11,9 +11,14 @@ export const COLOR_HEX: Record<TokenColor, string> = {
   purple: '#8c4fd1',
 }
 
-/** Line colour on the light field: the player's colour, but a white player draws dark. */
-export function lineHex(color: TokenColor): string {
-  return color === 'white' ? '#1f2328' : COLOR_HEX[color]
+/**
+ * Line colour: the player's colour. White and black players would vanish on the field, so
+ * the scene passes colours that read on its own background (`over`).
+ */
+export function lineHex(color: TokenColor, over?: { white: string; black: string }): string {
+  if (color === 'white') return over?.white ?? '#1f2328'
+  if (color === 'black') return over?.black ?? COLOR_HEX.black
+  return COLOR_HEX[color]
 }
 
 /** Label colour that reads on a token of this colour. */
