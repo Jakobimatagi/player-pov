@@ -683,8 +683,11 @@ function PlayerDetail({
           })}
         </ul>
       )}
-      <Link to="/team/depth" className="text-sm font-medium text-primary hover:underline">
-        Depth chart
+      <Link
+        to={`/team/depth?user=${encodeURIComponent(row.userId)}`}
+        className="text-sm font-medium text-primary hover:underline"
+      >
+        Depth chart and notes
       </Link>
     </section>
   )

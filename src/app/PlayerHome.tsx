@@ -4,6 +4,7 @@ import { listAssignedPlays, type AssignedPlay } from '../data/slots'
 import { ChevronRight, Clapperboard, Play } from 'lucide-react'
 import { CoachLayout } from './CoachLayout'
 import { PlayerActivityCard, type MyActivity } from './PlayerActivityCard'
+import { MyDepthCard } from './MyDepthCard'
 
 type Load = { status: 'loading' } | { status: 'error' } | { status: 'ready'; plays: AssignedPlay[] }
 
@@ -45,6 +46,7 @@ export function PlayerHome({
   return (
     <CoachLayout title="Player Home" eyebrow="Your plays" account={name} nav={false}>
       <PlayerActivityCard teamId={teamId} userId={userId} initial={initialActivity} />
+      <MyDepthCard teamId={teamId} userId={userId} />
       {load.status === 'loading' && <p className="text-sm text-muted-foreground">Loading…</p>}
       {load.status === 'error' && <p>Couldn&apos;t load your plays.</p>}
       {load.status === 'ready' && load.plays.length === 0 && (
