@@ -38,8 +38,17 @@ Decided 2026-11-22 (issue #73). The product's name and pitch live in code in `sr
 - Every text/background token pair passes WCAG 2.1 AA in both palettes. The automated check is #76.
 - Each team will get its school colour as an accent inside its own workspace; the Scheme HQ orange stays the product's colour.
 
+## Icons and share image
+
+Added in #81. All rendered from one drawing by `scripts/brand-assets/render.mjs` (how to re-run it is in that folder's README).
+
+- **Mark:** dark ink (`#1a0d02`) on pylon orange (`#ff7a1f`), 7.3:1. Thick strokes and a flat middle step in the route so it still reads as O, route and arrow at 16px. The orange square is its own background, so it shows the same in light and dark browser tabs.
+- **Favicon:** `favicon.svg`, with `favicon-32.png` and a 16+32 `favicon.ico` as fallbacks.
+- **Home screen:** `apple-touch-icon.png` (180, full-bleed orange) for iOS; the web app manifest (`/manifest.webmanifest`, built from `BRAND` by the Vite config, so the name and colours follow `src/lib/brand.ts`) lists `icon-192.png`, `icon-512.png` and a maskable `icon-maskable-512.png` for Android. Installed, it opens standalone on stadium navy.
+- **Share image:** `public/landing/og.png`, 1200×630: mark and `SCHEME HQ` wordmark, the tagline in big display type (Win Friday in scoreboard gold), `schemehq.app`, and a tilted crop of the 3D helmet view with an orange frame. Used for both Open Graph and Twitter cards.
+
 ## Still to do
 
 - Light mode toggle: waits on #74 and #75 (about 200 hard-coded colours still assume the dark theme).
 - Per-team school colour accent.
-- Share image, app icons and manifest (#81). Auth emails and Stripe product names (#79) are done in the repo and in Stripe; the hosted Supabase email templates and sender name still have to be pasted in the dashboard (`scenarios/auth.md`).
+- Auth emails and Stripe product names (#79) are done in the repo and in Stripe; the hosted Supabase email templates and sender name still have to be pasted in the dashboard (`scenarios/auth.md`).
