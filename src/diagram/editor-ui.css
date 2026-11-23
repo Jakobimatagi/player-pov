@@ -10,7 +10,7 @@
   color: var(--card-foreground);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 10px color-mix(in oklab, var(--shadow) 25%, transparent);
 }
 
 .dge-accent {
@@ -186,7 +186,7 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 14px color-mix(in oklab, var(--shadow) 40%, transparent);
 }
 
 .dge-swatches {
@@ -337,11 +337,11 @@
 }
 
 .dge-group.highlight .dge-sub:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in oklab, var(--foreground) 15%, transparent);
 }
 
 .dge-group.highlight .dge-sub.selected {
-  background: rgba(255, 255, 255, 0.28);
+  background: color-mix(in oklab, var(--foreground) 28%, transparent);
 }
 
 .dge-divider {
@@ -370,7 +370,7 @@
   color: var(--foreground);
   font-size: 12px;
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px color-mix(in oklab, var(--shadow) 30%, transparent);
   cursor: pointer;
 }
 
@@ -387,7 +387,7 @@
   border-radius: 6px;
   background: var(--popover);
   color: var(--popover-foreground);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 14px color-mix(in oklab, var(--shadow) 40%, transparent);
   font-size: 12.5px;
 }
 
