@@ -1,31 +1,32 @@
 import { Check, Minus } from 'lucide-react'
 import { Wordmark } from '@/components/brand/Wordmark'
 import { BRAND } from '@/lib/brand'
+import { CHECKOUT_ENABLED } from '@/lib/checkout'
 
 type Feature = { title: string; body: string; image: string; alt: string; phone?: boolean }
 
 const FEATURES: readonly Feature[] = [
   {
-    title: 'See the play through your own facemask',
-    body: 'Every play replays in 3D from the helmet of the player who runs it. Switch to the broadcast or top-down view, slow it to quarter speed, and watch it against the defense you will face this week.',
-    image: '/landing/pov.webp',
-    alt: 'A play replayed in 3D from a receiver’s helmet, with POV, broadcast and top-down views',
+    title: 'Every player sees it through their own facemask',
+    body: 'POV replay runs each play in 3D from the helmet of the player who has to execute it. Flip to broadcast or top-down, slow it to quarter speed, and run it against this week’s defense.',
+    image: '/landing/broadcast.webp',
+    alt: 'A play replayed in 3D from the broadcast camera with routes drawn, and POV, broadcast and top-down buttons',
   },
   {
-    title: 'A playbook the whole staff works in',
-    body: 'Draw plays with routes and blocks, file them in playbooks and opponent folders, and print play sheets. Coordinators edit their side of the ball.',
+    title: 'One playbook for the whole staff',
+    body: 'Draw routes and blocks, file plays by playbook and opponent, and print play sheets. Coordinators own their side of the ball.',
     image: '/landing/coach-home.webp',
     alt: 'Coach Home with scout tasks and links to the playbook, team, roster and depth chart',
   },
   {
-    title: 'Scout packs for every opponent',
-    body: 'Build the week’s opponent looks, split the work across position rooms, and turn them into plays your scout team can see.',
+    title: 'Scout packs, split by room',
+    body: 'Build the week’s opponent looks, hand each section to a position coach, and turn them into cards your scout team can run.',
     image: '/landing/scout-pack.webp',
     alt: 'A scout pack board for the week, with looks grouped by room',
   },
   {
-    title: 'Homework players actually do',
-    body: 'Assign a play against a look. Players run it on their phone, you see who passed, who is late and who has not started.',
+    title: 'Homework that gets done',
+    body: 'Assign a play against a look. Players rep it on their phone. You see who passed, who’s late and who hasn’t opened it.',
     image: '/landing/player-home.webp',
     alt: 'Player Home on a phone with homework due, overdue and passed',
     phone: true,
@@ -49,7 +50,7 @@ const PLANS: readonly Plan[] = [
     rows: [
       '1 coach, up to 25 players',
       '15 plays',
-      '3D helmet-cam replay',
+      'POV replay in 3D',
       'Draw plays, playbook, play sheets',
       { off: 'Homework and scout packs' },
       { off: 'Game film' },
@@ -100,6 +101,9 @@ const FAQ: readonly { q: string; a: string }[] = [
   },
 ]
 
+/** Solid ring for keyboard focus; the global default is too faint on the navy background. */
+const focusRing =
+  'rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 const primary =
   'inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 const secondary =
@@ -109,12 +113,12 @@ export function LandingPage() {
   return (
     <div className="min-h-dvh overflow-x-clip bg-background text-foreground">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <a href="/" aria-label={`${BRAND.name} home`}>
+        <a href="/" aria-label={`${BRAND.name} home`} className={focusRing}>
           <Wordmark />
         </a>
         <a
           href="/login"
-          className="text-sm font-medium text-muted-foreground hover:text-foreground"
+          className={`text-sm font-medium text-muted-foreground hover:text-foreground ${focusRing}`}
         >
           Log in
         </a>
@@ -130,8 +134,8 @@ export function LandingPage() {
               {BRAND.tagline}
             </h1>
             <p className="mt-5 max-w-prose text-lg text-pretty text-muted-foreground">
-              Draw a play once. Every player watches it in 3D from their own position, runs it as
-              homework, and shows up knowing their assignment.
+              Draw a play once. Every player learns it in 3D from their own position, reps it as
+              homework, and shows up Friday knowing the assignment.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a href="/signup" className={primary}>
@@ -146,15 +150,13 @@ export function LandingPage() {
             </p>
           </div>
           <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/40">
-            <video
-              className="block aspect-video w-full"
-              src="/landing/draw-a-play.mp4"
-              poster="/landing/draw-a-play-poster.webp"
-              controls
-              muted
-              playsInline
-              preload="none"
-              aria-label="Demo: drawing a play and adding it to a playbook"
+            <img
+              className="block aspect-[8/5] w-full"
+              src="/landing/pov.webp"
+              width={1280}
+              height={800}
+              fetchPriority="high"
+              alt="A play replayed in 3D from inside a player’s helmet, linemen set in front of him"
             />
           </div>
         </section>
@@ -255,14 +257,22 @@ export function LandingPage() {
                       ),
                     )}
                   </ul>
-                  <a href="/signup" className={`mt-6 ${p.featured ? primary : secondary}`}>
-                    {p.price === 'Free' ? 'Start free' : `Start with ${p.name}`}
-                  </a>
+                  {p.price === 'Free' || CHECKOUT_ENABLED ? (
+                    <a href="/signup" className={`mt-6 ${p.featured ? primary : secondary}`}>
+                      {p.price === 'Free' ? 'Start free' : `Start with ${p.name}`}
+                    </a>
+                  ) : (
+                    <p className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-dashed border-border px-5 font-medium text-muted-foreground">
+                      Coming soon
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              Need more film? Add 50 GB for $49 a year.
+              {CHECKOUT_ENABLED
+                ? 'Need more film? Add 50 GB for $49 a year.'
+                : 'Paid plans open soon. Start free today; everything you build carries over when you upgrade.'}
             </p>
           </div>
         </section>
@@ -274,7 +284,9 @@ export function LandingPage() {
           <div className="mt-6 divide-y divide-border border-y border-border">
             {FAQ.map((item) => (
               <details key={item.q} className="group py-4">
-                <summary className="cursor-pointer list-none font-medium marker:hidden">
+                <summary
+                  className={`cursor-pointer list-none font-medium marker:hidden ${focusRing}`}
+                >
                   <span className="flex items-center justify-between gap-4">
                     {item.q}
                     <span
@@ -308,7 +320,7 @@ export function LandingPage() {
           <span>
             © {new Date().getFullYear()} {BRAND.name}
           </span>
-          <a href="/login" className="hover:text-foreground">
+          <a href="/login" className={`hover:text-foreground ${focusRing}`}>
             Log in
           </a>
         </div>

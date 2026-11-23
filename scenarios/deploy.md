@@ -1,6 +1,6 @@
 # Deploy and free-tier ops
 
-The app is a static Vite build on the Vercel Hobby project **player-pov** (`prj_SRL6YyKAz9unWp7dEa4Xr5HQDxHe`). The database is the Supabase free-tier project **player-pov** (`bfaopibbbldsxvjprfdx`, us-west-1, `https://bfaopibbbldsxvjprfdx.supabase.co`). Preview and production use that same project. There is no second Supabase project.
+The app is a static Vite build on the Vercel Hobby project **scheme-hq** (`prj_SRL6YyKAz9unWp7dEa4Xr5HQDxHe`). The database is the Supabase free-tier project **player-pov** (`bfaopibbbldsxvjprfdx`, us-west-1, `https://bfaopibbbldsxvjprfdx.supabase.co`). Preview and production use that same project. There is no second Supabase project.
 
 Vercel Hobby is for an unpaid personal pilot only. Move to Vercel Pro before any paid team. Move Supabase to Pro on the first paid team, the first missed keep-alive, or a database over 300 MB.
 
@@ -17,7 +17,7 @@ This pull request does not apply any of the following.
 1. Leave Supabase **player-pov** on the free tier. Do not run `supabase/seed.sql` there.
 2. Apply `supabase/migrations/20261015120000_identity.sql`.
 3. Apply `supabase/migrations/20261015130100_health.sql`.
-4. On Vercel project **player-pov** (`prj_SRL6YyKAz9unWp7dEa4Xr5HQDxHe`), Hobby, framework Vite, output directory `dist`, set Production and Preview:
+4. On Vercel project **scheme-hq** (`prj_SRL6YyKAz9unWp7dEa4Xr5HQDxHe`), Hobby, framework Vite, output directory `dist`, set Production and Preview:
    - `VITE_SUPABASE_URL` = `https://bfaopibbbldsxvjprfdx.supabase.co`
    - `VITE_SUPABASE_ANON_KEY` = the anon key from the Supabase dashboard
    - Do not set a service-role key.
@@ -29,9 +29,21 @@ This pull request does not apply any of the following.
    - `BACKUP_AGE_PUBLIC_KEY` (age public key only). Generate a key pair with `age-keygen` on a machine you control and keep the private key offline.
 7. Cron, in GitHub Actions: Keepalive `0 15 */2 * *`, Backup `0 10 * * *`, and a monthly empty commit `0 12 1 * *` so GitHub does not disable schedules after 60 days without a push. `activity.yml` sets `permissions: contents: write`. That push fails on a protected default branch until the branch allows the Actions token. Turn on Actions failure email.
 
+## Domain
+
+Production is **https://www.schemehq.app** (bought on Vercel, Vercel DNS). On the Vercel project, `www.schemehq.app` is the production domain; `schemehq.app`, `schemehq.vercel.app` and `player-pov.vercel.app` redirect to it with a 308.
+
+Everything that names the address must match it exactly, `www` included:
+
+- Supabase → Authentication → URL Configuration: **Site URL** `https://www.schemehq.app`, and **Redirect URLs** include `https://www.schemehq.app/**`. Sign-up, magic link, invite and password reset emails link here.
+- Supabase function secret `APP_URL=https://www.schemehq.app` (Stripe Checkout and portal return here, and the billing function allows it as a CORS origin).
+- `BRAND.url` in `src/lib/brand.ts` (canonical link and Open Graph URLs).
+
+The Stripe webhook points at the Supabase function URL, not the domain, so it does not change.
+
 ## Scenario 1 — Preview shows the viewer
 
-**Preconditions:** Vercel project player-pov is connected to this repo. Preview `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are the free-tier URL and anon key. This pull request has a Vercel preview deployment.
+**Preconditions:** Vercel project scheme-hq is connected to this repo. Preview `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are the free-tier URL and anon key. This pull request has a Vercel preview deployment.
 
 **Steps:**
 
@@ -58,11 +70,11 @@ This pull request does not apply any of the following.
 
 ## Scenario 3 — Production URL
 
-**Preconditions:** Production env vars on Vercel project player-pov point at Supabase player-pov. A custom domain is not part of this check.
+**Preconditions:** Production env vars on Vercel project scheme-hq point at Supabase player-pov. A custom domain is not part of this check.
 
 **Steps:**
 
-1. Open the Vercel production URL for player-pov.
+1. Open the production URL, https://www.schemehq.app.
 
 **Expected:**
 

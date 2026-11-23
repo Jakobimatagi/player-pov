@@ -4,6 +4,8 @@
  */
 export const BRAND = {
   name: 'Scheme HQ',
+  /** The production address. schemehq.app and the old vercel.app URLs redirect here. */
+  url: 'https://www.schemehq.app',
   /** The wordmark splits the name so the second part can take the accent colour. */
   wordmark: { lead: 'Scheme', accent: 'HQ' },
   tagline: 'Install it. Learn it. Win Friday.',

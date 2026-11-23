@@ -17,6 +17,7 @@ function brandHtml(): Plugin {
     BRAND_SHARE_TITLE: BRAND.shareTitle,
     BRAND_SHARE_DESCRIPTION: BRAND.shareDescription,
     BRAND_THEME_COLOR: BRAND.themeColor,
+    BRAND_URL: BRAND.url,
   }
   return {
     name: 'brand-html',
