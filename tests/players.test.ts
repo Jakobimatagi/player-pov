@@ -30,7 +30,7 @@ describe('box players', () => {
   })
 
   it('uses the locked team colors', () => {
-    expect(TEAM_COLOR.offense).toBe('#c8102e')
+    expect(TEAM_COLOR.offense).toBe('#b40c28')
     expect(TEAM_COLOR.defense).toBe('#f2f2f2')
     const offense = boxVisual.createMaterial('offense') as unknown as {
       color: { getHexString(): string }
@@ -38,7 +38,7 @@ describe('box players', () => {
     const defense = boxVisual.createMaterial('defense') as unknown as {
       color: { getHexString(): string }
     }
-    expect(offense.color.getHexString()).toBe('c8102e')
+    expect(offense.color.getHexString()).toBe('b40c28')
     expect(defense.color.getHexString()).toBe('f2f2f2')
   })
 

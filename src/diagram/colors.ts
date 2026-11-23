@@ -1,4 +1,4 @@
-import { TOKEN_COLORS, TOKEN_DARK_INK, TOKEN_LIGHT_INK } from '../theme/playerColors'
+import { TOKEN_COLORS, TOKEN_DARK_INK, TOKEN_INK } from '../theme/playerColors'
 import type { TokenColor } from './types'
 
 /** The seven token colours. Defined with the other player colours in `theme/playerColors`. */
@@ -14,7 +14,7 @@ export function lineHex(color: TokenColor, over?: { white: string; black: string
   return COLOR_HEX[color]
 }
 
-/** Label colour that reads on a token of this colour. */
+/** Label colour that reads on a token of this colour (at least 4.5:1, see `TOKEN_INK`). */
 export function onHex(color: TokenColor): string {
-  return color === 'white' ? TOKEN_DARK_INK : TOKEN_LIGHT_INK
+  return TOKEN_INK[color]
 }
