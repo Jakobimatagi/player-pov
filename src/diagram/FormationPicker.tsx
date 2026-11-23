@@ -15,7 +15,7 @@ import {
   templatePreset,
   type FormationTemplate,
 } from './templates'
-import type { ScenePalette } from './theme'
+import type { ScenePalette } from '../theme/palette'
 import type { Diagram } from './types'
 import type { TemplatesState } from './useFormationTemplates'
 

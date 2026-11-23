@@ -31,6 +31,7 @@ import { Field } from './scene/Field'
 import { GestureInput } from './scene/GestureInput'
 import { Players } from './scene/Players'
 import { RouteLines } from './scene/RouteLines'
+import { Sky } from './scene/Sky'
 import { CameraBar, HopChips } from './ui/CameraBar'
 import { FacemaskOverlay } from './ui/FacemaskOverlay'
 import { cameraState, notePlay, startAsPlayer, subscribeCamera } from './camera/cameraState'
@@ -299,7 +300,7 @@ export function App() {
           failIfMajorPerformanceCaveat: false,
         }}
       >
-        <color attach="background" args={['#cfe3f5']} />
+        <Sky />
         <Field
           config={fieldConfigFromSearch(window.location.search)}
           losX={loaded.play.meta.lineOfScrimmageX}

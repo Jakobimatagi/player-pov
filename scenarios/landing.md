@@ -29,7 +29,7 @@ Auth redirects back to `/` carry `?code=` or `#access_token=`, so they always re
 **Expected:**
 
 - The page shows `Install it. Learn it. Win Friday.`, **Start free** and **Log in**, with the draw-a-play demo video beside it. The video shows its poster and does not play until you press play; it has no sound.
-- The network panel shows no `router-*.js`, `useScenePalette-*.js` or `geometry-*.js` chunk (production build, `npm run build && npx vite preview`).
+- The network panel shows no `router-*.js` or `geometry-*.js` chunk (the theme palette for the canvas views is bundled into `geometry`) (production build, `npm run build && npx vite preview`).
 - The tab title is `Scheme HQ: Install it. Learn it. Win Friday.`
 - While checkout is off (`VITE_CHECKOUT_ENABLED` unset), Team and Program show **Coming soon** instead of a button, with `Paid plans open soon.` under the cards. Starter keeps **Start free**.
 

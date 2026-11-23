@@ -1,11 +1,15 @@
-import { BufferGeometry, Float32BufferAttribute } from 'three'
+import { BufferGeometry, Color, Float32BufferAttribute } from 'three'
 import { FIELD_CENTER_Y, FIELD_LENGTH, FIELD_WIDTH } from '../play/coords'
 import type { FieldConfig } from '../field/fieldConfig'
+import { FALLBACK_PALETTE, type FieldPalette } from '../theme/palette'
 
-const WHITE: readonly [number, number, number] = [1, 1, 1]
-const YELLOW: readonly [number, number, number] = [0.93, 0.75, 0.15]
-const GRASS_A: readonly [number, number, number] = [63 / 255, 143 / 255, 58 / 255]
-const GRASS_B: readonly [number, number, number] = [54 / 255, 128 / 255, 50 / 255]
+type Rgb = readonly [number, number, number]
+
+/** A theme colour (sRGB) as the linear values a vertex colour attribute holds. */
+function linear(css: string): Rgb {
+  const color = new Color(css)
+  return [color.r, color.g, color.b]
+}
 
 const YARD_LINE_W = 4 / 36
 const BOUNDARY_W = 6 / 36
@@ -38,7 +42,7 @@ function pushTri(
   a: [number, number, number],
   b: [number, number, number],
   c: [number, number, number],
-  color: readonly [number, number, number],
+  color: Rgb,
 ): void {
   buf.positions.push(...a, ...b, ...c)
   buf.colors.push(...color, ...color, ...color)
@@ -50,7 +54,7 @@ function pushQuadYards(
   y0: number,
   x1: number,
   y1: number,
-  color: readonly [number, number, number],
+  color: Rgb,
   height = MARK_Y,
 ): void {
   const a = world(x0, y0, height)
@@ -69,7 +73,7 @@ function pushBox(
   x1: number,
   y1: number,
   z1: number,
-  color: readonly [number, number, number],
+  color: Rgb,
 ): void {
   const quads: [number, number, number][][] = [
     [
@@ -133,6 +137,7 @@ function addDigit(
   originY: number,
   digit: string,
   up: number,
+  color: Rgb,
 ): void {
   const width = 1.15
   const height = 2
@@ -153,11 +158,17 @@ function addDigit(
     const [lx, ly, w, h] = box
     const y0 = originY + up * ly
     const y1 = originY + up * (ly + h)
-    pushQuadYards(buf, originX + lx, Math.min(y0, y1), originX + lx + w, Math.max(y0, y1), WHITE)
+    pushQuadYards(buf, originX + lx, Math.min(y0, y1), originX + lx + w, Math.max(y0, y1), color)
   }
 }
 
-function addNumber(buf: MeshBuffers, lineX: number, baselineY: number, up: number): void {
+function addNumber(
+  buf: MeshBuffers,
+  lineX: number,
+  baselineY: number,
+  up: number,
+  color: Rgb,
+): void {
   const yards = Math.round(Math.min(lineX - 10, 110 - lineX))
   const text = String(yards).padStart(2, '0')
   const width = 1.15
@@ -165,12 +176,12 @@ function addNumber(buf: MeshBuffers, lineX: number, baselineY: number, up: numbe
   const total = width * 2 + gap
   let x = lineX - total / 2
   for (const digit of text) {
-    addDigit(buf, x, baselineY, digit, up)
+    addDigit(buf, x, baselineY, digit, up, color)
     x += width + gap
   }
 }
 
-function addGoal(buf: MeshBuffers, goalX: number): void {
+function addGoal(buf: MeshBuffers, goalX: number, goalpost: Rgb): void {
   const half = 7.11 / 2
   const mid = FIELD_WIDTH / 2
   const post = 0.18
@@ -179,8 +190,8 @@ function addGoal(buf: MeshBuffers, goalX: number): void {
   const zL = -(mid - half - FIELD_CENTER_Y)
   const zR = -(mid + half - FIELD_CENTER_Y)
   const x = goalX - FIELD_LENGTH / 2
-  pushBox(buf, x - post / 2, crossH, zL - post / 2, x + post / 2, top, zL + post / 2, YELLOW)
-  pushBox(buf, x - post / 2, crossH, zR - post / 2, x + post / 2, top, zR + post / 2, YELLOW)
+  pushBox(buf, x - post / 2, crossH, zL - post / 2, x + post / 2, top, zL + post / 2, goalpost)
+  pushBox(buf, x - post / 2, crossH, zR - post / 2, x + post / 2, top, zR + post / 2, goalpost)
   pushBox(
     buf,
     x - post / 2,
@@ -189,12 +200,12 @@ function addGoal(buf: MeshBuffers, goalX: number): void {
     x + post / 2,
     crossH + post,
     Math.max(zL, zR),
-    YELLOW,
+    goalpost,
   )
   const back = goalX < 60 ? goalX - 2 : goalX + 2
   const bx = back - FIELD_LENGTH / 2
-  pushBox(buf, Math.min(x, bx), 0, -post / 2, Math.max(x, bx), post, post / 2, YELLOW)
-  pushBox(buf, x - post / 2, 0, -post / 2, x + post / 2, crossH, post / 2, YELLOW)
+  pushBox(buf, Math.min(x, bx), 0, -post / 2, Math.max(x, bx), post, post / 2, goalpost)
+  pushBox(buf, x - post / 2, 0, -post / 2, x + post / 2, crossH, post / 2, goalpost)
 }
 
 function geometry(buf: MeshBuffers): BufferGeometry {
@@ -204,47 +215,54 @@ function geometry(buf: MeshBuffers): BufferGeometry {
   return geo
 }
 
-/** 24 mow stripes, 48 triangles, flat grass green. */
-export function buildGrass(): BufferGeometry {
+/** 24 mow stripes, 48 triangles, in the theme's two turf colours. */
+export function buildGrass(palette: FieldPalette = FALLBACK_PALETTE.field): BufferGeometry {
   const buf: MeshBuffers = { positions: [], colors: [] }
+  const turf = linear(palette.turf)
+  const stripe = linear(palette.turfStripe)
   const stripes = 24
   for (let i = 0; i < stripes; i += 1) {
     const x0 = (FIELD_LENGTH * i) / stripes
     const x1 = (FIELD_LENGTH * (i + 1)) / stripes
-    pushQuadYards(buf, x0, 0, x1, FIELD_WIDTH, i % 2 === 0 ? GRASS_A : GRASS_B, 0)
+    pushQuadYards(buf, x0, 0, x1, FIELD_WIDTH, i % 2 === 0 ? turf : stripe, 0)
   }
   return geometry(buf)
 }
 
 /** Yard lines, hashes, block numbers, boundaries, and goalposts. One merged mesh. */
-export function buildFieldMarkings(config: FieldConfig): BufferGeometry {
+export function buildFieldMarkings(
+  config: FieldConfig,
+  palette: FieldPalette = FALLBACK_PALETTE.field,
+): BufferGeometry {
   const buf: MeshBuffers = { positions: [], colors: [] }
+  const line = linear(palette.line)
   const half = YARD_LINE_W / 2
   for (let x = 10; x <= 110; x += 5) {
-    pushQuadYards(buf, x - half, 0, x + half, FIELD_WIDTH, WHITE)
+    pushQuadYards(buf, x - half, 0, x + half, FIELD_WIDTH, line)
   }
-  pushQuadYards(buf, 0, 0, BOUNDARY_W, FIELD_WIDTH, WHITE)
-  pushQuadYards(buf, FIELD_LENGTH - BOUNDARY_W, 0, FIELD_LENGTH, FIELD_WIDTH, WHITE)
-  pushQuadYards(buf, 0, 0, FIELD_LENGTH, BOUNDARY_W, WHITE)
-  pushQuadYards(buf, 0, FIELD_WIDTH - BOUNDARY_W, FIELD_LENGTH, FIELD_WIDTH, WHITE)
+  pushQuadYards(buf, 0, 0, BOUNDARY_W, FIELD_WIDTH, line)
+  pushQuadYards(buf, FIELD_LENGTH - BOUNDARY_W, 0, FIELD_LENGTH, FIELD_WIDTH, line)
+  pushQuadYards(buf, 0, 0, FIELD_LENGTH, BOUNDARY_W, line)
+  pushQuadYards(buf, 0, FIELD_WIDTH - BOUNDARY_W, FIELD_LENGTH, FIELD_WIDTH, line)
 
   const tick = 0.55
   for (let x = 10; x <= 110; x += 1) {
     if (x % 5 === 0) continue
-    pushQuadYards(buf, x - half, 0, x + half, tick, WHITE)
-    pushQuadYards(buf, x - half, FIELD_WIDTH - tick, x + half, FIELD_WIDTH, WHITE)
+    pushQuadYards(buf, x - half, 0, x + half, tick, line)
+    pushQuadYards(buf, x - half, FIELD_WIDTH - tick, x + half, FIELD_WIDTH, line)
     for (const hashY of config.hashY) {
-      pushQuadYards(buf, x - half, hashY - tick / 2, x + half, hashY + tick / 2, WHITE)
+      pushQuadYards(buf, x - half, hashY - tick / 2, x + half, hashY + tick / 2, line)
     }
   }
 
   for (let x = 20; x <= 100; x += 10) {
-    addNumber(buf, x, 5.2, 1)
-    addNumber(buf, x, FIELD_WIDTH - 5.2, -1)
+    addNumber(buf, x, 5.2, 1, line)
+    addNumber(buf, x, FIELD_WIDTH - 5.2, -1, line)
   }
 
-  addGoal(buf, 10)
-  addGoal(buf, 110)
+  const goalpost = linear(palette.goalpost)
+  addGoal(buf, 10, goalpost)
+  addGoal(buf, 110, goalpost)
   return geometry(buf)
 }
 

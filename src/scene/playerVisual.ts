@@ -6,6 +6,7 @@ import {
   type Material,
 } from 'three'
 import type { Team } from '../play/types'
+import { TEAM_COLOR } from '../theme/playerColors'
 
 export interface NumberAnchor {
   chestHeight: number
@@ -21,10 +22,8 @@ export interface PlayerVisual {
   povHideRadius: number
 }
 
-export const TEAM_COLOR: Record<Team, string> = {
-  offense: '#c8102e',
-  defense: '#f2f2f2',
-}
+/** Jersey colours, kept with the other player colours. */
+export { TEAM_COLOR }
 
 function buildBoxGeometry(): BufferGeometry {
   const geometry = new BoxGeometry(0.6, 2, 0.9)

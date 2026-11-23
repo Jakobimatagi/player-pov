@@ -1,7 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import type { CompiledPlay } from '../play/types'
-import { buildRouteRibbon, createRouteMaterial, sizeRouteMaterial } from './routeRibbon'
+import { useThemePalette } from '../theme/useScenePalette'
+import {
+  buildRouteRibbon,
+  colorRouteMaterial,
+  createRouteMaterial,
+  sizeRouteMaterial,
+} from './routeRibbon'
 
 /** Screen-space waypoint ribbons. Off unless the debug toggle is on. One draw. */
 export function RouteLines({ play, visible }: { play: CompiledPlay; visible: boolean }) {
@@ -9,6 +15,13 @@ export function RouteLines({ play, visible }: { play: CompiledPlay; visible: boo
   const material = useMemo(() => createRouteMaterial(), [])
   const size = useThree((s) => s.size)
   const dpr = useThree((s) => s.viewport.dpr)
+  const invalidate = useThree((s) => s.invalidate)
+  const color = useThemePalette().field.route
+
+  useLayoutEffect(() => {
+    colorRouteMaterial(material, color)
+    invalidate()
+  }, [material, color, invalidate])
 
   useLayoutEffect(() => {
     sizeRouteMaterial(material, size.width, size.height, dpr)

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { TEAM_COLOR } from '../theme/playerColors'
+import { useThemePalette } from '../theme/useScenePalette'
 
 const FIELD_LEN = 120
 const FIELD_WID = 53.333
@@ -29,6 +31,7 @@ function isDiagram(value: unknown): value is DiagramData {
 export function Diagram2D() {
   const [data, setData] = useState<DiagramData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const colors = useThemePalette().preview
 
   useEffect(() => {
     let cancelled = false
@@ -59,13 +62,21 @@ export function Diagram2D() {
         role="img"
         aria-label="Top-down diagram of the play at the snap"
       >
-        <rect x={0} y={0} width={FIELD_LEN} height={FIELD_WID} fill="#1d6b32" />
-        <rect x={0} y={0} width={10} height={FIELD_WID} fill="#164e26" />
-        <rect x={110} y={0} width={10} height={FIELD_WID} fill="#164e26" />
+        <rect x={0} y={0} width={FIELD_LEN} height={FIELD_WID} fill={colors.field} />
+        <rect x={0} y={0} width={10} height={FIELD_WID} fill={colors.endZone} />
+        <rect x={110} y={0} width={10} height={FIELD_WID} fill={colors.endZone} />
         {Array.from({ length: 21 }, (_, i) => {
           const x = 10 + i * 5
           return (
-            <line key={x} x1={x} y1={0} x2={x} y2={FIELD_WID} stroke="#ffffff" strokeWidth={0.15} />
+            <line
+              key={x}
+              x1={x}
+              y1={0}
+              x2={x}
+              y2={FIELD_WID}
+              stroke={colors.line}
+              strokeWidth={0.15}
+            />
           )
         })}
         {data?.players.map((player) => {
@@ -80,13 +91,20 @@ export function Diagram2D() {
               <polyline
                 points={points}
                 fill="none"
-                stroke={offense ? '#ffb3c1' : '#d0d0d0'}
+                stroke={offense ? colors.routeOffense : colors.routeDefense}
                 strokeWidth={0.35}
               />
               {offense ? (
-                <circle cx={cx} cy={cy} r={1.1} fill="none" stroke="#c8102e" strokeWidth={0.45} />
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={1.1}
+                  fill="none"
+                  stroke={TEAM_COLOR.offense}
+                  strokeWidth={0.45}
+                />
               ) : (
-                <g stroke="#f2f2f2" strokeWidth={0.4}>
+                <g stroke={TEAM_COLOR.defense} strokeWidth={0.4}>
                   <line x1={cx - 0.9} y1={cy - 0.9} x2={cx + 0.9} y2={cy + 0.9} />
                   <line x1={cx - 0.9} y1={cy + 0.9} x2={cx + 0.9} y2={cy - 0.9} />
                 </g>
