@@ -328,11 +328,12 @@ describe('replace and colours', () => {
   })
 
   it('keeps the reference palette, draws a white player dark and reads on every colour', () => {
-    expect(COLOR_HEX.red).toBe('#e5473b')
+    expect(COLOR_HEX.red).toBe('#c0302f')
     expect(lineHex('white')).not.toBe(COLOR_HEX.white)
     expect(lineHex('blue')).toBe(COLOR_HEX.blue)
     expect(onHex('white')).toBe('#1f2328')
-    expect(onHex('purple')).toBe('#ffffff')
+    expect(onHex('purple')).toBe('#1f2328')
+    expect(onHex('red')).toBe('#ffffff')
   })
 })
 
