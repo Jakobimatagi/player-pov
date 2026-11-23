@@ -2,13 +2,13 @@
 
 A logged-out visit to `/` shows a public page that says what the app does and what it costs, with **Start free** into signup (issue #63, step 5).
 
-| Piece              | Where                                                                          |
-| ------------------ | ------------------------------------------------------------------------------ |
-| Page               | `src/landing/LandingPage.tsx`                                                  |
-| Who gets it        | `src/landing/gate.ts` (`showLanding`), called from `src/main.tsx`              |
-| Images and video   | `public/landing/` (screenshots from `docs/screenshots/`, the draw-a-play demo) |
-| Title, description | `index.html` (`<title>`, meta description, Open Graph)                         |
-| Plans shown        | `PLANS` in the page, copied from `marketing/plans.md`                          |
+| Piece              | Where                                                                           |
+| ------------------ | ------------------------------------------------------------------------------- |
+| Page               | `src/landing/LandingPage.tsx`                                                   |
+| Who gets it        | `src/landing/gate.ts` (`showLanding`), called from `src/main.tsx`               |
+| Images             | `public/landing/` (captured from the no-backend demo, see below)                |
+| Title, description | `src/lib/brand.ts`, filled into `index.html` at build (title, meta, Open Graph) |
+| Plans shown        | `PLANS` in the page, copied from `marketing/plans.md`                           |
 
 ## How the page stays light
 
@@ -28,10 +28,10 @@ Auth redirects back to `/` carry `?code=` or `#access_token=`, so they always re
 
 **Expected:**
 
-- The page shows `Your playbook, seen from the helmet.`, **Start free** and **Log in**.
+- The page shows `Install it. Learn it. Win Friday.`, **Start free** and **Log in**, with the 3D helmet view beside it.
 - The network panel shows no `router-*.js`, `useScenePalette-*.js` or `geometry-*.js` chunk (production build, `npm run build && npx vite preview`).
-- The video does not play until you press play. It is muted.
-- The tab title is `POV Playbook: football plays in 3D from the player's helmet`.
+- The tab title is `Scheme HQ: Install it. Learn it. Win Friday.`
+- While checkout is off (`VITE_CHECKOUT_ENABLED` unset), Team and Program show **Coming soon** instead of a button, with `Paid plans open soon.` under the cards. Starter keeps **Start free**.
 
 ## Scenario 2 — Start free
 
@@ -73,11 +73,45 @@ Auth redirects back to `/` carry `?code=` or `#access_token=`, so they always re
 
 **Expected:**
 
-- No sideways scroll. The hero, video, features, three plan cards and questions stack in one column.
+- No sideways scroll. The hero, image, features, three plan cards and questions stack in one column.
 - The FAQ answers open and close on tap.
+
+## Scenario 6 — Keyboard
+
+**Steps:**
+
+1. From scenario 1, press Tab through the page.
+
+**Expected:**
+
+- Every link and FAQ question shows a solid orange focus ring, in page order: logo, Log in, Start free, Log in, plan buttons, the four questions, Start free, Log in.
+- Enter on a question opens its answer.
+
+## Scenario 7 — Share preview
+
+**Steps:**
+
+1. Paste https://www.schemehq.app into a Slack or iMessage message (or an Open Graph checker).
+
+**Expected:**
+
+- The preview shows `Scheme HQ: install, learn and scout your scheme`, the share description and the helmet-view image, loaded from `https://www.schemehq.app/landing/og.png`.
+
+## Refreshing the screenshots
+
+The images come from the no-backend demo, so they need no account or data. Run the app with `vite --mode demo` and a `.env.demo.local` that sets `VITE_SUPABASE_URL=` and `VITE_SUPABASE_ANON_KEY=` empty, then capture:
+
+| File               | Page                                                    | Size       |
+| ------------------ | ------------------------------------------------------- | ---------- |
+| `pov.webp`, og.png | `/`, POV view, about 1 s into the play                  | 1280 × 800 |
+| `broadcast.webp`   | `/`, Broadcast view, routes shown, about 1.5 s in       | 1280 × 800 |
+| `coach-home.webp`  | `/?home=coach`                                          | 1280 × 900 |
+| `scout-pack.webp`  | `/playbook` → Opponents → Lincoln High → Week of Nov 23 | 1280, full |
+| `player-home.webp` | `/?home=player`                                         | 390 × 844  |
+
+Convert with `cwebp -q 82`. `og.png` stays PNG for link previews.
 
 ## Not in this step
 
 - Terms and privacy pages. The footer links to them once they exist (issue #63, open question 11).
-- Prices are the recommendation in `marketing/plans.md`. Confirm them before this ships to production (open question 1).
-- `og:image` is a relative path until the app has a domain. Most link previews need an absolute URL.
+- The draw-a-play demo video was taken off the page because it shows the old name and colours. Re-record it, then put it back in the hero.

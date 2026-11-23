@@ -106,12 +106,4 @@ export function checkoutReturn(search: string): CheckoutReturn {
   return value === 'success' || value === 'canceled' ? value : null
 }
 
-/**
- * Paid plans stay switched off until the owner is ready to launch: set VITE_CHECKOUT_ENABLED=true
- * in Vercel (and CHECKOUT_ENABLED=true on the billing function) to turn checkout on.
- */
-export function isCheckoutEnabled(value: string | undefined): boolean {
-  return value === 'true'
-}
-
-export const CHECKOUT_ENABLED = isCheckoutEnabled(import.meta.env.VITE_CHECKOUT_ENABLED)
+export { CHECKOUT_ENABLED, isCheckoutEnabled } from '@/lib/checkout'

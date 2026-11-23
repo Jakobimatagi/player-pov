@@ -12,7 +12,7 @@ Decided 2026-11-22 (issue #73). The product's name and pitch live in code in `sr
 
 ## Domain
 
-`schemehq.com` is taken. Open on 2026-11-22: `schemehq.app` (recommended, ~$10 first year, $15 renewal), `schemehq.io`, `schemehq.co`, `scheme.football`, `getschemehq.com`. Not yet purchased. No trademark search has been done; do one before the domain buy and launch.
+**`www.schemehq.app`**, bought on Vercel on 2026-11-22 (renews yearly). `schemehq.app` and the old `player-pov.vercel.app` / `schemehq.vercel.app` addresses redirect to it. `schemehq.com` is taken. The address lives in code as `BRAND.url`. No trademark search has been done yet; do one before launch.
 
 ## Positioning
 
@@ -42,4 +42,5 @@ Decided 2026-11-22 (issue #73). The product's name and pitch live in code in `sr
 
 - Light mode toggle: waits on #74 and #75 (about 200 hard-coded colours still assume the dark theme).
 - Per-team school colour accent.
-- Share image, app icons and manifest (#81); domain, auth emails, Stripe names and landing copy and screenshots (#79, #82).
+- Share image, app icons and manifest (#81); auth emails and Stripe product names (#79).
+- Re-record the draw-a-play demo video for the landing hero.
