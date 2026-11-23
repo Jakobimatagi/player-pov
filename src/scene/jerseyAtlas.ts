@@ -16,6 +16,7 @@ export function buildJerseyAtlas(): CanvasTexture {
   const ctx = canvas.getContext('2d')
   if (ctx != null) {
     ctx.clearRect(0, 0, ATLAS, ATLAS)
+    // raw colour: white glyph mask; each instance colour tints it (theme highlight or white)
     ctx.fillStyle = '#ffffff'
     ctx.font = 'bold 72px sans-serif'
     ctx.textAlign = 'center'

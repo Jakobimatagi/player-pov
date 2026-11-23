@@ -14,7 +14,7 @@ import {
 } from 'react-konva'
 import { COLOR_HEX, lineHex, onHex } from './colors'
 import { fieldView, fromStage, lineShape, LOS_Y, stagePlacement, tokenRadius } from './geometry'
-import { DEFAULT_PALETTE, type ScenePalette } from './theme'
+import { DEFAULT_PALETTE, type ScenePalette } from '../theme/palette'
 import type { Diagram, DLine, DNote, DPlayer, FieldPreset, LineType, Pt } from './types'
 
 /** Stable default so a scene drawn without a selection can skip re-rendering. */
@@ -123,7 +123,7 @@ function Token({
           y={-r}
           width={r * 2}
           height={r * 2}
-          fill={split ? '#f4f1ea' : fill}
+          fill={split ? palette.split : fill}
           stroke={stroke}
           strokeWidth={2}
         />
@@ -131,7 +131,7 @@ function Token({
       </>
     ) : (
       <>
-        <Circle radius={r} fill={split ? '#f4f1ea' : fill} stroke={stroke} strokeWidth={2} />
+        <Circle radius={r} fill={split ? palette.split : fill} stroke={stroke} strokeWidth={2} />
         {split ? <Wedge radius={r} angle={180} rotation={90} fill={fill} /> : null}
         <Circle radius={r} stroke={stroke} strokeWidth={2} />
       </>
@@ -182,8 +182,8 @@ function Note({
       <Rect
         width={boxW}
         height={size * 2.1}
-        fill="#fff3a8"
-        stroke={selected ? palette.select : '#8a7a2b'}
+        fill={palette.note}
+        stroke={selected ? palette.select : palette.noteBorder}
         strokeWidth={selected ? 2.5 : 1}
         cornerRadius={3}
       />
@@ -193,7 +193,7 @@ function Note({
         y={size * 0.55}
         width={boxW - size * 1.2}
         fontSize={size}
-        fill="#2b2400"
+        fill={palette.noteInk}
         listening={false}
       />
     </Group>

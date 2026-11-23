@@ -53,6 +53,49 @@
   --sidebar-accent-foreground: oklch(0.98 0.005 250);
   --sidebar-border: oklch(0.85 0.03 255 / 10%);
   --sidebar-ring: oklch(0.73 0.18 50 / 70%);
+
+  /* Canvas and WebGL colours, read at runtime by src/theme/palette.ts (keep its
+     FALLBACK_PALETTE in step). Player colours are not tokens: see src/theme/playerColors.ts. */
+  /* Konva play diagram */
+  --diagram-field: var(--background);
+  --diagram-end-zone: var(--card);
+  --diagram-grid: oklch(0.97 0.006 250 / 5%);
+  --diagram-yard-line: oklch(0.97 0.006 250 / 13%);
+  --diagram-goal-line: oklch(0.97 0.006 250 / 40%);
+  --diagram-number: oklch(0.97 0.006 250 / 16%);
+  --diagram-scrimmage: var(--chart-3);
+  --diagram-select: var(--gold);
+  --diagram-select-fill: oklch(0.85 0.15 88 / 14%);
+  --diagram-token-stroke: oklch(0.97 0.006 250 / 90%);
+  --diagram-text: var(--foreground);
+  --diagram-ink: #1f2328;
+  --diagram-line-white: var(--foreground);
+  --diagram-line-black: #9499a0;
+  --diagram-split: #f4f1ea;
+  --diagram-note: #fff3a8;
+  --diagram-note-border: #8a7a2b;
+  --diagram-note-ink: #2b2400;
+  /* 3D scene */
+  --field-sky: #cfe3f5;
+  --field-turf: #89c683;
+  --field-turf-stripe: #7fbc7b;
+  --field-line: #ffffff;
+  --field-goalpost: #f7e16c;
+  --field-ball: #c4a574;
+  --field-route: #fff4c2;
+  --field-highlight: #ffe57c;
+  --field-spot: #c8102e;
+  /* SVG play chart */
+  --editor-field: #2f6b35;
+  --editor-line: rgb(255 255 255 / 55%);
+  --editor-scrimmage: #4aa3ff;
+  --editor-select: #ffd84a;
+  /* No-WebGL 2D preview */
+  --preview-field: #1d6b32;
+  --preview-end-zone: #164e26;
+  --preview-line: #ffffff;
+  --preview-route-offense: #ffb3c1;
+  --preview-route-defense: #d0d0d0;
 }
 
 /* Saturday film session: chalk-white surfaces, navy ink, a deeper orange so white text on it
@@ -98,6 +141,15 @@
   --sidebar-accent-foreground: oklch(0.2 0.035 258);
   --sidebar-border: oklch(0.2 0.035 258 / 10%);
   --sidebar-ring: oklch(0.54 0.18 44 / 60%);
+
+  /* Canvas colours that are not plain references to the tokens above. */
+  --diagram-grid: oklch(0.2 0.035 258 / 5%);
+  --diagram-yard-line: oklch(0.2 0.035 258 / 13%);
+  --diagram-goal-line: oklch(0.2 0.035 258 / 40%);
+  --diagram-number: oklch(0.2 0.035 258 / 16%);
+  --diagram-select-fill: oklch(0.53 0.12 80 / 14%);
+  --diagram-token-stroke: oklch(0.2 0.035 258 / 90%);
+  --diagram-line-black: #6a717c;
 }
 
 @theme inline {

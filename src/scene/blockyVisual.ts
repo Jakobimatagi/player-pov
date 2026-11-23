@@ -6,14 +6,8 @@ import {
   type Material,
 } from 'three'
 import type { Team } from '../play/types'
-import { TEAM_COLOR, type PlayerVisual } from './playerVisual'
-
-const TRIM: Record<Team, string> = {
-  offense: '#7a0a1c',
-  defense: '#2b2f36',
-}
-const SKIN = '#d7a37a'
-const MASK = '#2a2a2a'
+import { PLAYER_MASK, PLAYER_SKIN, TEAM_COLOR, TEAM_TRIM } from '../theme/playerColors'
+import type { PlayerVisual } from './playerVisual'
 
 /** Jersey 0, trim 1, skin 2, facemask 3. Shade is the vertex color. */
 function pushBox(
@@ -79,10 +73,11 @@ function buildBlockyGeometry(): BufferGeometry {
 }
 
 function partMaterial(team: Team): Material {
+  // raw colour: neutral base; the vertex colours carry the player colours
   const material = new MeshBasicMaterial({ color: '#ffffff', vertexColors: true })
-  const trim = new Color(TRIM[team])
-  const skin = new Color(SKIN)
-  const mask = new Color(MASK)
+  const trim = new Color(TEAM_TRIM[team])
+  const skin = new Color(PLAYER_SKIN)
+  const mask = new Color(PLAYER_MASK)
   const jersey = new Color(TEAM_COLOR[team])
   material.onBeforeCompile = (shader) => {
     shader.uniforms['uJersey'] = { value: jersey }

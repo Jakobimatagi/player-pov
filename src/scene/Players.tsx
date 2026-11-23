@@ -19,6 +19,7 @@ import { clockState } from '../playback/clockState'
 import { sampleBall } from '../play/ball'
 import { samplePlayer } from '../play/sample'
 import type { PlayerPose } from '../play/types'
+import { useThemePalette } from '../theme/useScenePalette'
 import { Ball } from './Ball'
 import { poseHeading, poseVel, poseXY, publishedBall } from './framePose'
 import { withInstanceFade } from './instanceFade'
@@ -33,8 +34,8 @@ const scale = new Vector3(1, 1, 1)
 const euler = new Euler()
 const pose: PlayerPose = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, speed: 0 }
 const world = { x: 0, y: 0, z: 0 }
+/** Jersey numbers keep the atlas's own white; the attached player's take the theme highlight. */
 const white = new Color(1, 1, 1)
-const highlight = new Color(1, 0.78, 0.2)
 
 function hiddenIndex(): number {
   if (cameraState.mode !== 'pov') return -1
@@ -110,6 +111,8 @@ export function Players({
   const defenseMat = useMemo(() => withInstanceFade(visual.createMaterial('defense')), [visual])
   const numberGeo = useMemo(() => createNumberGeometry(visual.numberAnchor), [visual])
   const numberMat = useMemo(() => createNumberMaterial(buildJerseyAtlas()), [])
+  const highlightCss = useThemePalette().field.highlight
+  const highlight = useMemo(() => new Color(highlightCss), [highlightCss])
   const offense = useMemo(
     () => play.teams.flatMap((team, index) => (team === 'offense' ? [index] : [])),
     [play],

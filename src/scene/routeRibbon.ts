@@ -7,10 +7,10 @@ import {
   Vector2,
 } from 'three'
 import { yardsToWorld } from '../play/coords'
+import { FALLBACK_PALETTE } from '../theme/palette'
 
 /** CSS pixels. Device pixels are this times the renderer dpr, updated on resize. */
 export const ROUTE_CSS_PX = 6
-export const ROUTE_COLOR = '#fff4c2'
 const ROUTE_Y = 0.08
 
 const VERT = /* glsl */ `
@@ -197,12 +197,13 @@ export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
   return geometry
 }
 
-export function createRouteMaterial(): ShaderMaterial {
+/** `color` is the theme's route colour (`--field-route`). */
+export function createRouteMaterial(color: string = FALLBACK_PALETTE.field.route): ShaderMaterial {
   return new ShaderMaterial({
     uniforms: {
       uResolution: { value: new Vector2(1, 1) },
       uWidth: { value: ROUTE_CSS_PX },
-      uColor: { value: new Color(ROUTE_COLOR) },
+      uColor: { value: new Color(color) },
     },
     vertexShader: VERT,
     fragmentShader: FRAG,
@@ -230,4 +231,10 @@ export function sizeRouteMaterial(
   resolution?.set(Math.max(viewWidth, 1) * px, Math.max(viewHeight, 1) * px)
   const width = material.uniforms['uWidth']
   if (width != null) width.value = ROUTE_CSS_PX * px
+}
+
+/** Recolour in place, when the theme changes. */
+export function colorRouteMaterial(material: ShaderMaterial, color: string): void {
+  const uniform = material.uniforms['uColor']?.value as Color | undefined
+  uniform?.set(color)
 }

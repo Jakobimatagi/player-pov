@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { loadRemoteScript } from '../data/diagrams'
 import { DiagramScene } from '../diagram/DiagramScene'
-import { useScenePalette } from '../diagram/useScenePalette'
+import { useScenePalette } from '../theme/useScenePalette'
 import { browserStore, savedScript, storageKey, type DiagramScript } from '../diagram/script'
 
 /**
