@@ -6,7 +6,12 @@
     <title>%BRAND_NAME%: %BRAND_TAGLINE%</title>
     <meta name="description" content="%BRAND_DESCRIPTION%" />
     <meta name="theme-color" content="%BRAND_THEME_COLOR%" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content="%BRAND_NAME%" />
     <link rel="canonical" href="%BRAND_URL%/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="%BRAND_URL%/" />
@@ -14,13 +19,17 @@
     <meta property="og:title" content="%BRAND_SHARE_TITLE%" />
     <meta property="og:description" content="%BRAND_SHARE_DESCRIPTION%" />
     <meta property="og:image" content="%BRAND_URL%/landing/og.png" />
-    <meta property="og:image:width" content="1280" />
-    <meta property="og:image:height" content="800" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="%BRAND_NAME%: a play replayed in 3D from the player's helmet"
+      content="%BRAND_NAME%: %BRAND_TAGLINE% Players replayed in 3D from the helmet view."
     />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="%BRAND_SHARE_TITLE%" />
+    <meta name="twitter:description" content="%BRAND_SHARE_DESCRIPTION%" />
+    <meta name="twitter:image" content="%BRAND_URL%/landing/og.png" />
   </head>
   <body>
     <div id="root"></div>

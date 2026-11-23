@@ -46,8 +46,17 @@ Decided 2026-11-22 (issue #73). The product's name and pitch live in code in `sr
 - `scripts/colour-baseline.json` is a temporary list of files that still had raw colours when the guard landed, with counts. Never add to it. A file that gains a raw colour fails; a file that gets clean fails until its entry is deleted; `node scripts/check-colours.mjs --update-baseline` locks in lower counts. #74 and #75 shrink it, #80 empties it.
 - When you add a token that is used as text, a border or a focus ring, add its pairs to `PAIRS` in `tests/contrast.test.ts`. `npm test -- contrast` prints a table: one row per palette and pair with the ratio, the minimum (4.5 for text, 3 for large text and UI such as borders and focus rings) and PASS, FAIL or KNOWN. KNOWN rows are listed in `KNOWN_FAILURES` and must still fail; a pair that starts passing turns the test red until you delete its entry.
 
+## Icons and share image
+
+Added in #81. All rendered from one drawing by `scripts/brand-assets/render.mjs` (how to re-run it is in that folder's README).
+
+- **Mark:** dark ink (`#1a0d02`) on pylon orange (`#ff7a1f`), 7.3:1. Thick strokes and a flat middle step in the route so it still reads as O, route and arrow at 16px. The orange square is its own background, so it shows the same in light and dark browser tabs.
+- **Favicon:** `favicon.svg`, with `favicon-32.png` and a 16+32 `favicon.ico` as fallbacks.
+- **Home screen:** `apple-touch-icon.png` (180, full-bleed orange) for iOS; the web app manifest (`/manifest.webmanifest`, built from `BRAND` by the Vite config, so the name and colours follow `src/lib/brand.ts`) lists `icon-192.png`, `icon-512.png` and a maskable `icon-maskable-512.png` for Android. Installed, it opens standalone on stadium navy.
+- **Share image:** `public/landing/og.png`, 1200×630: mark and `SCHEME HQ` wordmark, the tagline in big display type (Win Friday in scoreboard gold), `schemehq.app`, and a tilted crop of the 3D helmet view with an orange frame. Used for both Open Graph and Twitter cards.
+
 ## Still to do
 
 - Light mode toggle: waits on #74 and #75 (about 200 hard-coded colours still assume the dark theme).
 - Per-team school colour accent.
-- Share image, app icons and manifest (#81). Auth emails and Stripe product names (#79) are done in the repo and in Stripe; the hosted Supabase email templates and sender name still have to be pasted in the dashboard (`scenarios/auth.md`).
+- Auth emails and Stripe product names (#79) are done in the repo and in Stripe; the hosted Supabase email templates and sender name still have to be pasted in the dashboard (`scenarios/auth.md`).
