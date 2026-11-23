@@ -9,8 +9,8 @@ const FEATURES: readonly Feature[] = [
   {
     title: 'Every player sees it through their own facemask',
     body: 'POV replay runs each play in 3D from the helmet of the player who has to execute it. Flip to broadcast or top-down, slow it to quarter speed, and run it against this week’s defense.',
-    image: '/landing/broadcast.webp',
-    alt: 'A play replayed in 3D from the broadcast camera with routes drawn, and POV, broadcast and top-down buttons',
+    image: '/landing/pov.webp',
+    alt: 'A play replayed in 3D from inside a player’s helmet, linemen set in front of him',
   },
   {
     title: 'One playbook for the whole staff',
@@ -150,13 +150,17 @@ export function LandingPage() {
             </p>
           </div>
           <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/40">
-            <img
-              className="block aspect-[8/5] w-full"
-              src="/landing/pov.webp"
+            <video
+              className="block aspect-video w-full"
+              src="/landing/draw-a-play.mp4"
+              poster="/landing/draw-a-play-poster.webp"
               width={1280}
-              height={800}
-              fetchPriority="high"
-              alt="A play replayed in 3D from inside a player’s helmet, linemen set in front of him"
+              height={720}
+              controls
+              muted
+              playsInline
+              preload="none"
+              aria-label="Demo: setting a base alignment, drawing a play, checking it in 3D and saving it to the playbook"
             />
           </div>
         </section>

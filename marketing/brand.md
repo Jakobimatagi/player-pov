@@ -43,4 +43,3 @@ Decided 2026-11-22 (issue #73). The product's name and pitch live in code in `sr
 - Light mode toggle: waits on #74 and #75 (about 200 hard-coded colours still assume the dark theme).
 - Per-team school colour accent.
 - Share image, app icons and manifest (#81). Auth emails and Stripe product names (#79) are done in the repo and in Stripe; the hosted Supabase email templates and sender name still have to be pasted in the dashboard (`scenarios/auth.md`).
-- Re-record the draw-a-play demo video for the landing hero.
