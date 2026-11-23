@@ -24,7 +24,7 @@
   }
 
   .rep-target ellipse {
-    fill: oklch(0.74 0.15 150 / 22%);
+    fill: color-mix(in oklab, var(--success) 22%, transparent);
     stroke: var(--success);
     stroke-width: 0.22;
     stroke-dasharray: 0.6 0.35;
@@ -36,14 +36,14 @@
   }
 
   .rep-gap {
-    stroke: #fff;
+    stroke: var(--chalk);
     stroke-width: 0.12;
     stroke-dasharray: 0.4 0.3;
     opacity: 0.8;
   }
 
   .rep-answer circle {
-    fill: oklch(0.83 0.14 85 / 35%);
+    fill: color-mix(in oklab, var(--gold) 35%, transparent);
     stroke: var(--gold);
     stroke-width: 0.25;
   }
@@ -54,7 +54,7 @@
   }
 
   .rep-answer[data-missed='true'] circle {
-    fill: oklch(0.66 0.2 22 / 30%);
+    fill: color-mix(in oklab, var(--destructive) 30%, transparent);
     stroke: var(--destructive);
   }
 
@@ -193,7 +193,7 @@
 
   .rep-list-item[aria-current='true'] {
     border-color: var(--gold);
-    background: oklch(0.83 0.14 85 / 8%);
+    background: color-mix(in oklab, var(--gold) 8%, transparent);
   }
 
   .rep-list-main {
@@ -225,13 +225,13 @@
 
   .rep-pill[data-tone='pass'] {
     color: var(--success);
-    border-color: oklch(0.74 0.15 150 / 45%);
+    border-color: color-mix(in oklab, var(--success) 45%, transparent);
   }
 
   .rep-pill[data-tone='fail'],
   .rep-pill[data-tone='overdue'] {
     color: var(--destructive);
-    border-color: oklch(0.66 0.2 22 / 45%);
+    border-color: color-mix(in oklab, var(--destructive) 45%, transparent);
   }
 
   .rep-pill[data-tone='todo'] {
@@ -240,7 +240,7 @@
 
   .rep-pill[data-tone='retry'] {
     color: var(--gold);
-    border-color: oklch(0.83 0.14 85 / 45%);
+    border-color: color-mix(in oklab, var(--gold) 45%, transparent);
   }
 
   /* Results: a table on wide screens, cards on phones. */
@@ -344,13 +344,13 @@
   }
 
   .rep-result[data-passed='true'] {
-    border-color: oklch(0.74 0.15 150 / 55%);
-    background: oklch(0.74 0.15 150 / 10%);
+    border-color: color-mix(in oklab, var(--success) 55%, transparent);
+    background: color-mix(in oklab, var(--success) 10%, transparent);
   }
 
   .rep-result[data-passed='false'] {
-    border-color: oklch(0.66 0.2 22 / 55%);
-    background: oklch(0.66 0.2 22 / 10%);
+    border-color: color-mix(in oklab, var(--destructive) 55%, transparent);
+    background: color-mix(in oklab, var(--destructive) 10%, transparent);
   }
 
   .rep-result h2 {

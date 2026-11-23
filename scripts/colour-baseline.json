@@ -1,0 +1,4 @@
+{
+  "note": "Temporary: files that still contain raw colours, with how many. Remove entries as #74 (CSS) and #75 (diagram/editor/3D TS) land; #80 empties this. Never add to it: use a theme token, or a \"raw colour: <reason>\" comment for a real exception. See scripts/check-colours.mjs.",
+  "files": {}
+}

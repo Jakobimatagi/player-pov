@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
+import { webManifest } from './src/components/brand/manifest'
 import { BRAND } from './src/lib/brand'
 
 const escapeHtml = (s: string) =>
@@ -29,8 +30,26 @@ function brandHtml(): Plugin {
   }
 }
 
+/** Serves /manifest.webmanifest in dev and writes it into the build, built from BRAND. */
+function brandManifest(): Plugin {
+  const fileName = 'manifest.webmanifest'
+  const source = () => `${JSON.stringify(webManifest(), null, 2)}\n`
+  return {
+    name: 'brand-manifest',
+    configureServer(server) {
+      server.middlewares.use(`/${fileName}`, (_req, res) => {
+        res.setHeader('Content-Type', 'application/manifest+json')
+        res.end(source())
+      })
+    },
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName, source: source() })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), brandHtml()],
+  plugins: [react(), tailwindcss(), brandHtml(), brandManifest()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
