@@ -6,7 +6,7 @@ A logged-out visit to `/` shows a public page that says what the app does and wh
 | ------------------ | ------------------------------------------------------------------------------- |
 | Page               | `src/landing/LandingPage.tsx`                                                   |
 | Who gets it        | `src/landing/gate.ts` (`showLanding`), called from `src/main.tsx`               |
-| Images             | `public/landing/` (captured from the no-backend demo, see below)                |
+| Images, video      | `public/landing/` (captured from the no-backend demo, see below)                |
 | Title, description | `src/lib/brand.ts`, filled into `index.html` at build (title, meta, Open Graph) |
 | Plans shown        | `PLANS` in the page, copied from `marketing/plans.md`                           |
 
@@ -28,7 +28,7 @@ Auth redirects back to `/` carry `?code=` or `#access_token=`, so they always re
 
 **Expected:**
 
-- The page shows `Install it. Learn it. Win Friday.`, **Start free** and **Log in**, with the 3D helmet view beside it.
+- The page shows `Install it. Learn it. Win Friday.`, **Start free** and **Log in**, with the draw-a-play demo video beside it. The video shows its poster and does not play until you press play; it has no sound.
 - The network panel shows no `router-*.js`, `useScenePalette-*.js` or `geometry-*.js` chunk (production build, `npm run build && npx vite preview`).
 - The tab title is `Scheme HQ: Install it. Learn it. Win Friday.`
 - While checkout is off (`VITE_CHECKOUT_ENABLED` unset), Team and Program show **Coming soon** instead of a button, with `Paid plans open soon.` under the cards. Starter keeps **Start free**.
@@ -73,7 +73,7 @@ Auth redirects back to `/` carry `?code=` or `#access_token=`, so they always re
 
 **Expected:**
 
-- No sideways scroll. The hero, image, features, three plan cards and questions stack in one column.
+- No sideways scroll. The hero, video, features, three plan cards and questions stack in one column.
 - The FAQ answers open and close on tap.
 
 ## Scenario 6 — Keyboard
@@ -84,7 +84,7 @@ Auth redirects back to `/` carry `?code=` or `#access_token=`, so they always re
 
 **Expected:**
 
-- Every link and FAQ question shows a solid orange focus ring, in page order: logo, Log in, Start free, Log in, plan buttons, the four questions, Start free, Log in.
+- Every link and FAQ question shows a solid orange focus ring, in page order: logo, Log in, Start free, Log in, the video's controls, plan buttons, the four questions, Start free, Log in.
 - Enter on a question opens its answer.
 
 ## Scenario 7 — Share preview
@@ -104,14 +104,24 @@ The images come from the no-backend demo, so they need no account or data. Run t
 | File               | Page                                                    | Size       |
 | ------------------ | ------------------------------------------------------- | ---------- |
 | `pov.webp`, og.png | `/`, POV view, about 1 s into the play                  | 1280 × 800 |
-| `broadcast.webp`   | `/`, Broadcast view, routes shown, about 1.5 s in       | 1280 × 800 |
 | `coach-home.webp`  | `/?home=coach`                                          | 1280 × 900 |
 | `scout-pack.webp`  | `/playbook` → Opponents → Lincoln High → Week of Nov 23 | 1280, full |
 | `player-home.webp` | `/?home=player`                                         | 390 × 844  |
 
 Convert with `cwebp -q 82`. `og.png` stays PNG for link previews.
 
+### The draw-a-play video
+
+`draw-a-play.mp4` (1280 × 720, about 38 s, H.264, no sound, under 3 MB) and its poster `draw-a-play-poster.webp` are recorded from the same demo with a Playwright script driving Chrome (`recordVideo` at 1280 × 720, `colorScheme: 'dark'`, headed so the 3D view renders at full speed). The script adds a caption box (navy, orange edge, Geist) and a drawn cursor, then:
+
+1. `/playbook?folder=ours`: set **Base alignment** to Gun Spread.
+2. Click **Draw a play**. The editor opens lined up in Gun Spread. Rename the play `Four Verts`.
+3. With the solid arrow, drag routes from X, Z, H and Y; with the T-cap, a block from the RB.
+4. **Watch in 3D**: play it in Broadcast, then POV.
+5. Back, **Done**: the play shows under Diagrams in the folder.
+
+The raw WebM is trimmed, sped up (about 1.6–1.8×, 1.25× for the 3D part) and encoded to H.264 with `-pix_fmt yuv420p -movflags +faststart -an` at about 500 kbps (ffmpeg, or WebCodecs in Chrome). The poster is the frame with all four routes and the block drawn, through `cwebp -q 82`.
+
 ## Not in this step
 
 - Terms and privacy pages. The footer links to them once they exist (issue #63, open question 11).
-- The draw-a-play demo video was taken off the page because it shows the old name and colours. Re-record it, then put it back in the hero.

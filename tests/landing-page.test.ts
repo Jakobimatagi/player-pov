@@ -19,4 +19,17 @@ describe('landing page', () => {
     expect(images.length).toBeGreaterThan(0)
     for (const img of images) expect(img).toMatch(/alt="[^"]+"/)
   })
+
+  it('shows the demo video muted, with controls and a label, and never autoplays', () => {
+    const videos = html.match(/<video [^>]*>/g) ?? []
+    expect(videos).toHaveLength(1)
+    const video = videos[0]
+    expect(video).toMatch(/aria-label="[^"]+"/)
+    expect(video).toMatch(/poster="[^"]+"/)
+    expect(video).toContain('controls')
+    expect(video).toContain('muted')
+    expect(video).toContain('preload="none"')
+    expect(video).not.toContain('autoplay')
+    expect(html).toContain('src="/landing/draw-a-play.mp4"')
+  })
 })
