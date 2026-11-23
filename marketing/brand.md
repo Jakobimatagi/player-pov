@@ -1,13 +1,13 @@
-# SchemeHQ brand
+# Scheme HQ brand
 
 Decided 2026-11-22 (issue #73). The product's name and pitch live in code in `src/lib/brand.ts`; this doc is the reasoning and the rules around it.
 
 ## Name
 
-**SchemeHQ.** A coaching staff's "scheme" is its whole offensive and defensive system. "HQ" says this is where the staff and the players run it from, every week. One word, SaaS-shaped, and it names the job (installs, learning and scouting), not one feature.
+**Scheme HQ.** A coaching staff's "scheme" is its whole offensive and defensive system. "HQ" says this is where the staff and the players run it from, every week. Short, SaaS-shaped, and it names the job (installs, learning and scouting), not one feature.
 
-- Wordmark: `SCHEME` in chalk white, `HQ` in pylon orange, set in Big Shoulders Display, uppercase.
-- In running text it is always `SchemeHQ` (one word, capital S and H, capital Q), never "Scheme HQ" or "Schemehq".
+- Wordmark: `SCHEME HQ`, with `SCHEME` in chalk white and `HQ` in pylon orange, set in Big Shoulders Display, uppercase.
+- In running text it is always `Scheme HQ` (two words, capital S, H and Q), never "SchemeHQ", "Schemehq" or "Scheme Hq". The domain stays lowercase and joined: `schemehq.app`.
 - Replaces "POV Playbook" and "Player POV". The 3D player-view replay is a feature ("POV replay"), not the brand.
 
 ## Domain
@@ -18,7 +18,7 @@ Decided 2026-11-22 (issue #73). The product's name and pitch live in code in `sr
 
 - **Who:** high school football coaching staffs (head coach, coordinators, position coaches) and their players.
 - **What:** install the playbook, get every player learning it in 3D from their own position as homework, and build scout packs to prep for each opponent.
-- **Against Hudl:** Hudl is film, breaking down what happened. SchemeHQ is the playbook and the prep, so players know what to do before Friday. It sits next to a film service rather than replacing it.
+- **Against Hudl:** Hudl is film, breaking down what happened. Scheme HQ is the playbook and the prep, so players know what to do before Friday. It sits next to a film service rather than replacing it.
 - **Tagline:** Install it. Learn it. Win Friday.
 - **Voice:** a sharp coordinator talking to the staff: short, direct, football-literate, no corporate filler. Sentence case in the UI; uppercase only for display headings and the wordmark.
 
@@ -36,7 +36,7 @@ Decided 2026-11-22 (issue #73). The product's name and pitch live in code in `sr
 - Display face: Big Shoulders Display (headings, wordmark, page titles). Body: Geist.
 - Mark: a player (O) running an S-shaped route to an arrow, on an orange rounded square (`public/favicon.svg`).
 - Every text/background token pair passes WCAG 2.1 AA in both palettes. The automated check is #76.
-- Each team will get its school colour as an accent inside its own workspace; the SchemeHQ orange stays the product's colour.
+- Each team will get its school colour as an accent inside its own workspace; the Scheme HQ orange stays the product's colour.
 
 ## Still to do
 

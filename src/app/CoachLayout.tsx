@@ -108,8 +108,7 @@ function Brand() {
     >
       <BrandMark />
       <span className="truncate font-display text-xl leading-none font-extrabold tracking-wide uppercase group-data-[collapsible=icon]:hidden">
-        {BRAND.wordmark.lead}
-        <span className="text-primary">{BRAND.wordmark.accent}</span>
+        {BRAND.wordmark.lead} <span className="text-primary">{BRAND.wordmark.accent}</span>
       </span>
     </Link>
   )

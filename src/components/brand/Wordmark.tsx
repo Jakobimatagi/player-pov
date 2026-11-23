@@ -30,8 +30,7 @@ export function Wordmark({ className, mark = true }: { className?: string; mark?
     <span className={cn('inline-flex items-center gap-2', className)}>
       {mark ? <BrandMark /> : null}
       <span className="font-display text-[1.35em] leading-none font-extrabold tracking-wide uppercase">
-        {BRAND.wordmark.lead}
-        <span className="text-primary">{BRAND.wordmark.accent}</span>
+        {BRAND.wordmark.lead} <span className="text-primary">{BRAND.wordmark.accent}</span>
       </span>
     </span>
   )
