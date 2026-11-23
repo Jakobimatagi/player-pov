@@ -102,12 +102,11 @@ const FAQ: readonly { q: string; a: string }[] = [
 ]
 
 /** Solid ring for keyboard focus; the global default is too faint on the navy background. */
-const focusRing =
-  'rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const focusRing = 'rounded-sm focus-visible:focus-ring'
 const primary =
-  'inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 font-medium text-primary-foreground hover:bg-primary/90 focus-visible:focus-ring'
 const secondary =
-  'inline-flex h-11 items-center justify-center rounded-lg border border-border bg-secondary px-5 font-medium text-secondary-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'inline-flex h-11 items-center justify-center rounded-lg border border-border bg-secondary px-5 font-medium text-secondary-foreground hover:bg-accent focus-visible:focus-ring'
 
 export function LandingPage() {
   return (

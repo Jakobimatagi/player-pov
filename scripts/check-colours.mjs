@@ -14,7 +14,6 @@
 // Allowed without a comment:
 //   - the token blocks of the theme file (`:root { … }`, `:root[data-theme='…'] { … }` and
 //     `.dark { … }` in src/index.css). The rest of that file is checked like any other.
-//   - src/playsheet/playsheet.css (print sheet: fixed ink colours on paper)
 //   - src/lib/brand.ts (the <meta name="theme-color"> value, read before CSS loads)
 //   - test files (*.test.ts[x]); tests/ is outside src/ and never scanned
 // Allowed with a reason, on the same line or the line directly above:
@@ -40,7 +39,7 @@ const UPDATE = args.includes('--update-baseline')
 const BASELINE_PATH = join(ROOT, 'scripts', 'colour-baseline.json')
 
 const THEME_FILE = 'src/index.css'
-const ALLOWED_FILES = new Set(['src/playsheet/playsheet.css', 'src/lib/brand.ts'])
+const ALLOWED_FILES = new Set(['src/lib/brand.ts'])
 const isTest = (f) => /\.test\.tsx?$/.test(f)
 
 const HEX = /(?<![\w&#])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![\w-])/gi

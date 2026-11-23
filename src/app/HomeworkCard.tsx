@@ -81,7 +81,7 @@ export function HomeworkCard({
           return (
             <li key={item.assignmentId}>
               <Link
-                className="group flex h-full items-center gap-4 rounded-xl border bg-card p-4 transition-colors outline-none hover:border-foreground/20 hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring"
+                className="group flex h-full items-center gap-4 rounded-xl border bg-card p-4 transition-colors outline-none hover:border-foreground/20 hover:bg-accent/60 focus-visible:focus-ring"
                 to={`/homework/${item.assignmentId}`}
                 data-state={state}
               >

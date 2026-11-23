@@ -64,7 +64,7 @@ export function PlayerHome({
           {load.plays.map((play) => (
             <li key={play.id}>
               <Link
-                className="group flex h-full items-center gap-4 rounded-xl border bg-card p-4 transition-colors outline-none hover:border-foreground/20 hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring"
+                className="group flex h-full items-center gap-4 rounded-xl border bg-card p-4 transition-colors outline-none hover:border-foreground/20 hover:bg-accent/60 focus-visible:focus-ring"
                 to={`/plays/${play.id}`}
               >
                 <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
