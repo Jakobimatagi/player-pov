@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b",
-    "lint": "eslint . && prettier --check .",
+    "lint": "eslint . && prettier --check . && npm run lint:colours",
+    "lint:colours": "node scripts/check-colours.mjs",
     "format": "prettier --write .",
     "test": "vitest run",
     "compile": "tsx src/play/compileCli.ts"

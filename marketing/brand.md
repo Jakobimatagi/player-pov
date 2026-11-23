@@ -35,8 +35,16 @@ Decided 2026-11-22 (issue #73). The product's name and pitch live in code in `sr
 
 - Display face: Big Shoulders Display (headings, wordmark, page titles). Body: Geist.
 - Mark: a player (O) running an S-shaped route to an arrow, on an orange rounded square (`public/favicon.svg`).
-- Every text/background token pair passes WCAG 2.1 AA in both palettes. The automated check is #76.
+- Text on every surface passes WCAG 2.1 AA in both palettes, checked by `tests/contrast.test.ts`. Known gaps (#80): faint borders and inputs, the focus ring as the components use it (`ring-ring/50`), and light-mode destructive text on its 10% tint (4.38:1).
 - Each team will get its school colour as an accent inside its own workspace; the Scheme HQ orange stays the product's colour.
+
+### Adding a colour
+
+- Add a token, never a literal. Define it in both palette blocks at the top of `src/index.css` (`:root` and `:root[data-theme='light']`), expose it in `@theme inline` as `--color-<name>: var(--<name>)`, then use it as a Tailwind class (`text-<name>`) or `var(--<name>)`. Canvas, Konva and three.js code reads the computed token rather than hard-coding a hex.
+- `npm run lint` runs `scripts/check-colours.mjs`, which fails on a hex, `rgb()`/`hsl()`/`oklch()`-style function or `0xRRGGBB` number anywhere under `src/` outside the token blocks, `src/playsheet/playsheet.css` (print), `src/lib/brand.ts` (meta theme colour) and test files.
+- A genuine exception gets a reason on the same line or the line above: `/* raw colour: print ink must stay black */` in CSS, `// raw colour: WebGL clear colour, read before CSS loads` in TS. No reason, no pass.
+- `scripts/colour-baseline.json` is a temporary list of files that still had raw colours when the guard landed, with counts. Never add to it. A file that gains a raw colour fails; a file that gets clean fails until its entry is deleted; `node scripts/check-colours.mjs --update-baseline` locks in lower counts. #74 and #75 shrink it, #80 empties it.
+- When you add a token that is used as text, a border or a focus ring, add its pairs to `PAIRS` in `tests/contrast.test.ts`. `npm test -- contrast` prints a table: one row per palette and pair with the ratio, the minimum (4.5 for text, 3 for large text and UI such as borders and focus rings) and PASS, FAIL or KNOWN. KNOWN rows are listed in `KNOWN_FAILURES` and must still fail; a pair that starts passing turns the test red until you delete its entry.
 
 ## Icons and share image
 
