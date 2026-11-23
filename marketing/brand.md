@@ -60,3 +60,25 @@ Added in #81. All rendered from one drawing by `scripts/brand-assets/render.mjs`
 - Light mode toggle: waits on #74 and #75 (about 200 hard-coded colours still assume the dark theme).
 - Per-team school colour accent.
 - Auth emails and Stripe product names (#79) are done in the repo and in Stripe; the hosted Supabase email templates and sender name still have to be pasted in the dashboard (`scenarios/auth.md`).
+
+## Player colours
+
+Retuned in #77 so the seven token colours a coach picks stay apart for colour-blind coaches (about 1 in 12 men). The values live in `src/theme/playerColors.ts`; saved plays store the names, so changing a value never needs a migration. `tests/player-colours.test.ts` checks every number below against the field tokens in `src/index.css`, so an edit that breaks one fails CI.
+
+The set is split by lightness as well as hue (red and blue dark, orange and purple mid, green light, white lightest), because red-green colour blindness flattens hue but keeps lightness.
+
+| Name   | Hex       | Label ink | Token on diagram field / end zone | Label on token |
+| ------ | --------- | --------- | --------------------------------- | -------------- |
+| White  | `#ffffff` | `#1f2328` | 19.3 / 18.2                       | 15.8           |
+| Black  | `#2a2b2e` | `#ffffff` | outline 14.3 / 13.5 (fill 1.4)    | 14.2           |
+| Red    | `#c0302f` | `#ffffff` | 3.4 / 3.2                         | 5.7            |
+| Blue   | `#4264b2` | `#ffffff` | 3.4 / 3.2                         | 5.7            |
+| Green  | `#58d28c` | `#1f2328` | 10.1 / 9.5                        | 8.3            |
+| Orange | `#dc7e00` | `#1f2328` | 6.5 / 6.1                         | 5.3            |
+| Purple | `#b380f8` | `#1f2328` | 6.8 / 6.4                         | 5.5            |
+
+- **Lines** use the token colour, except white (`--diagram-line-white`, 17.7:1) and black (`--diagram-line-black`, 6.7:1).
+- **Black** is a dark grey: no fill that still reads as black reaches 3:1 on stadium navy, so a black token is seen by the light ring every token gets (`--diagram-token-stroke`).
+- **Closest pair, CIEDE2000** (Machado 2009 simulation, full severity; tokens, and lines in brackets): normal 24.5 blue/purple (18.3 black/purple), protanopia 16.9 blue/purple, deuteranopia 17.3 green/orange, tritanopia 17.4 red/orange (17.3 black/purple). The floor is 15.
+- **3D and the no-WebGL preview** use the team colours: offense `#b40c28` (was `#c8102e`, darkened for 3:1 on both turf stripes), defense `#f2f2f2`. Two pairs can't reach 3:1 because of the field colour: the white jersey on the light 3D turf (about 2:1, still ΔE 21+ in every simulation) and the red offense ring on the dark-green preview field (1.1:1). Both are listed in the test and wait on the field tokens (#80).
+- Before/after screenshots and a colour-blind simulation grid: `docs/screenshots/player-colours/`.
