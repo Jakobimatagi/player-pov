@@ -3,22 +3,24 @@ import { cn } from '@/lib/utils'
 
 /**
  * The mark: a player (the O) running an S-shaped route to the arrow, in the primary colour.
- * Same drawing as public/favicon.svg.
+ * Same drawing as public/favicon.svg (GLYPH in scripts/brand-assets/render.mjs). Decorative:
+ * wherever it is used, the surrounding link or text carries the name.
  */
 export function BrandMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" aria-hidden="true" className={cn('size-8 shrink-0', className)}>
-      <rect width="32" height="32" rx="8" className="fill-primary" />
+      <rect width="32" height="32" rx="7" className="fill-primary" />
       <g
         fill="none"
-        strokeWidth="2.6"
+        strokeWidth="3.4"
         strokeLinecap="round"
         strokeLinejoin="round"
+        transform="translate(-0.5 -1)"
         className="stroke-primary-foreground"
       >
-        <circle cx="10" cy="23.5" r="3" />
-        <path d="M10 20.5C10 14 22 18.5 22 11.5V8.5" />
-        <path d="M18 12l4-4 4 4" />
+        <circle cx="9" cy="23" r="3.6" />
+        <path d="M9 19.4C9 16.5 10.5 16 13 16H19C21.5 16 23 15.5 23 12.5V7.5" />
+        <path d="M18.5 12L23 7.5 27.5 12" />
       </g>
     </svg>
   )
