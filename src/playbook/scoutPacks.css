@@ -80,18 +80,18 @@
 }
 
 .pack-state[data-state='in_progress'] {
-  color: rgb(252 211 77);
-  background: rgb(245 158 11 / 0.14);
+  color: var(--gold);
+  background: color-mix(in oklab, var(--warning) 15%, transparent);
 }
 
 .pack-state[data-state='ready'] {
-  color: rgb(110 231 183);
-  background: rgb(16 185 129 / 0.14);
+  color: color-mix(in oklab, var(--success) 65%, var(--foreground));
+  background: color-mix(in oklab, var(--success) 12%, transparent);
 }
 
 .pack-state[data-state='published'] {
-  color: rgb(147 197 253);
-  background: rgb(59 130 246 / 0.16);
+  color: color-mix(in oklab, var(--info) 75%, var(--foreground));
+  background: color-mix(in oklab, var(--info) 16%, transparent);
 }
 
 .pack-meta,
@@ -126,11 +126,11 @@
 }
 
 .pack-due[data-due='soon'] {
-  color: rgb(252 211 77);
+  color: var(--gold);
 }
 
 .pack-due[data-due='overdue'] {
-  color: rgb(252 165 165);
+  color: color-mix(in oklab, var(--destructive) 55%, var(--foreground));
 }
 
 .pack-note,

@@ -35,7 +35,7 @@
 
   .notes-control-shared {
     font-weight: 400;
-    color: #9fdba8;
+    color: color-mix(in oklab, var(--success) 60%, var(--foreground));
   }
 
   .notes-control-preview {
@@ -98,7 +98,7 @@
   }
 
   .note[data-shared='true'] {
-    border-left-color: #3d9a4a;
+    border-left-color: color-mix(in oklab, var(--success) 75%, var(--background));
   }
 
   .note-top {
@@ -140,8 +140,8 @@
   }
 
   .note-badge[data-shared='true'] {
-    border-color: #3d9a4a;
-    color: #9fdba8;
+    border-color: color-mix(in oklab, var(--success) 75%, var(--background));
+    color: color-mix(in oklab, var(--success) 60%, var(--foreground));
   }
 
   .note-body {
@@ -233,16 +233,16 @@
   .note-share input {
     width: 22px;
     height: 22px;
-    accent-color: #3d9a4a;
+    accent-color: color-mix(in oklab, var(--success) 75%, var(--background));
   }
 
   .note-warning {
     margin: 0;
     padding: 6px 10px;
     border-radius: 8px;
-    border: 1px solid #b8862b;
-    background: rgba(184, 134, 43, 0.15);
-    color: #f3d08a;
+    border: 1px solid color-mix(in oklab, var(--warning) 75%, var(--background));
+    background: color-mix(in oklab, var(--warning) 11%, transparent);
+    color: color-mix(in oklab, var(--warning) 65%, var(--foreground));
     font-size: 0.9rem;
     font-weight: 600;
   }
@@ -267,7 +267,7 @@
   }
 
   .sheet-notes-label[data-shared='true'] {
-    color: #9fdba8;
+    color: color-mix(in oklab, var(--success) 60%, var(--foreground));
   }
 
   .sheet .notes-control {
