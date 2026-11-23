@@ -35,7 +35,17 @@ Any other value, or no value, keeps checkout off.
 
 ## Setup (test mode)
 
-Do this in the Stripe sandbox **Player POV** first. Live mode repeats it after the live account is activated.
+Do this in the Stripe sandbox first (its Dashboard name is still **Player POV**, `acct_1UeiKXDVIFuq3nJs`; only the account label, not anything a customer sees). Live mode repeats it after the live account is activated.
+
+The products are already there, in both the sandbox and live, and the code finds their prices by lookup key:
+
+| Product (name customers see)   | Price lookup key   | Price metadata     |
+| ------------------------------ | ------------------ | ------------------ |
+| `Scheme HQ Team`               | `team_yearly`      | `plan: team`       |
+| `Scheme HQ Program`            | `program_yearly`   | `plan: program`    |
+| `Scheme HQ Extra film (50 GB)` | `film_50gb_yearly` | `addon: film_50gb` |
+
+**Live product names.** Checkout, the customer portal, receipts and invoices show the product name, so live uses the same three names as the sandbox, each with a one-line description. The live account (`acct_1OvgzyDHhqGj7jZS`) also has three archived duplicate products from setup; leave them archived. If a product is ever renamed, change only its name and description: lookup keys and metadata are what the code and webhook read.
 
 1. Stripe Dashboard (sandbox) → **Developers → API keys**: copy the secret key (`sk_test_…`).
 2. **Settings → Billing → Customer portal**: click **Save** once so a default portal configuration exists. Allow cancel and payment method updates.

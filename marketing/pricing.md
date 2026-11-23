@@ -2,7 +2,7 @@
 
 ![What it costs to run the app for a season](app-season-cost.png)
 
-What Player POV costs to run, and what we charge for it. Use this when pitching coaches, setting plan prices, or checking margins.
+What Scheme HQ costs to run, and what we charge for it. Use this when pitching coaches, setting plan prices, or checking margins.
 
 Update the **Last checked** date whenever a vendor price is re-verified, and add a line to the change log at the bottom.
 
@@ -145,7 +145,7 @@ Paid setup ($45 a month hosting) for a 3-month season, at about 20 GB of film pe
 
 ## 4. What we charge (customer plans)
 
-> **Status: prices confirmed 2026-11-22, set up in Stripe test mode only.** No live products yet, and the app does not charge anyone yet (issue #63). Full reasoning in [plans.md](plans.md).
+> **Status: prices confirmed 2026-11-22, set up in the Stripe sandbox and in live mode.** Checkout stays off, so the app does not charge anyone yet (issue #63). Full reasoning in [plans.md](plans.md).
 
 | Plan        | Price       | Billing      | Who it's for                 | Film storage     | Stripe lookup key  |
 | ----------- | ----------- | ------------ | ---------------------------- | ---------------- | ------------------ |
@@ -159,8 +159,9 @@ Paid setup ($45 a month hosting) for a 3-month season, at about 20 GB of film pe
 | What               | Where                                                                                                                                                  |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Live account       | "New business" (`acct_1OvgzyDHhqGj7jZS`). Not activated: charges and payouts are off until onboarding is finished in the Dashboard.                    |
-| Test sandbox       | "Player POV" (`acct_1UeiKXDVIFuq3nJs`), where steps 2 to 4 of #63 are built and tested.                                                                |
-| Products (sandbox) | Team `prod_Vg4WKF08V1mVnI`, Program `prod_Vg4WFdqSaVllmd`, Extra film `prod_Vg4WpcqogMl1b6`                                                            |
+| Test sandbox       | Dashboard name still "Player POV" (`acct_1UeiKXDVIFuq3nJs`), where steps 2 to 4 of #63 are built and tested.                                           |
+| Products (sandbox) | Scheme HQ Team `prod_Vg4WKF08V1mVnI`, Scheme HQ Program `prod_Vg4WFdqSaVllmd`, Scheme HQ Extra film (50 GB) `prod_Vg4WpcqogMl1b6`                      |
+| Products (live)    | Scheme HQ Team `prod_Vg6fhPdhnJcmhD`, Scheme HQ Program `prod_Vg6fRdZsa20Skd`, Scheme HQ Extra film (50 GB) `prod_Vg6gntVJjS0yA2`                      |
 | Prices (sandbox)   | `team_yearly` `price_1UeiNdDVIFuq3nJscHjdSDAB`, `program_yearly` `price_1UeiNdDVIFuq3nJsIP8UMNH0`, `film_50gb_yearly` `price_1UeiNeDVIFuq3nJsChuF5KkU` |
 
 The code should find prices by lookup key, not by ID, so the same code works in the sandbox and in live mode once live prices are created with the same keys. Each product and price carries `metadata.plan` (`team`, `program`) or `metadata.addon` (`film_50gb`), matching `public.plans.id`.
@@ -170,7 +171,6 @@ The code should find prices by lookup key, not by ID, so the same code works in 
 - Stripe Tax. Prices have `tax_behavior: unspecified`, which can be set once later. Many schools are tax-exempt (#63 open question 8).
 - The founding coach coupon (50% off, 10 teams) (#63 open question 5).
 - A free trial (#63 open question 6).
-- Live products and prices. Create them with the same lookup keys after the live account is activated.
 
 ### Before the first real charge
 
