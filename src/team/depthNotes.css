@@ -10,7 +10,7 @@
     min-height: 44px;
     margin-top: 4px;
     padding: 4px 8px;
-    border: 1px solid var(--input);
+    border: 1px solid var(--control);
     border-radius: 8px;
     background: transparent;
     color: var(--foreground);
@@ -94,7 +94,7 @@
   .note {
     padding: 8px 0 8px 10px;
     border-top: 1px solid var(--border);
-    border-left: 3px solid var(--input);
+    border-left: 3px solid var(--control);
   }
 
   .note[data-shared='true'] {
@@ -133,7 +133,7 @@
     display: inline-block;
     padding: 1px 8px;
     border-radius: 999px;
-    border: 1px solid var(--input);
+    border: 1px solid var(--control);
     color: var(--muted-foreground);
     font-size: 0.75rem;
     white-space: nowrap;

@@ -19,18 +19,18 @@
     padding: 0.15rem 0.6rem;
     font-size: 0.8rem;
     font-weight: 700;
-    border: 1px solid #6b6b6b;
-    color: #e6e1d6;
+    border: 1px solid var(--control);
+    color: var(--foreground);
   }
 
   .sheet-state[data-state='published'] {
-    border-color: #3fae6a;
-    color: #7fe0a4;
+    border-color: color-mix(in oklab, var(--success) 45%, transparent);
+    color: var(--success);
   }
 
   .sheet-state[data-state='draft'] {
-    border-color: #c99a2e;
-    color: #f2c766;
+    border-color: color-mix(in oklab, var(--warning) 45%, transparent);
+    color: var(--warning);
   }
 
   .sheet-meter {
@@ -69,22 +69,22 @@
     margin: 0 0 0.75rem;
     padding: 0.5rem 0.75rem;
     border-radius: 0.5rem;
-    background: #2a2417;
-    border: 1px solid #5c4a1c;
-    color: #f2dca0;
+    background: var(--warning-subtle);
+    border: 1px solid color-mix(in oklab, var(--warning) 35%, transparent);
+    color: var(--warning);
     font-size: 0.9rem;
   }
 
   .sheet-notice {
-    background: #16261b;
-    border-color: #2c5a3a;
-    color: #b8ecc9;
+    background: var(--success-subtle);
+    border-color: color-mix(in oklab, var(--success) 35%, transparent);
+    color: var(--success);
   }
 
   .sheet-notice.error {
-    background: #2b1717;
-    border-color: #6a2a2a;
-    color: #ffb3b3;
+    background: var(--danger-subtle);
+    border-color: color-mix(in oklab, var(--destructive) 35%, transparent);
+    color: var(--destructive);
   }
 
   .sheet-body {
@@ -138,38 +138,38 @@
   }
 
   .board-grass {
-    fill: #2f6b35;
+    fill: var(--editor-field);
   }
 
   .board-sideline {
-    stroke: rgba(255, 255, 255, 0.85);
+    stroke: color-mix(in oklab, var(--chalk) 85%, transparent);
     stroke-width: 0.25;
   }
 
   .board-yard {
-    stroke: rgba(255, 255, 255, 0.45);
+    stroke: color-mix(in oklab, var(--chalk) 45%, transparent);
     stroke-width: 0.12;
   }
 
   .board-hash {
-    stroke: rgba(255, 255, 255, 0.4);
+    stroke: color-mix(in oklab, var(--chalk) 40%, transparent);
     stroke-width: 0.12;
   }
 
   .board-number {
-    fill: rgba(255, 255, 255, 0.55);
+    fill: color-mix(in oklab, var(--chalk) 55%, transparent);
     font-size: 2px;
     font-weight: 700;
     text-anchor: middle;
   }
 
   .board-los {
-    stroke: #4aa3ff;
+    stroke: var(--editor-scrimmage);
     stroke-width: 0.25;
   }
 
   .board-ball {
-    fill: #8a4b22;
+    fill: var(--board-ball);
     stroke: var(--foreground);
     stroke-width: 0.08;
   }
@@ -187,12 +187,12 @@
   }
 
   .board-route-theirs {
-    stroke: #ff9a8d;
+    stroke: var(--board-theirs);
     stroke-dasharray: 0.6 0.4;
   }
 
   .board-route-picked {
-    stroke: #ffd84a;
+    stroke: var(--editor-select);
     stroke-width: 0.28;
   }
 
@@ -205,11 +205,11 @@
   }
 
   .board-arrow-theirs {
-    fill: #ff9a8d;
+    fill: var(--board-theirs);
   }
 
   .board-arrow-picked {
-    fill: #ffd84a;
+    fill: var(--editor-select);
   }
 
   .board-chip {
@@ -231,8 +231,8 @@
   }
 
   .board-chip[data-side='theirs'] .board-token {
-    fill: #3b1d1a;
-    stroke: #ff9a8d;
+    fill: var(--board-theirs-fill);
+    stroke: var(--board-theirs);
   }
 
   .board-mark {
@@ -246,17 +246,17 @@
   }
 
   .board-chip[data-side='theirs'] .board-mark {
-    fill: #ffd2cc;
+    fill: var(--board-theirs-ink);
   }
 
   .board-ring {
     fill: none;
-    stroke: #ffd84a;
+    stroke: var(--editor-select);
     stroke-width: 0.3;
   }
 
   .board-chip:focus-visible .board-hit {
-    stroke: #ffd84a;
+    stroke: var(--editor-select);
     stroke-width: 0.15;
     stroke-dasharray: 0.4 0.3;
   }
@@ -267,22 +267,22 @@
   }
 
   .board-badge[data-status='complete'] circle {
-    fill: #3fae6a;
+    fill: var(--success);
   }
 
   .board-badge[data-status='incomplete'] circle {
-    fill: #e0483e;
+    fill: var(--destructive);
   }
 
   .board-badge text {
-    fill: #fff;
+    fill: var(--background);
     font-size: 0.55px;
     font-weight: 800;
     pointer-events: none;
   }
 
   .board-you {
-    fill: #ffd84a;
+    fill: var(--editor-select);
     font-size: 0.6px;
     font-weight: 800;
     letter-spacing: 0.04px;
@@ -327,9 +327,9 @@
     width: 100%;
     min-height: 44px;
     padding: 0.45rem 0.7rem;
-    background: #1f1f1f;
+    background: var(--card);
     color: var(--foreground);
-    border: 1px solid var(--input);
+    border: 1px solid var(--control);
     border-left-width: 4px;
     border-radius: 0.5rem;
     font: inherit;
@@ -338,16 +338,16 @@
   }
 
   .sheet-pos[aria-pressed='true'] {
-    border-color: #ffd84a;
-    background: #2a2716;
+    border-color: var(--gold);
+    background: color-mix(in oklab, var(--gold) 12%, var(--card));
   }
 
   .sheet-pos[data-status='complete'] {
-    border-left-color: #3fae6a;
+    border-left-color: var(--success);
   }
 
   .sheet-pos[data-status='incomplete'] {
-    border-left-color: #e0483e;
+    border-left-color: var(--destructive);
   }
 
   .sheet-pos-name {
@@ -371,14 +371,14 @@
     font-weight: 800;
     padding: 0 0.35rem;
     border-radius: 999px;
-    background: #ffd84a;
+    background: var(--gold);
     color: var(--background);
   }
 
   /* Position card */
   .sheet-card {
     background: var(--card);
-    border: 1px solid var(--input);
+    border: 1px solid var(--control);
     border-top: 4px solid var(--primary);
     border-radius: 0.75rem;
     padding: 0.75rem 1rem 1rem;
@@ -417,12 +417,12 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #ffd84a;
+    color: var(--gold);
   }
 
   .rule-phase[data-phase='post'] > legend,
   .rule-phase[data-phase='post'] > h4 {
-    color: #7fc4ff;
+    color: var(--info);
   }
 
   .rule-phase[data-phase='extra'] > legend {
@@ -444,16 +444,16 @@
 
   .rule-question {
     font-weight: 400;
-    color: #a9a397;
+    color: var(--muted-foreground);
     font-size: 0.8rem;
   }
 
   .rule-required {
-    color: #ff8a8a;
+    color: var(--destructive);
   }
 
   .rule-field[data-missing='true'] textarea {
-    border-color: #a4413a;
+    border-color: var(--destructive);
   }
 
   .rule-view dl {
@@ -482,7 +482,7 @@
   }
 
   .rule-view .rule-line[data-missing='true'] dd {
-    color: #ff8a8a;
+    color: var(--destructive);
     font-style: italic;
   }
 
@@ -503,10 +503,10 @@
   .facing {
     margin: 0 0 0.75rem;
     padding: 0.6rem 0.75rem;
-    border: 1px solid var(--input);
-    border-left: 4px solid #7fc4ff;
+    border: 1px solid var(--control);
+    border-left: 4px solid var(--info);
     border-radius: 0.6rem;
-    background: #1a1f24;
+    background: var(--muted);
   }
 
   .facing-head {
@@ -521,7 +521,7 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #7fc4ff;
+    color: var(--info);
   }
 
   .facing-name {
@@ -564,7 +564,7 @@
   .facing-hint {
     margin: 0.4rem 0 0;
     font-size: 0.85rem;
-    color: #a9a397;
+    color: var(--muted-foreground);
   }
 
   .visually-hidden {
@@ -589,29 +589,29 @@
     min-height: 36px;
     padding: 0.3rem 0.7rem;
     border-radius: 999px;
-    border: 1px solid var(--input);
-    background: #242424;
-    color: #e6e1d6;
+    border: 1px solid var(--control);
+    background: var(--secondary);
+    color: var(--foreground);
     font: inherit;
     font-size: 0.85rem;
     cursor: pointer;
   }
 
   .layer-tab[aria-selected='true'] {
-    border-color: #7fc4ff;
-    background: #1d2a36;
-    color: #fff;
+    border-color: var(--info);
+    background: var(--info-subtle);
+    color: var(--foreground);
   }
 
   .layer-tab[data-has='true']::after {
     content: ' •';
-    color: #7fc4ff;
+    color: var(--info);
   }
 
   .layer-note {
     margin: 0.5rem 0 0;
     font-size: 0.85rem;
-    color: #b8daf7;
+    color: var(--info);
   }
 
   .rule-vs {
@@ -621,18 +621,18 @@
     letter-spacing: 0.04em;
     padding: 0 0.4rem;
     border-radius: 999px;
-    background: #1d3a55;
-    color: #b8daf7;
+    background: var(--info-subtle);
+    color: var(--info);
   }
 
   .rule-view .rule-line[data-variant='true'] dd {
-    border-left: 3px solid #7fc4ff;
+    border-left: 3px solid var(--info);
     padding-left: 0.5rem;
   }
 
   .rule-inherits {
     font-size: 0.8rem;
-    color: #8f897d;
+    color: var(--muted-foreground);
     overflow-wrap: anywhere;
   }
 
@@ -641,10 +641,10 @@
   }
 
   .rule-field[data-variant='true'] textarea {
-    border-color: #7fc4ff;
+    border-color: var(--info);
   }
 
   .sheet-pos-vs {
-    color: #7fc4ff;
+    color: var(--info);
   }
 }

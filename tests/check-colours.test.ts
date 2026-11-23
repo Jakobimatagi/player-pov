@@ -41,15 +41,20 @@ const THEME = `:root {
 `
 
 describe('check-colours', () => {
-  it('passes the theme token blocks, the playsheet, brand.ts and tests', () => {
+  it('passes the theme token blocks, brand.ts and tests', () => {
     const r = check({
       'src/index.css': THEME,
-      'src/playsheet/playsheet.css': '.sheet { color: #000; border: 1px solid rgb(0 0 0); }',
       'src/lib/brand.ts': "export const themeColor = '#0b1220'",
       'src/x.test.ts': "const c = '#ff0000'",
     })
     expect(r.out).toContain('no new raw colours')
     expect(r.ok).toBe(true)
+  })
+
+  it('checks the play sheet CSS like any other (it is a screen stylesheet, not print)', () => {
+    const r = check({ 'src/playsheet/playsheet.css': '.sheet {\n  color: #000;\n}\n' })
+    expect(r.ok).toBe(false)
+    expect(r.out).toContain('src/playsheet/playsheet.css:2  raw colour #000')
   })
 
   it('fails a raw colour in a non-token rule of the theme file', () => {

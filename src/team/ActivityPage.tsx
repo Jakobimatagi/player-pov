@@ -55,7 +55,7 @@ type Load =
   { status: 'loading' } | { status: 'error'; text: string } | { status: 'ready'; data: Dashboard }
 
 const SELECT =
-  'h-9 min-w-0 rounded-md border bg-background px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:focus-ring'
 
 /**
  * /team/activity: who studied this week. Mental reps (plays watched to the end in POV)

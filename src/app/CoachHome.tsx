@@ -92,7 +92,7 @@ function HomeCard({ place, featured = false }: { place: Destination; featured?: 
     <Link
       to={place.to}
       className={cn(
-        'group relative flex h-full min-h-28 flex-col justify-between gap-4 sm:gap-6 overflow-hidden rounded-xl border bg-card p-5 text-card-foreground transition-colors outline-none hover:border-foreground/20 hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring',
+        'group relative flex h-full min-h-28 flex-col justify-between gap-4 sm:gap-6 overflow-hidden rounded-xl border bg-card p-5 text-card-foreground transition-colors outline-none hover:border-foreground/20 hover:bg-accent/60 focus-visible:focus-ring',
         featured &&
           'bg-gradient-to-br from-primary/20 via-card to-card hover:from-primary/25 lg:min-h-60',
       )}

@@ -53,7 +53,7 @@ export function AccountMenu({
       ) : (
         <DropdownMenuTrigger
           aria-label="Account"
-          className="grid size-11 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="grid size-11 place-items-center rounded-full outline-none focus-visible:focus-ring"
         >
           {avatar}
         </DropdownMenuTrigger>

@@ -8,12 +8,13 @@
  *   - 3:1 for large text and UI components (borders, inputs, focus rings, icons)
  *
  * Reading the table: `npm test -- contrast` prints one row per palette and pair with the ratio, the
- * threshold, and PASS / FAIL / KNOWN (a failure listed in KNOWN_FAILURES below).
+ * threshold, and PASS / FAIL / KNOWN (a failure listed in KNOWN_FAILURES below), then the
+ * decorative edges (DECOR), which are exempt from 3:1 and listed with the reason in DECORATIVE.
  *
- * KNOWN_FAILURES holds the pairs that fail today. They are expected failures, so CI stays green,
- * but each one is asserted to STILL fail: when the palette ticket (#80) fixes a pair, its test goes
- * red with "now passes, remove it from KNOWN_FAILURES", so the list can only shrink. A pair that
- * is not in the list must pass. #80 is done when the list is empty.
+ * KNOWN_FAILURES holds accepted failures. They are expected, so CI stays green, but each one is
+ * asserted to STILL fail: when a pair gets fixed its test goes red with "now passes, remove it
+ * from KNOWN_FAILURES", so the list can only shrink. A pair that is not in the list must pass.
+ * The palette ticket (#80) emptied it; keep it empty.
  *
  * Colour maths: oklch -> oklab -> linear sRGB, clipped per channel to [0, 1] (what browsers do when
  * they paint an out-of-gamut colour on an sRGB screen), then gamma-encoded. Translucent tokens and
@@ -34,12 +35,13 @@ import { describe, expect, it } from 'vitest'
 //   primary-foreground on primary: default buttons, badges.
 //   primary as text: links and accent labels (`text-primary`, `color: var(--primary)`).
 //   destructive text: error messages and overdue notes on background and card, and the
-//     destructive button / badge (`bg-destructive/10` light, `bg-destructive/20` dark).
+//     destructive button / badge (`bg-destructive/10`, `/20` under the unused `dark:` variant).
 //   success (billing status, landing ticks), warning, info and gold text on background and card;
 //     status text on its own `*-subtle` background (alerts use var(--warning-subtle) etc.).
-//   border / input on background and card: 3:1 UI component.
-//   ring: focus outlines on background, card, primary and sidebar, both the raw token and as used
-//     (`ring-ring/50` in button, input, tabs, toggle; `outline-ring/50` in the base layer).
+//   input (form field edges) on background, card and popover: 3:1 UI component. border, control
+//     and sidebar-border are decorative edges, listed in DECORATIVE below with the reason.
+//   ring: the `focus-ring` outline (2px, 2px gap) on every surface it is drawn over; sidebar-ring
+//     hugging sidebar items. See the comments on those pairs for how each is drawn.
 // ---------------------------------------------------------------------------------------------
 
 const TEXT = 4.5
@@ -102,13 +104,14 @@ const PAIRS: Pair[] = [
     use: 'destructive button, badge',
     only: 'dark',
   },
+  // `bg-destructive/10` is the base class; the `dark:` variants (`/20`) only apply under a
+  // `.dark` ancestor, which the app does not set yet, so the dark palette is checked with both.
   {
     fg: 'destructive',
     bg: 'background',
     layer: { token: 'destructive', alpha: 0.1 },
     min: TEXT,
     use: 'destructive button, badge',
-    only: 'light',
   },
   { fg: 'destructive', bg: 'danger-subtle', min: TEXT, use: 'error alert' },
   ...['success', 'warning', 'info', 'gold'].flatMap((tone) =>
@@ -120,53 +123,50 @@ const PAIRS: Pair[] = [
     min: TEXT,
     use: `${tone} alert`,
   })),
-  ...surfaces('border', ['background', 'card'], UI, 'divider / card edge'),
-  ...surfaces('input', ['background', 'card'], UI, 'input edge'),
-  { fg: 'sidebar-border', bg: 'sidebar', min: UI, use: 'sidebar divider' },
-  ...surfaces('ring', ['background', 'card', 'primary'], UI, 'focus ring (token)'),
-  ...['background', 'card', 'primary'].map((bg): Pair => ({
-    fg: 'ring',
-    fgAlpha: 0.5,
-    bg,
-    min: UI,
-    use: 'focus ring as used (ring/50)',
-  })),
+  // Form field edges (Input, and the inputs, selects and textareas styled in src/**/*.css): the
+  // edge is the only cue that a field is there, so it needs 3:1 on every surface fields sit on.
+  ...surfaces('input', ['background', 'card', 'popover'], UI, 'form field edge'),
+  // Focus ring. Everything focusable outside the sidebar draws it with the `focus-ring` utility
+  // (src/index.css): a solid 2px --ring outline with a 2px transparent offset. The offset shows
+  // the surface the element sits on, so the ring is bordered by that surface on both sides and
+  // never touches the element's own fill. That is how an orange ring works around an orange
+  // primary button: the pair that matters is ring vs the surface, not ring vs primary.
+  ...surfaces(
+    'ring',
+    ['background', 'card', 'popover', 'muted', 'secondary', 'sidebar'],
+    UI,
+    'focus ring (outline, 2px gap)',
+  ),
+  // Sidebar menu items draw a 2px `ring-sidebar-ring` box-shadow hugging the item (no gap, so the
+  // scrolling sidebar cannot clip it): bordered by the sidebar outside and by the item's fill
+  // inside, which is the sidebar or, when hovered or active, sidebar-accent.
   { fg: 'sidebar-ring', bg: 'sidebar', min: UI, use: 'sidebar focus ring' },
+  { fg: 'sidebar-ring', bg: 'sidebar-accent', min: UI, use: 'sidebar focus ring, active item' },
 ]
 
 /**
- * Pairs that fail today, as `<palette>: <pair id>`. Expected failures: each is asserted to still
- * fail, so fixing one (#80) turns its test red until the entry is deleted here.
+ * Decorative edges: printed in the table (DECOR) but not held to 3:1. WCAG 1.4.11 asks for 3:1
+ * only where the edge is needed to identify a component or its state. These edges are not:
+ *   - border: card and section edges, table rules, separators. The card fill, spacing and
+ *     headings carry the grouping; the hairline is decoration.
+ *   - control: the edge and tint of buttons, chips, tabs and panels. A button is identified by
+ *     its text label, not by its outline.
+ *   - sidebar-border: the sidebar's edge and its separators.
+ * Anything whose edge IS what identifies it (a text field, a select, a textarea, a swatch with no
+ * other cue) must use --input, which is checked in PAIRS.
  */
-const KNOWN_FAILURES = new Set<string>([
-  // Borders and inputs are deliberately faint hairlines (11-18% alpha). Under WCAG 1.4.11 they
-  // only need 3:1 where the edge is the sole cue that a control is there (inputs).
-  'dark: border on background',
-  'dark: border on card',
-  'dark: input on background',
-  'dark: input on card',
-  'dark: sidebar-border on sidebar',
-  'light: border on background',
-  'light: border on card',
-  'light: input on background',
-  'light: input on card',
-  'light: sidebar-border on sidebar',
-  // Focus rings: the orange ring is close in luminance to the orange primary, and the `/50`
-  // modifier the components use halves an already 60-70% alpha token.
-  'dark: ring on primary',
-  'dark: ring/50 on background',
-  'dark: ring/50 on card',
-  'dark: ring/50 on primary',
-  'light: ring on background',
-  'light: ring on card',
-  'light: ring on primary',
-  'light: ring/50 on background',
-  'light: ring/50 on card',
-  'light: ring/50 on primary',
-  'light: sidebar-ring on sidebar',
-  // Light destructive red on its own 10% tint (destructive button and badge) lands just under AA.
-  'light: destructive on destructive/10 over background',
-])
+const DECORATIVE: Pair[] = [
+  ...surfaces('border', ['background', 'card'], 0, 'card edge, divider (decorative)'),
+  ...surfaces('control', ['background', 'card'], 0, 'labelled button / chip edge (decorative)'),
+  { fg: 'sidebar-border', bg: 'sidebar', min: 0, use: 'sidebar edge (decorative)' },
+]
+
+/**
+ * Pairs that fail and are accepted for now, as `<palette>: <pair id>`. Expected failures: each is
+ * asserted to still fail, so fixing one turns its test red until the entry is deleted here.
+ * Empty since #80; add an entry only together with an issue that will fix it.
+ */
+const KNOWN_FAILURES = new Set<string>([])
 
 // ---------------------------------------------------------------------------------------------
 // Token parsing
@@ -314,15 +314,34 @@ const rows = Object.entries(PALETTES).flatMap(([palette, tokens]) =>
   }),
 )
 
+const decorativeRows = Object.entries(PALETTES).flatMap(([palette, tokens]) =>
+  DECORATIVE.map((pair) => ({ key: `${palette}: ${id(pair)}`, pair, value: ratio(tokens, pair) })),
+)
+
+/** Decorative edges are exempt from 3:1 but must still be there to see. */
+const DECORATIVE_FLOOR = 1.1
+
 const table = [
-  'Contrast (WCAG 2.1 AA) — PASS, FAIL, or KNOWN (expected failure, see KNOWN_FAILURES)',
+  'Contrast (WCAG 2.1 AA) — PASS, FAIL, KNOWN (expected failure, see KNOWN_FAILURES) or DECOR',
   ...rows.map(
     (r) =>
       `${r.pass ? 'PASS ' : r.known ? 'KNOWN' : 'FAIL '}  ${r.value.toFixed(2).padStart(5)}:1  ` +
       `(min ${String(r.pair.min).padEnd(3)})  ${r.key.padEnd(54)} ${r.pair.use}`,
   ),
+  ...decorativeRows.map(
+    (r) =>
+      `DECOR  ${r.value.toFixed(2).padStart(5)}:1  (min —  )  ${r.key.padEnd(54)} ${r.pair.use}`,
+  ),
 ].join('\n')
 process.stdout.write(`\n${table}\n\n`)
+
+describe('decorative edges', () => {
+  for (const r of decorativeRows) {
+    it(`${r.key} is visible (>= ${DECORATIVE_FLOOR}:1, exempt from 3:1)`, () => {
+      expect(r.value).toBeGreaterThanOrEqual(DECORATIVE_FLOOR)
+    })
+  }
+})
 
 describe('theme contrast', () => {
   it('every KNOWN_FAILURES entry names a pair the test checks', () => {
