@@ -6,7 +6,10 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'public/**'] },
+  {
+    // .claude/ holds local agent worktrees (whole repo copies) that would otherwise be linted too.
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'public/**', '.claude/**'],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {

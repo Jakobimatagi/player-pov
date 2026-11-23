@@ -1,0 +1,24 @@
+{
+  "note": "Temporary: files that still contain raw colours, with how many. Remove entries as #74 (CSS) and #75 (diagram/editor/3D TS) land; #80 empties this. Never add to it: use a theme token, or a \"raw colour: <reason>\" comment for a real exception. See scripts/check-colours.mjs.",
+  "files": {
+    "src/App.tsx": 1,
+    "src/diagram/DiagramScene.tsx": 5,
+    "src/diagram/colors.ts": 10,
+    "src/diagram/diagram.css": 1,
+    "src/diagram/editor-ui.css": 6,
+    "src/diagram/theme.ts": 18,
+    "src/editor/EditorCanvas.tsx": 10,
+    "src/index.css": 23,
+    "src/playbook/scoutPacks.css": 8,
+    "src/reps/reps.css": 12,
+    "src/scene/Ball.tsx": 1,
+    "src/scene/Field.tsx": 1,
+    "src/scene/blockyVisual.ts": 5,
+    "src/scene/jerseyAtlas.ts": 1,
+    "src/scene/playerVisual.ts": 2,
+    "src/scene/routeRibbon.ts": 1,
+    "src/team/depthNotes.css": 9,
+    "src/team/team.css": 17,
+    "src/ui/Diagram2D.tsx": 8
+  }
+}
