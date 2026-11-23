@@ -1,10 +1,10 @@
 # What we should charge
 
-Recommended plans and prices for Player POV, based on what the app costs to run (see [pricing.md](pricing.md)) and what coaches already pay for similar tools.
+Recommended plans and prices for Scheme HQ, based on what the app costs to run (see [pricing.md](pricing.md)) and what coaches already pay for similar tools.
 
 > **Status: recommendation, not live.** There is no billing in the app yet. Prices are in US dollars per year.
 
-![Player POV plans](plans.png)
+![Scheme HQ plans](plans.png)
 
 ---
 
@@ -41,10 +41,10 @@ Recommended plans and prices for Player POV, based on what the app costs to run 
 | Hudl (high school)        | Film and analysis                                               | $900–3,300 / year per team               |
 | Hudl Assist (high school) | Film breakdown done for you                                     | $1,500–4,000 / year per program          |
 | Football Play Card        | Play cards and playbook                                         | $36–180 / year per coach, teams by quote |
-| **Player POV Team**       | **3D helmet-cam replay, playbook, homework, scout packs, film** | **$499 / year**                          |
+| **Scheme HQ Team**        | **3D helmet-cam replay, playbook, homework, scout packs, film** | **$499 / year**                          |
 
 - Team at $499 is about a third less than FirstDown's $750, and it adds 3D replay and film that FirstDown doesn't have.
-- We are not trying to replace Hudl's film breakdown. Player POV sits next to Hudl as the tool players use to learn their assignments.
+- We are not trying to replace Hudl's film breakdown. Scheme HQ sits next to Hudl as the tool players use to learn their assignments.
 - $499 is low enough that a head coach can often pay from a booster or team budget without a long approval.
 
 ### 2. Strong margin over our costs

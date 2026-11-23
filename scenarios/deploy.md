@@ -36,6 +36,7 @@ Production is **https://www.schemehq.app** (bought on Vercel, Vercel DNS). On th
 Everything that names the address must match it exactly, `www` included:
 
 - Supabase → Authentication → URL Configuration: **Site URL** `https://www.schemehq.app`, and **Redirect URLs** include `https://www.schemehq.app/**`. Sign-up, magic link, invite and password reset emails link here.
+- Supabase → Authentication → Emails: the four Scheme HQ templates and the `Scheme HQ` sender name, pasted by hand. Steps in [auth.md](auth.md#branded-auth-emails).
 - Supabase function secret `APP_URL=https://www.schemehq.app` (Stripe Checkout and portal return here, and the billing function allows it as a CORS origin).
 - `BRAND.url` in `src/lib/brand.ts` (canonical link and Open Graph URLs).
 

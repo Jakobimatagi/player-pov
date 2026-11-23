@@ -103,3 +103,42 @@ The seeded player is `player@demo.local` / `password1234` (local seed only). Ema
 
 - The app signs out and opens `/login?expired=1`.
 - The banner reads `Session expired, sign in again.`
+
+## Branded auth emails
+
+The sign-up confirmation, magic link, password reset and invite emails say Scheme HQ. The HTML lives in `supabase/templates/` and the subjects in `supabase/config.toml` (`[auth.email.template.*]`).
+
+| Email           | Subject                                    | File                                   | Sent by                                        |
+| --------------- | ------------------------------------------ | -------------------------------------- | ---------------------------------------------- |
+| Confirm sign up | `Confirm your email for Scheme HQ`         | `supabase/templates/confirmation.html` | `/signup`, **Resend confirmation**             |
+| Magic link      | `Your Scheme HQ sign-in link`              | `supabase/templates/magic_link.html`   | Not used by the app today; branded in case     |
+| Reset password  | `Reset your Scheme HQ password`            | `supabase/templates/recovery.html`     | `/forgot-password`                             |
+| Invite user     | `You're invited to your team on Scheme HQ` | `supabase/templates/invite.html`       | Edge Function `invite-member` (new and resend) |
+
+**Local.** The local stack reads the templates when it starts. After changing one, run `supabase stop` then `supabase start` (no `db reset` needed). Mail lands in Mailpit at http://127.0.0.1:54324 .
+
+**Hosted project (by hand).** `config.toml` does not reach the hosted project unless someone runs `supabase config push`, which also pushes every other auth setting, so paste the templates in the dashboard instead:
+
+1. Supabase Dashboard → project **player-pov** → **Authentication → Emails** (called **Email Templates** on older dashboards).
+2. For each of **Confirm sign up**, **Magic link**, **Reset password** and **Invite user**:
+   1. Set **Subject** to the subject in the table above.
+   2. Switch the body to **Source** and replace it with the whole file from the table above, copied from `main`.
+   3. Click **Save changes**.
+3. Leave the other templates (change email address, reauthentication) on Supabase's defaults for now.
+4. **Sender name.** Emails go out through Resend SMTP. Open **Authentication → Emails → SMTP Settings** and set **Sender name** to `Scheme HQ`. If custom SMTP were ever turned off, the default Supabase mailer sends as "Supabase Auth" and cannot be renamed, so keep custom SMTP on.
+5. Send yourself a password reset from https://www.schemehq.app/forgot-password and check the subject, the sender name, and that the button opens `/reset-password`.
+
+## Scenario 8 — Branded reset email (local)
+
+**Preconditions:** Local stack started after this change. Seeded player exists.
+
+**Steps:**
+
+1. Open http://127.0.0.1:5173/forgot-password and submit `player@demo.local`.
+2. Open Mailpit at http://127.0.0.1:54324 .
+
+**Expected:**
+
+- The newest message's subject is `Reset your Scheme HQ password`.
+- The body shows the `SCHEME HQ` wordmark, an orange **Set a new password** button, and no mention of Supabase.
+- The button opens `/reset-password` and lets the player set a new password.
