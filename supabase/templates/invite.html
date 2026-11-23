@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <body
+    style="
+      margin: 0;
+      padding: 24px;
+      background: #f4f5f7;
+      font-family: Helvetica, Arial, sans-serif;
+      color: #0f1b2d;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="
+        max-width: 480px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 8px;
+        border-top: 4px solid #f26a1b;
+      "
+    >
+      <tr>
+        <td style="padding: 28px 28px 8px">
+          <p
+            style="
+              margin: 0 0 20px;
+              font-size: 14px;
+              font-weight: bold;
+              letter-spacing: 2px;
+              color: #0f1b2d;
+            "
+          >
+            SCHEME <span style="color: #f26a1b">HQ</span>
+          </p>
+          <h1 style="margin: 0 0 12px; font-size: 22px; line-height: 1.3">
+            You're invited to your team
+          </h1>
+          <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.5">
+            Your team runs its playbook on Scheme HQ. Accept the invite, set a password, and you're
+            in.
+          </p>
+          <p style="margin: 0 0 24px">
+            <a
+              href="{{ .ConfirmationURL }}"
+              style="
+                display: inline-block;
+                padding: 12px 20px;
+                background: #f26a1b;
+                color: #0f1b2d;
+                font-weight: bold;
+                font-size: 16px;
+                text-decoration: none;
+                border-radius: 6px;
+              "
+              >Accept invite</a
+            >
+          </p>
+          <p style="margin: 0 0 8px; font-size: 14px; line-height: 1.5; color: #4a5568">
+            Button not working? Paste this link into your browser:<br /><a
+              href="{{ .ConfirmationURL }}"
+              style="color: #0f1b2d; word-break: break-all"
+              >{{ .ConfirmationURL }}</a
+            >
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 16px 28px 28px; font-size: 13px; line-height: 1.5; color: #4a5568">
+          Not expecting this? Ignore this email and no account is set up.
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
