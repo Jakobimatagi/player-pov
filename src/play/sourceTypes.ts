@@ -1,3 +1,4 @@
+import type { TokenColor } from '../diagram/types'
 import type { BallSegment, Position } from './types'
 
 export type HashMark = 'L' | 'M' | 'R'
@@ -21,6 +22,8 @@ export interface SourcePlayer {
   jersey?: number
   role?: string
   face?: number
+  /** The player's colour on the play card. Routes in 3D are drawn in it. */
+  color?: TokenColor
   /**
    * Defense plays only: line up relative to one of the offense's receivers, or to the
    * ball set to the strength (`strong` / `weak`), instead of fixed yards, so one call
@@ -66,6 +69,7 @@ export interface LookPlayer {
   jersey?: number
   role?: string
   face?: number
+  color?: TokenColor
   align: LookAlign
   legs: Leg[]
 }

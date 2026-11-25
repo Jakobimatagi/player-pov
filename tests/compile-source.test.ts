@@ -150,4 +150,22 @@ describe('compile source', () => {
     expect(pythonLines(broken)).toEqual(pythonSemanticErrors(broken))
     expect(pythonSemanticErrors(broken).some((line) => line.includes('h speed'))).toBe(true)
   })
+
+  it('agrees with validate.py on a player colour: a token name passes, a hex does not', () => {
+    const run = (play: unknown) => {
+      const file = join(tmpdir(), `play-colour-${process.pid}.json`)
+      writeFileSync(file, JSON.stringify(play))
+      return spawnSync('python3', ['schema/validate.py', file, 'schema/play.schema.json'], {
+        encoding: 'utf8',
+      })
+    }
+    const named = structuredClone(sample)
+    named.players[0]!.color = 'red'
+    expect(validatePlay(named).ok).toBe(true)
+    expect(run(named).stdout).toContain('OK: schema + semantic checks pass')
+    const hex = JSON.parse(JSON.stringify(sample)) as { players: { color?: string }[] }
+    hex.players[0]!.color = '#ff0000'
+    expect(validatePlay(hex).ok).toBe(false)
+    expect(run(hex).status).not.toBe(0)
+  })
 })

@@ -125,6 +125,7 @@ function players(d: Diagram, side: PlaySide) {
       slot,
       position,
       jersey,
+      color: token.color,
       face: side === 'offense' ? 0 : 180,
       align: yardsOf(token),
       legs: legsFor(token, d.lines),

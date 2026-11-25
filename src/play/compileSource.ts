@@ -1,3 +1,4 @@
+import type { TokenColor } from '../diagram/types'
 import { fieldConfig, type FieldConfig } from '../field/fieldConfig'
 import type { PlayFile, PlayLoadError, PlayerTrack, Position, Waypoint } from './types'
 import type {
@@ -64,6 +65,7 @@ function trackFrom(
   position: Position,
   jersey: number,
   role: string | undefined,
+  color: TokenColor | undefined,
   face: number | undefined,
   x0: number,
   y0: number,
@@ -102,6 +104,7 @@ function trackFrom(
     position,
     jersey,
     ...(role != null ? { role } : {}),
+    ...(color != null ? { color } : {}),
     waypoints,
   }
 }
@@ -286,6 +289,7 @@ export function compileSource(
       player.position,
       player.jersey ?? index + 1,
       player.role,
+      player.color,
       player.face,
       origin.x,
       origin.y,
@@ -304,6 +308,7 @@ export function compileSource(
       player.position,
       player.jersey ?? index + 1,
       player.role,
+      player.color,
       player.face,
       origin.x,
       origin.y,

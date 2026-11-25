@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { TOKEN_COLORS } from '../diagram/types'
 import type { PlayFile, PlayLoadError, PlayWarning, PlayerTrack, Waypoint } from './types'
 
 const positions = [
@@ -37,6 +38,7 @@ const playerSchema = z.strictObject({
   position: z.enum(positions),
   jersey: z.number().int().min(0).max(99),
   role: z.string().optional(),
+  color: z.enum(TOKEN_COLORS).optional(),
   waypoints: z.array(waypointSchema).min(1).max(MAX_WAYPOINTS),
 })
 
