@@ -1,17 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  breakdownRows,
-  buildPlaysFile,
-  columnIndex,
-  parseClipName,
-  parsePlaysFile,
-  playSummary,
-  playTags,
-  playsForFilm,
-  readSheet,
-  tagKey,
-  timeline,
-} from '../src/film/hudlBreakdown'
+import { breakdownRows, columnIndex, playTags, readSheet, tagKey } from '../src/film/hudlBreakdown'
 
 const SHARED = `<sst><si><t>PLAY #</t></si><si><t>ODK</t></si><si><t>OFF FORM</t></si>
 <si><r><t>DOU</t></r><r><t>BLES</t></r></si><si><t>DEF FRONT</t></si><si><t>KINGS &amp; ODD</t></si>
@@ -124,88 +112,5 @@ describe('breakdown row → clip columns', () => {
   it('makes tag keys', () => {
     expect(tagKey('OFF STR')).toBe('off_str')
     expect(tagKey('MR COV (1)')).toBe('mr_cov_1')
-  })
-})
-
-describe('joining clips', () => {
-  it('reads Hudl clip names', () => {
-    expect(parseClipName('Wide - Clip 007.mp4')).toEqual({ angle: 'Wide', playNumber: 7 })
-    expect(parseClipName('End Zone - Clip 203.MP4')).toEqual({ angle: 'End Zone', playNumber: 203 })
-    expect(parseClipName('breakdown.xlsx')).toBeNull()
-  })
-
-  it('lays clips end to end', () => {
-    expect(
-      timeline([
-        { playNumber: 1, durationMs: 7000 },
-        { playNumber: 3, durationMs: 12_500 },
-      ]),
-    ).toEqual([
-      { playNumber: 1, startMs: 0, endMs: 7000 },
-      { playNumber: 3, startMs: 7000, endMs: 19_500 },
-    ])
-  })
-
-  it('builds a plays file and reports breakdown rows with no clip', () => {
-    const { file, missing } = buildPlaysFile({
-      title: 'MR vs CC',
-      angle: 'End Zone',
-      clips: [
-        { playNumber: 1, durationMs: 5000 },
-        { playNumber: 3, durationMs: 8000 },
-      ],
-      rows: [
-        { 'PLAY #': '1', ODK: 'O', 'OFF FORM': 'TRIPS' },
-        { 'PLAY #': '2', ODK: 'D' },
-        { 'PLAY #': '3', ODK: 'D', 'DEF FRONT': 'ODD' },
-      ],
-    })
-    expect(missing).toEqual([2])
-    expect(file.durationMs).toBe(13_000)
-    expect(file.plays.map((p) => [p.play_number, p.start_ms, p.end_ms, p.side])).toEqual([
-      [1, 0, 5000, 'offense'],
-      [3, 5000, 13_000, 'defense'],
-    ])
-    expect(parsePlaysFile(JSON.parse(JSON.stringify(file)))).toEqual({ ok: true, file })
-  })
-})
-
-describe('importing a plays file', () => {
-  const { file } = buildPlaysFile({
-    title: 't',
-    angle: 'Wide',
-    clips: [
-      { playNumber: 1, durationMs: 60_000 },
-      { playNumber: 2, durationMs: 60_000 },
-    ],
-    rows: [],
-  })
-
-  it('refuses something that is not a plays file', () => {
-    const r = parsePlaysFile({ hello: 1 })
-    expect(r.ok).toBe(false)
-    expect(!r.ok && r.error).toMatch(/not a plays file/)
-  })
-
-  it('keeps ends inside the film when lengths differ slightly', () => {
-    const r = playsForFilm(file, 119_000)
-    expect(r.ok && r.plays.at(-1)?.end_ms).toBe(119_000)
-  })
-
-  it('refuses a plays file for a video of another length', () => {
-    const r = playsForFilm(file, 300_000)
-    expect(!r.ok && r.error).toBe(
-      'These plays are for a 2:00 video, and this film is 5:00. Check you chose the plays file for this angle.',
-    )
-    expect(playsForFilm(file, null).ok).toBe(false)
-  })
-
-  it('summarises a play', () => {
-    expect(
-      playSummary({ down: 3, distance: 4, formation: 'TRIPS', front: 'KINGS', coverage: 'FIRE' }),
-    ).toBe('3rd & 4 · TRIPS · KINGS / FIRE')
-    expect(
-      playSummary({ down: null, distance: null, formation: null, front: null, coverage: null }),
-    ).toBe('')
   })
 })
