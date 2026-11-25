@@ -108,6 +108,7 @@ export function compilePlay(file: PlayFile): CompiledPlay {
     teams: file.players.map((player) => player.team),
     jerseys: new Uint8Array(count),
     positions: file.players.map((player) => player.position),
+    colors: file.players.map((player) => player.color ?? null),
     wpStart: new Uint16Array(count + 1),
     wpT: new Float32Array(points),
     wpX: new Float32Array(points),

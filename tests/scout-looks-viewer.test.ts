@@ -16,6 +16,8 @@ import { startIndex, viewerAccess } from '../src/viewer/access'
 import { applyPreset, findPreset } from '../src/diagram/presets'
 import { blankDiagram } from '../src/diagram/model'
 import { diagramDraft } from '../src/diagram/draftPreview'
+import { compilePlay } from '../src/play/compile'
+import { validatePlay } from '../src/play/load'
 
 const PLAY = '11111111-1111-4111-8111-111111111111'
 const CHARTED = '22222222-2222-4222-8222-222222222222'
@@ -259,6 +261,66 @@ describe('editor draft preview', () => {
     const asDefense = diagramDraft(d, { ourSide: 'defense', name: 'Draft D' })
     expect(asDefense.ok).toBe(true)
     if (asDefense.ok) expect(compileChart(asDefense.source, asDefense.look).errors).toEqual([])
+  })
+
+  it('carries each card colour, by name, from the diagram to the compiled play', async () => {
+    const offense = findPreset('trips-rt')
+    const defense = findPreset('d-cover2')
+    if (offense == null || defense == null) throw new Error('missing preset')
+    const drawn = applyPreset(applyPreset(blankDiagram(), offense), defense)
+    const recolour: Record<string, 'red' | 'blue' | 'green'> = { x: 'red', z: 'blue', h: 'green' }
+    const d = {
+      ...drawn,
+      players: drawn.players.map((p) =>
+        p.slot != null && p.side === 'offense' && recolour[p.slot] != null
+          ? { ...p, color: recolour[p.slot]! }
+          : p,
+      ),
+    }
+    const draft = diagramDraft(d, { ourSide: 'offense', name: 'Colours' })
+    if (!draft.ok) throw new Error(draft.error)
+
+    // The viewer reads the draft back from sessionStorage, so check it after that round trip.
+    const memory = new Map<string, string>([['draft:colours', JSON.stringify(draft)]])
+    vi.stubGlobal('sessionStorage', { getItem: (key: string) => memory.get(key) ?? null })
+    const { loadPlayInput } = await import('../src/play/usePlay')
+    const loaded = await loadPlayInput({ kind: 'draft', key: 'colours' })
+    vi.unstubAllGlobals()
+    if (!loaded.ok) throw new Error(JSON.stringify(loaded.errors))
+    const colourOf = (slot: string, team: 'offense' | 'defense') => {
+      const i = loaded.play.ids.findIndex((id, k) => id === slot && loaded.play.teams[k] === team)
+      return loaded.play.colors[i]
+    }
+    expect(colourOf('x', 'offense')).toBe('red')
+    expect(colourOf('z', 'offense')).toBe('blue')
+    expect(colourOf('h', 'offense')).toBe('green')
+    expect(colourOf('lt', 'offense')).toBe('white')
+    // The drawn defense is the scout look; its tokens keep their card colour too.
+    const defenders = loaded.play.colors.filter((_, k) => loaded.play.teams[k] === 'defense')
+    expect(defenders).toHaveLength(11)
+    expect(new Set(defenders)).toEqual(new Set(['black']))
+  })
+
+  it('leaves a play charted without colours at null for every player', () => {
+    const chart = compileChart(source(), COVER_2_LOOK)
+    expect(chart.compiled?.count).toBe(22)
+    expect(chart.compiled?.colors).toEqual(Array.from({ length: 22 }, () => null))
+    expect(chart.play?.players.some((p) => 'color' in p)).toBe(false)
+  })
+
+  it('accepts a token colour name in a play file and rejects a raw hex', () => {
+    const chart = compileChart(source(), COVER_2_LOOK)
+    if (chart.play == null) throw new Error('fixture does not compile')
+    const named = structuredClone(chart.play)
+    named.players[0]!.color = 'purple'
+    const ok = validatePlay(named)
+    expect(ok.ok).toBe(true)
+    if (ok.ok) expect(compilePlay(ok.play).colors[0]).toBe('purple')
+    const raw = JSON.parse(JSON.stringify(chart.play)) as { players: { color?: string }[] }
+    raw.players[0]!.color = '#ff0000'
+    const bad = validatePlay(raw)
+    expect(bad.ok).toBe(false)
+    if (!bad.ok) expect(bad.errors[0]?.path).toBe('players[0].color')
   })
 
   it('falls back to a stock look when only our side is drawn', () => {

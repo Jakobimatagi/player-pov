@@ -9,7 +9,10 @@ import {
   sizeRouteMaterial,
 } from './routeRibbon'
 
-/** Screen-space waypoint ribbons. Off unless the debug toggle is on. One draw. */
+/**
+ * Screen-space waypoint ribbons, each in its player's card colour (theme route colour when the
+ * play has none). Off unless the debug toggle is on. One draw.
+ */
 export function RouteLines({ play, visible }: { play: CompiledPlay; visible: boolean }) {
   const geometry = useMemo(() => buildRouteRibbon(play), [play])
   const material = useMemo(() => createRouteMaterial(), [])

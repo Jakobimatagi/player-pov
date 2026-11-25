@@ -6,21 +6,35 @@ import {
   ShaderMaterial,
   Vector2,
 } from 'three'
+import type { TokenColor } from '../diagram/types'
 import { yardsToWorld } from '../play/coords'
 import { FALLBACK_PALETTE } from '../theme/palette'
+import { TOKEN_COLORS, TOKEN_DARK_INK } from '../theme/playerColors'
 
 /** CSS pixels. Device pixels are this times the renderer dpr, updated on resize. */
 export const ROUTE_CSS_PX = 6
 const ROUTE_Y = 0.08
+/**
+ * CSS pixels of dark edge on each side of a route drawn in its card colour. Most token colours
+ * are under 3:1 on the light turf (green is about 1:1); the edge is about 7:1, so every colour
+ * reads, white and black included, and a white route does not pass for a yard line.
+ */
+export const ROUTE_CASING_PX = 1.25
+const CORE = 1 - (2 * ROUTE_CASING_PX) / ROUTE_CSS_PX
 
 const VERT = /* glsl */ `
 attribute vec3 aStart;
 attribute vec3 aEnd;
 attribute vec2 aCorner;
+attribute vec4 aColor;
 uniform vec2 uResolution;
 uniform float uWidth;
+varying vec4 vColor;
+varying float vSide;
 
 void main() {
+  vColor = aColor;
+  vSide = aCorner.y;
   vec4 a = projectionMatrix * modelViewMatrix * vec4(aStart, 1.0);
   vec4 b = projectionMatrix * modelViewMatrix * vec4(aEnd, 1.0);
   // Drop only chords that sit entirely behind the eye. A chord that crosses
@@ -49,8 +63,14 @@ void main() {
 
 const FRAG = /* glsl */ `
 uniform vec3 uColor;
+uniform vec3 uCasing;
+varying vec4 vColor;
+varying float vSide;
 void main() {
-  gl_FragColor = vec4(uColor, 1.0);
+  // aColor.a is 1 for a player with a card colour, 0 for the theme's route colour.
+  vec3 fill = mix(uColor, vColor.rgb, vColor.a);
+  float edge = step(${CORE.toFixed(4)}, abs(vSide)) * vColor.a;
+  gl_FragColor = vec4(mix(fill, uCasing, edge), 1.0);
   #include <colorspace_fragment>
 }
 `
@@ -60,6 +80,8 @@ export interface RouteWaypoints {
   wpStart: ArrayLike<number>
   wpX: ArrayLike<number>
   wpY: ArrayLike<number>
+  /** Each player's card colour. A null (or missing) entry draws in the theme's route colour. */
+  colors?: readonly (TokenColor | null)[]
 }
 
 /**
@@ -134,6 +156,7 @@ export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
   const ends = new Float32Array(segments * 4 * 3)
   const corners = new Float32Array(segments * 4 * 2)
   const positions = new Float32Array(segments * 4 * 3)
+  const colors = new Float32Array(segments * 4 * 4)
   const indices = new Uint32Array(segments * 6)
   const world = { x: 0, y: 0, z: 0 }
   const corner = [
@@ -144,9 +167,13 @@ export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
   ]
   let vert = 0
   let index = 0
+  const tint = new Color()
   for (let i = 0; i < play.count; i += 1) {
     const start = play.wpStart[i] ?? 0
     const end = play.wpStart[i + 1] ?? start
+    const card = play.colors?.[i] ?? null
+    // Linear, like the uColor uniform; colorspace_fragment converts both for output.
+    if (card != null) tint.set(TOKEN_COLORS[card])
     const step = stride <= 1 ? 1 : stride
     for (let k = start; k < end - 1;) {
       let next = k + step
@@ -175,6 +202,12 @@ export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
         positions[o + 2] = atEnd ? bz : az
         corners[vert * 2] = corner[c]?.[0] ?? 0
         corners[vert * 2 + 1] = corner[c]?.[1] ?? 1
+        if (card != null) {
+          colors[vert * 4] = tint.r
+          colors[vert * 4 + 1] = tint.g
+          colors[vert * 4 + 2] = tint.b
+          colors[vert * 4 + 3] = 1
+        }
         vert += 1
       }
       indices[index] = base
@@ -192,18 +225,20 @@ export function buildRouteRibbon(play: RouteWaypoints): BufferGeometry {
   geometry.setAttribute('aStart', new Float32BufferAttribute(starts, 3))
   geometry.setAttribute('aEnd', new Float32BufferAttribute(ends, 3))
   geometry.setAttribute('aCorner', new Float32BufferAttribute(corners, 2))
+  geometry.setAttribute('aColor', new Float32BufferAttribute(colors, 4))
   geometry.setIndex(Array.from(indices))
   geometry.computeBoundingSphere()
   return geometry
 }
 
-/** `color` is the theme's route colour (`--field-route`). */
+/** `color` is the theme's route colour (`--field-route`), for players without a card colour. */
 export function createRouteMaterial(color: string = FALLBACK_PALETTE.field.route): ShaderMaterial {
   return new ShaderMaterial({
     uniforms: {
       uResolution: { value: new Vector2(1, 1) },
       uWidth: { value: ROUTE_CSS_PX },
       uColor: { value: new Color(color) },
+      uCasing: { value: new Color(TOKEN_DARK_INK) },
     },
     vertexShader: VERT,
     fragmentShader: FRAG,

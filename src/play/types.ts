@@ -1,3 +1,5 @@
+import type { TokenColor } from '../diagram/types'
+
 export type Team = 'offense' | 'defense'
 export type Position =
   | 'QB'
@@ -31,6 +33,8 @@ export interface PlayerTrack {
   position: Position
   jersey: number
   role?: string
+  /** The player's colour on the play card, by name. Absent for plays charted without one. */
+  color?: TokenColor
   waypoints: Waypoint[]
 }
 
@@ -83,6 +87,8 @@ export interface CompiledPlay {
   teams: readonly Team[]
   jerseys: Uint8Array
   positions: readonly Position[]
+  /** Each player's card colour, or null when the play has none for him. */
+  colors: readonly (TokenColor | null)[]
   wpStart: Uint16Array
   wpT: Float32Array
   wpX: Float32Array

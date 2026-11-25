@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { TOKEN_COLORS } from '../diagram/types'
 
 const positions = [
   'QB',
@@ -43,6 +44,7 @@ const playerFields = {
   jersey: z.number().optional(),
   role: z.string().optional(),
   face: z.number().optional(),
+  color: z.enum(TOKEN_COLORS).optional(),
   legs: z.array(legSchema),
 }
 
