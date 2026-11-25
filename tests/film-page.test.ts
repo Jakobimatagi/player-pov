@@ -83,4 +83,10 @@ describe('film page (no backend)', () => {
   it('disables uploading in the demo', () => {
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled/)
   })
+
+  it('offers Import plays on ready film only, disabled in the demo', () => {
+    expect(html.match(/Import plays/g)).toHaveLength(2)
+    expect(html).toMatch(/<input[^>]*id="film-import-demo-1"[^>]*disabled/)
+    expect(html).not.toContain('film-import-demo-3')
+  })
 })

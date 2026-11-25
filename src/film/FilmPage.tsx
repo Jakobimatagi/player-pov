@@ -7,7 +7,7 @@ import {
   type FormEvent,
 } from 'react'
 import { Navigate } from 'react-router'
-import { Clapperboard, Pause, Play, RotateCw, Trash2, Upload, X } from 'lucide-react'
+import { Clapperboard, FileUp, Pause, Play, RotateCw, Trash2, Upload, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,16 +15,21 @@ import { cn } from '@/lib/utils'
 import { CoachLayout } from '../app/CoachLayout'
 import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import {
+  countClips,
   createFilm,
   deleteFilm,
+  importClips,
+  listClips,
   filmPlaybackUrl,
   filmUsage,
   listFilm,
   listPackWeeks,
   uploadFilm,
   type Film,
+  type FilmClip,
   type PackWeek,
 } from '../data/film'
+import type { FilmSide } from '../data/database.types'
 import { supabase } from '../data/supabase'
 import {
   formatDuration,
@@ -36,6 +41,7 @@ import {
   usagePercent,
 } from './filmView'
 import { DEMO_FILMS, DEMO_USAGE } from './demoFilm'
+import { parsePlaysFile, playSummary, playsForFilm, type PlayClip } from './hudlBreakdown'
 import { FILM_VIDEO_TYPES, fileProblem, formatBytes } from './uploadPlan'
 
 type Load =
@@ -73,6 +79,12 @@ export function FilmPage() {
   const [watching, setWatching] = useState<{ filmId: string; url: string } | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [pendingImport, setPendingImport] = useState<{
+    filmId: string
+    plays: PlayClip[]
+    existing: number
+  } | null>(null)
+  const [clipsVersion, setClipsVersion] = useState(0)
   const abortRef = useRef<AbortController | null>(null)
   const filesRef = useRef(new Map<string, File>())
 
@@ -211,6 +223,48 @@ export function FilmPage() {
     }
   }
 
+  async function importPlays(film: Film, file: File) {
+    setNotice(null)
+    let json: unknown
+    try {
+      json = JSON.parse(await file.text())
+    } catch {
+      setNotice('That file is not a plays file. Choose the .plays.json made with the video.')
+      return
+    }
+    const parsed = parsePlaysFile(json)
+    if (!parsed.ok) return setNotice(parsed.error)
+    const fitted = playsForFilm(parsed.file, film.durationMs)
+    if (!fitted.ok) return setNotice(fitted.error)
+    setBusyId(film.id)
+    try {
+      const existing = await countClips(film.id)
+      if (existing > 0) {
+        setPendingImport({ filmId: film.id, plays: fitted.plays, existing })
+        return
+      }
+      await finishImport(film, fitted.plays, false)
+    } catch (err) {
+      setNotice(message(err, 'Could not import the plays.'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function finishImport(film: Film, plays: PlayClip[], replace: boolean) {
+    setBusyId(film.id)
+    try {
+      const n = await importClips(film, plays, { replace })
+      setNotice(`Marked ${n} plays on ${film.title}.`)
+      setClipsVersion((v) => v + 1)
+    } catch (err) {
+      setNotice(message(err, 'Could not import the plays.'))
+    } finally {
+      setBusyId(null)
+      setPendingImport(null)
+    }
+  }
+
   const quotaLeft = load.status === 'ready' ? Math.max(0, load.quota - load.used) : 0
 
   return (
@@ -291,6 +345,13 @@ export function FilmPage() {
                       onAskDelete={() => setConfirmDelete(film.id)}
                       onCancelDelete={() => setConfirmDelete(null)}
                       onDelete={() => void remove(film)}
+                      onImport={(file) => void importPlays(film, file)}
+                      replacing={pendingImport?.filmId === film.id ? pendingImport.existing : null}
+                      onReplace={() =>
+                        pendingImport && void finishImport(film, pendingImport.plays, true)
+                      }
+                      onCancelReplace={() => setPendingImport(null)}
+                      clipsVersion={clipsVersion}
                     />
                   ))}
                 </ul>
@@ -566,6 +627,11 @@ function FilmRow({
   onAskDelete,
   onCancelDelete,
   onDelete,
+  onImport,
+  replacing,
+  onReplace,
+  onCancelReplace,
+  clipsVersion,
 }: {
   film: Film
   demo: boolean
@@ -580,6 +646,11 @@ function FilmRow({
   onAskDelete: () => void
   onCancelDelete: () => void
   onDelete: () => void
+  onImport: (file: File) => void
+  replacing: number | null
+  onReplace: () => void
+  onCancelReplace: () => void
+  clipsVersion: number
 }) {
   const details = [
     film.opponent,
@@ -588,7 +659,21 @@ function FilmRow({
     formatBytes(film.sizeBytes),
   ].filter(Boolean)
   const resumeId = `film-resume-${film.id}`
+  const importId = `film-import-${film.id}`
   const [videoFailed, setVideoFailed] = useState<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  // The play last picked from the list stays highlighted; stopAt pauses at its end.
+  const [picked, setPicked] = useState<string | null>(null)
+  const [stopAt, setStopAt] = useState<{ startMs: number; endMs: number } | null>(null)
+
+  function playClip(clip: FilmClip) {
+    const video = videoRef.current
+    if (!video) return
+    setPicked(clip.id)
+    setStopAt({ startMs: clip.startMs, endMs: clip.endMs })
+    video.currentTime = clip.startMs / 1000
+    void video.play().catch(() => {})
+  }
 
   return (
     <li className="grid gap-3 rounded-xl border bg-card p-4">
@@ -626,6 +711,31 @@ function FilmRow({
             >
               {watchingUrl ? <X /> : <Play />} {watchingUrl ? 'Close' : 'Watch'}
             </Button>
+          ) : null}
+          {film.status === 'ready' ? (
+            <>
+              <label
+                htmlFor={importId}
+                className={cn(
+                  'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border bg-background px-2.5 text-sm font-medium hover:bg-muted',
+                  (demo || busy) && 'pointer-events-none opacity-50',
+                )}
+              >
+                <FileUp className="size-4" /> Import plays
+              </label>
+              <input
+                id={importId}
+                type="file"
+                accept=".json,application/json"
+                className="sr-only"
+                disabled={demo || busy}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) onImport(file)
+                  e.target.value = ''
+                }}
+              />
+            </>
           ) : null}
           {film.status === 'uploading' && !uploadingNow ? (
             <>
@@ -679,6 +789,19 @@ function FilmRow({
           This removes the video and every play marked on it. It cannot be undone.
         </p>
       ) : null}
+      {replacing != null ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">
+            This film already has {replacing} marked plays. Importing replaces them.
+          </span>
+          <Button size="sm" disabled={busy} onClick={onReplace}>
+            {busy ? 'Importing…' : 'Replace plays'}
+          </Button>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={onCancelReplace}>
+            Cancel
+          </Button>
+        </div>
+      ) : null}
       {film.status === 'uploading' && !uploadingNow ? (
         <p className="text-sm text-muted-foreground">
           This upload did not finish. Choose the same file ({formatBytes(film.sizeBytes)}) to
@@ -688,6 +811,7 @@ function FilmRow({
       {watchingUrl ? (
         <div className="grid gap-2">
           <video
+            ref={videoRef}
             key={watchingUrl}
             src={watchingUrl}
             controls
@@ -696,6 +820,17 @@ function FilmRow({
             className="aspect-video w-full max-w-full rounded-lg bg-black"
             onError={() => setVideoFailed(watchingUrl)}
             onLoadedMetadata={() => setVideoFailed(null)}
+            onTimeUpdate={(e) => {
+              // A play picked from the list stops at its end.
+              if (stopAt && e.currentTarget.currentTime * 1000 >= stopAt.endMs) {
+                e.currentTarget.pause()
+                setStopAt(null)
+              }
+            }}
+            onSeeked={(e) => {
+              const ms = e.currentTarget.currentTime * 1000
+              if (stopAt && (ms < stopAt.startMs - 500 || ms > stopAt.endMs)) setStopAt(null)
+            }}
           />
           {videoFailed === watchingUrl ? (
             <p className="flex flex-wrap items-center gap-2 text-sm text-destructive">
@@ -706,8 +841,117 @@ function FilmRow({
               </Button>
             </p>
           ) : null}
+          <PlayList filmId={film.id} version={clipsVersion} playingId={picked} onPick={playClip} />
         </div>
       ) : null}
     </li>
+  )
+}
+
+const SIDE_LABEL: Record<FilmSide, string> = {
+  offense: 'Offense',
+  defense: 'Defense',
+  kick: 'Kicking',
+  special: 'Special teams',
+}
+
+function PlayList({
+  filmId,
+  version,
+  playingId,
+  onPick,
+}: {
+  filmId: string
+  version: number
+  playingId: string | null
+  onPick: (clip: FilmClip) => void
+}) {
+  const [load, setLoad] = useState<
+    { filmId: string; version: number; clips: FilmClip[] } | { error: string } | null
+  >(null)
+  const [side, setSide] = useState<FilmSide | 'all'>('all')
+
+  useEffect(() => {
+    let live = true
+    listClips(filmId)
+      .then((clips) => live && setLoad({ filmId, version, clips }))
+      .catch((err) => live && setLoad({ error: message(err, 'Could not load the plays.') }))
+    return () => {
+      live = false
+    }
+  }, [filmId, version])
+
+  if (load == null) return <p className="text-sm text-muted-foreground">Loading plays…</p>
+  if ('error' in load) return <p className="text-sm text-destructive">{load.error}</p>
+  if (load.clips.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No plays marked yet. Use Import plays and choose the .plays.json made with this video.
+      </p>
+    )
+  }
+  const counts = new Map<FilmSide, number>()
+  for (const c of load.clips) if (c.side) counts.set(c.side, (counts.get(c.side) ?? 0) + 1)
+  const shown = side === 'all' ? load.clips : load.clips.filter((c) => c.side === side)
+
+  return (
+    <section aria-label="Marked plays" className="grid gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Plays ({load.clips.length})</h3>
+        <select
+          aria-label="Show plays"
+          value={side}
+          onChange={(e) => setSide(e.target.value as FilmSide | 'all')}
+          className={cn(FIELD, 'w-auto')}
+        >
+          <option value="all">All plays</option>
+          {[...counts].map(([s, n]) => (
+            <option key={s} value={s}>
+              {SIDE_LABEL[s]} ({n})
+            </option>
+          ))}
+        </select>
+      </div>
+      <ul className="grid max-h-96 gap-1 overflow-y-auto rounded-lg border p-1">
+        {shown.map((c) => {
+          const summary = playSummary(c)
+          const outcome = [
+            c.result,
+            c.gainLoss != null ? `${c.gainLoss > 0 ? '+' : ''}${c.gainLoss}` : null,
+          ]
+            .filter(Boolean)
+            .join(' ')
+          return (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => onPick(c)}
+                aria-current={playingId === c.id ? 'true' : undefined}
+                className={cn(
+                  'grid w-full gap-0.5 rounded-md px-2.5 py-2 text-left text-sm hover:bg-muted focus-visible:focus-ring',
+                  playingId === c.id && 'bg-muted',
+                )}
+              >
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-medium tabular-nums">
+                    {c.playNumber != null ? `#${c.playNumber}` : formatDuration(c.startMs)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {[c.quarter ? `Q${c.quarter}` : null, c.side ? SIDE_LABEL[c.side] : null]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                </span>
+                {summary || outcome ? (
+                  <span className="text-muted-foreground break-words">
+                    {[summary, outcome].filter(Boolean).join(' — ')}
+                  </span>
+                ) : null}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }

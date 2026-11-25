@@ -12,7 +12,8 @@
     "lint:colours": "node scripts/check-colours.mjs",
     "format": "prettier --write .",
     "test": "vitest run",
-    "compile": "tsx src/play/compileCli.ts"
+    "compile": "tsx src/play/compileCli.ts",
+    "film:hudl": "tsx src/film/hudlCli.ts"
   },
   "dependencies": {
     "@fontsource-variable/big-shoulders-display": "^5.3.0",

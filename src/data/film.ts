@@ -5,7 +5,8 @@ import {
   type DonePart,
   type PartRange,
 } from '../film/uploadPlan'
-import type { FilmStatus } from './database.types'
+import type { PlayClip } from '../film/hudlBreakdown'
+import type { FilmSide, FilmStatus } from './database.types'
 import { supabase } from './supabase'
 
 /** A game film row, as the app uses it. */
@@ -300,4 +301,87 @@ export async function listPackWeeks(teamId: string): Promise<PackWeek[]> {
     name: w.name,
     opponent: w.parent_id ? (names.get(w.parent_id) ?? null) : null,
   }))
+}
+
+/** A marked play on a film, as /film lists it. */
+export interface FilmClip {
+  id: string
+  playNumber: number | null
+  startMs: number
+  endMs: number
+  side: FilmSide | null
+  quarter: number | null
+  down: number | null
+  distance: number | null
+  formation: string | null
+  front: string | null
+  coverage: string | null
+  result: string | null
+  gainLoss: number | null
+}
+
+/** Marked plays on a film, in film order. Staff only (RLS). */
+export async function listClips(filmId: string): Promise<FilmClip[]> {
+  const { data, error } = await client()
+    .from('film_clips')
+    .select(
+      'id, play_number, start_ms, end_ms, side, quarter, down, distance, formation, front, coverage, result, gain_loss',
+    )
+    .eq('film_id', filmId)
+    .order('start_ms')
+    .limit(500)
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    playNumber: r.play_number,
+    startMs: r.start_ms,
+    endMs: r.end_ms,
+    side: r.side,
+    quarter: r.quarter,
+    down: r.down,
+    distance: r.distance,
+    formation: r.formation,
+    front: r.front,
+    coverage: r.coverage,
+    result: r.result,
+    gainLoss: r.gain_loss,
+  }))
+}
+
+/** How many plays are marked on a film. */
+export async function countClips(filmId: string): Promise<number> {
+  const { count, error } = await client()
+    .from('film_clips')
+    .select('id', { count: 'exact', head: true })
+    .eq('film_id', filmId)
+  if (error) throw new Error(error.message)
+  return count ?? 0
+}
+
+/**
+ * Marks plays on a film from a plays file. With `replace`, the film's marked plays are
+ * deleted first (not atomic: if the insert fails part way, import again with replace).
+ */
+export async function importClips(
+  film: { id: string; teamId: string },
+  plays: PlayClip[],
+  options: { replace: boolean },
+): Promise<number> {
+  const db = client()
+  if (options.replace) {
+    const { error } = await db.from('film_clips').delete().eq('film_id', film.id)
+    if (error) throw new Error(error.message)
+  }
+  for (let i = 0; i < plays.length; i += 100) {
+    const { error } = await db
+      .from('film_clips')
+      .insert(
+        plays.slice(i, i + 100).map((p) => ({ ...p, team_id: film.teamId, film_id: film.id })),
+      )
+    if (error) {
+      if (error.code === '53400') throw new Error('A film holds at most 500 marked plays.')
+      throw new Error(error.message)
+    }
+  }
+  return plays.length
 }

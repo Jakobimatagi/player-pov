@@ -10,7 +10,7 @@ A coach uploads one video file per game and marks plays on it (issue #59). A mar
 | Game film page | `/film` (`src/film/FilmPage.tsx`), in the coach nav under Playbook                            |
 | Browser side   | `src/data/film.ts` (create, resumable upload, playback URL, delete), `src/film/uploadPlan.ts` |
 
-The `/film` page adds, uploads, watches and deletes film. Play marking, the breakdown grid, Chart this play and the player clip view come later and get their scenarios here when they ship.
+The `/film` page adds, uploads, watches and deletes film, and imports marked plays from a Hudl-style export (Scenario 9). Marking plays by hand, the breakdown grid, Chart this play and the player clip view come later and get their scenarios here when they ship.
 
 ## Why R2
 
@@ -189,3 +189,27 @@ The app owner does this; it is not automated.
 - The trash button asks first (`Delete for good`, `This removes the video and every play marked on it. It cannot be undone.`); confirming removes the row and frees the storage.
 - A `.avi`, a file over 20 GB, or one bigger than the free storage is refused before anything uploads.
 - Signed in as a player, `/film` sends you to Home.
+
+## Scenario 9 — Import a Hudl export
+
+A Hudl-style export is a zip with one clip per play per angle (`Wide - Clip 001.mp4`, `End Zone - Clip 001.mp4`) and a `breakdown.xlsx`, one row per play, with `PLAY #` equal to the clip number. `npm run film:hudl` joins each angle into one game video, copying the video without re-encoding, and writes a `.plays.json` next to it. Each play's start and end come from the clip lengths. The breakdown columns fill `film_clips`: `ODK` → side (O, D, K; others stay in tags as `odk`), `QTR`, `DN`, `DIST`, `HASH`, `YARD LN`, `PERSONNEL`, `OFF FORM` → formation, `DEF FRONT` (or `MR FRONT`) → front, `COVERAGE` (or `MR COV (1)`) → coverage, `RESULT`, `GN/LS`. Every other filled column goes into `tags`, under 4 KB. Values the table would refuse are left blank. The code is in `src/film/hudlBreakdown.ts` and `src/film/hudlCli.ts`. It needs ffmpeg, ffprobe and unzip.
+
+**Preconditions:** A Hudl export zip. ffmpeg installed (`brew install ffmpeg`).
+
+**Steps:**
+
+1. Run `npm run film:hudl -- "<export>.zip"`. It writes to a folder named after the zip, beside it (or `--out <folder>`).
+2. On `/film`, upload `<title> - Wide.mp4` and wait for `Ready`.
+3. Click **Import plays** on that film and choose `<title> - Wide.plays.json`.
+4. Click **Watch**, then click a play in the list.
+5. Click **Import plays** again with the same file.
+6. Click **Import plays** on the Wide film with the End Zone `.plays.json`.
+
+**Expected:**
+
+- Step 1 prints, per angle, the video size and length, the plays count, and any play with no clip on that angle (`No End Zone clip for play 45, 95`). Clips in different formats stop the run with a list of which differ.
+- Step 3 shows `Marked <n> plays on <title>.`
+- Step 4: under the video, **Plays (<n>)** lists `#<play>`, the quarter and side, then down and distance, formation, front / coverage, and the result with the gain. **All plays** filters to Offense, Defense or Kicking with counts. Clicking a play jumps to its start, plays it, and pauses at its end.
+- Step 5 asks first: `This film already has <n> marked plays. Importing replaces them.` **Replace plays** deletes them and imports again. **Cancel** changes nothing.
+- Step 6 is refused when the lengths differ by more than 3 seconds: `These plays are for a <m:ss> video, and this film is <m:ss>. Check you chose the plays file for this angle.`
+- A JSON file that isn't a plays file is refused (`That is not a plays file…`). With no backend, **Import plays** is shown on ready film but disabled.
