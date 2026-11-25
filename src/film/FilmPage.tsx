@@ -6,8 +6,8 @@ import {
   useSyncExternalStore,
   type FormEvent,
 } from 'react'
-import { Navigate } from 'react-router'
-import { Clapperboard, Pause, Play, RotateCw, Trash2, Upload, X } from 'lucide-react'
+import { Link, Navigate } from 'react-router'
+import { Clapperboard, FolderOpen, Pause, Play, RotateCw, Trash2, Upload, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,7 @@ import { getAuthSnap, startAuth, subscribeAuth } from '../auth/session'
 import {
   createFilm,
   deleteFilm,
+  deleteLocalFilm,
   filmPlaybackUrl,
   filmUsage,
   listFilm,
@@ -176,7 +177,7 @@ export function FilmPage() {
   function resume(film: Film, file: File | undefined) {
     if (!file) return
     if (file.size !== film.sizeBytes) {
-      setNotice(`Choose the same file you started with (${formatBytes(film.sizeBytes)}).`)
+      setNotice(`Choose the same file you started with (${formatBytes(film.sizeBytes ?? 0)}).`)
       return
     }
     void send(film, file)
@@ -198,7 +199,8 @@ export function FilmPage() {
     setBusyId(film.id)
     try {
       if (upload?.filmId === film.id) abortRef.current?.abort()
-      await deleteFilm(film.id)
+      if (film.source === 'hudl_export') await deleteLocalFilm(film.id)
+      else await deleteFilm(film.id)
       if (watching?.filmId === film.id) setWatching(null)
       if (upload?.filmId === film.id) setUpload(null)
       setNotice(`${film.title} was deleted.`)
@@ -585,7 +587,7 @@ function FilmRow({
     film.opponent,
     formatGameDate(film.gameDate) === '—' ? null : formatGameDate(film.gameDate),
     film.durationMs ? formatDuration(film.durationMs) : null,
-    formatBytes(film.sizeBytes),
+    film.sizeBytes == null ? null : formatBytes(film.sizeBytes),
   ].filter(Boolean)
   const resumeId = `film-resume-${film.id}`
   const [videoFailed, setVideoFailed] = useState<string | null>(null)
@@ -617,6 +619,13 @@ function FilmRow({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {film.source === 'hudl_export' ? (
+            <Button size="lg" variant="secondary" asChild>
+              <Link to="/chart">
+                <FolderOpen /> Open export
+              </Link>
+            </Button>
+          ) : null}
           {film.status === 'ready' ? (
             <Button
               size="lg"
@@ -676,12 +685,14 @@ function FilmRow({
 
       {confirming ? (
         <p className="text-sm text-muted-foreground">
-          This removes the video and every play marked on it. It cannot be undone.
+          {film.source === 'hudl_export'
+            ? 'This removes the game and its plays from Scheme HQ. The clips on your computer are not touched.'
+            : 'This removes the video and every play marked on it. It cannot be undone.'}
         </p>
       ) : null}
       {film.status === 'uploading' && !uploadingNow ? (
         <p className="text-sm text-muted-foreground">
-          This upload did not finish. Choose the same file ({formatBytes(film.sizeBytes)}) to
+          This upload did not finish. Choose the same file ({formatBytes(film.sizeBytes ?? 0)}) to
           continue from where it stopped.
         </p>
       ) : null}

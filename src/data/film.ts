@@ -5,7 +5,7 @@ import {
   type DonePart,
   type PartRange,
 } from '../film/uploadPlan'
-import type { FilmStatus } from './database.types'
+import type { FilmSource, FilmStatus } from './database.types'
 import { supabase } from './supabase'
 
 /** A game film row, as the app uses it. */
@@ -16,7 +16,10 @@ export interface Film {
   title: string
   opponent: string | null
   gameDate: string | null
-  sizeBytes: number
+  /** 'hudl_export' games keep their clips on the coach's computer. */
+  source: FilmSource
+  /** Null for a Hudl export game, which stores no file. */
+  sizeBytes: number | null
   durationMs: number | null
   status: FilmStatus
   createdAt: string
@@ -28,7 +31,7 @@ function client() {
 }
 
 const FILM_COLUMNS =
-  'id, team_id, folder_id, title, opponent, game_date, size_bytes, duration_ms, status, created_at'
+  'id, team_id, folder_id, title, opponent, game_date, source, size_bytes, duration_ms, status, created_at'
 
 function asFilm(row: {
   id: string
@@ -37,7 +40,8 @@ function asFilm(row: {
   title: string
   opponent: string | null
   game_date: string | null
-  size_bytes: number
+  source: FilmSource
+  size_bytes: number | null
   duration_ms: number | null
   status: FilmStatus
   created_at: string
@@ -49,6 +53,7 @@ function asFilm(row: {
     title: row.title,
     opponent: row.opponent,
     gameDate: row.game_date,
+    source: row.source,
     sizeBytes: row.size_bytes,
     durationMs: row.duration_ms,
     status: row.status,
@@ -87,7 +92,7 @@ export async function filmUsage(teamId: string): Promise<{ used: number; quota: 
   if (teamError) throw new Error(teamError.message)
   if (filmError) throw new Error(filmError.message)
   return {
-    used: (rows ?? []).reduce((sum, r) => sum + r.size_bytes, 0),
+    used: (rows ?? []).reduce((sum, r) => sum + (r.size_bytes ?? 0), 0),
     quota: team.film_quota_bytes,
   }
 }
@@ -264,6 +269,12 @@ export async function filmPlaybackUrl(filmId: string): Promise<{ url: string; ex
 export async function deleteFilm(filmId: string): Promise<void> {
   await callStorage({ action: 'delete', filmId })
   saveUpload(filmId, null)
+}
+
+/** Deletes a Hudl export game and its clips. Nothing is stored, so no function is involved. */
+export async function deleteLocalFilm(filmId: string): Promise<void> {
+  const { error } = await client().from('film').delete().eq('id', filmId)
+  if (error) throw new Error(error.message)
 }
 
 /** A scout pack week folder film can be filed in. */
