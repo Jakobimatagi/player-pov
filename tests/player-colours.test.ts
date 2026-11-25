@@ -36,7 +36,8 @@ import { lineHex, onHex } from '../src/diagram/colors'
 import { TOKEN_COLORS as TOKEN_NAMES, type TokenColor } from '../src/diagram/types'
 import { parseCssColor } from '../src/theme/color'
 import { resolveThemePalette } from '../src/theme/palette'
-import { TEAM_COLOR, TOKEN_COLORS } from '../src/theme/playerColors'
+import { ROUTE_CASING_PX, ROUTE_CSS_PX } from '../src/scene/routeRibbon'
+import { TEAM_COLOR, TOKEN_COLORS, TOKEN_DARK_INK } from '../src/theme/playerColors'
 
 const MIN_DELTA_E = 15
 const NON_TEXT = 3
@@ -320,4 +321,46 @@ describe('team colours (#77)', () => {
       })
     }
   }
+})
+
+/**
+ * 3D routes drawn in their card colour (follow-up to #75 and #77). Most token colours are under
+ * 3:1 on the light turf, so each card-coloured ribbon has a dark edge (ROUTE_CASING_PX a side) in
+ * TOKEN_DARK_INK. The edge carries the contrast against the turf; the fill carries the identity,
+ * which the token tests above already keep apart under every vision.
+ */
+describe('3D route colours', () => {
+  const surfaces: [string, Rgb][] = [
+    ['3D turf', rgb(theme.field.turf)],
+    ['3D turf stripe', rgb(theme.field.turfStripe)],
+  ]
+
+  it('prints each route fill and the edge against the turf', () => {
+    const rows: [string, string][] = [
+      ...names.map((n): [string, string] => [n, TOKEN_COLORS[n]]),
+      ['edge', TOKEN_DARK_INK],
+    ]
+    console.table(
+      rows.map(([route, hex]) => ({
+        route,
+        hex,
+        ...Object.fromEntries(surfaces.map(([s, bg]) => [s, f2(contrast(rgb(hex), bg))])),
+      })),
+    )
+  })
+
+  it('gives the route edge 3:1 on both turf stripes, at least one CSS pixel wide', () => {
+    expect(ROUTE_CASING_PX).toBeGreaterThanOrEqual(1)
+    expect(ROUTE_CSS_PX - 2 * ROUTE_CASING_PX).toBeGreaterThanOrEqual(ROUTE_CASING_PX)
+    for (const [surface, bg] of surfaces) {
+      expect(contrast(rgb(TOKEN_DARK_INK), bg), `edge on ${surface}`).toBeGreaterThanOrEqual(
+        NON_TEXT,
+      )
+    }
+  })
+
+  it('needs the edge: most fills alone are under 3:1 on the turf', () => {
+    const under = names.filter((n) => contrast(tokens[n], rgb(theme.field.turf)) < NON_TEXT)
+    expect(under).toEqual(expect.arrayContaining(['white', 'green', 'orange', 'purple']))
+  })
 })

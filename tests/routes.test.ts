@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { Color } from 'three'
 import { describe, expect, it } from 'vitest'
 import { fieldConfig } from '../src/field/fieldConfig'
 import { compilePlay } from '../src/play/compile'
@@ -6,6 +7,7 @@ import { validatePlay } from '../src/play/load'
 import { MAX_WAYPOINTS } from '../src/play/schema'
 import type { PlayFile, Waypoint } from '../src/play/types'
 import { buildBallGeometry } from '../src/scene/ballGeometry'
+import { TOKEN_COLORS } from '../src/theme/playerColors'
 import { blockyVisual } from '../src/scene/blockyVisual'
 import { buildFieldMarkings, buildGrass, triangleCount } from '../src/scene/fieldMarkings'
 import { createNumberGeometry } from '../src/scene/playerVisual'
@@ -28,6 +30,54 @@ describe('route ribbons', () => {
     expect(triangleCount(geometry)).toBe(6)
     expect(geometry.getAttribute('aStart')).toBeDefined()
     expect(geometry.getAttribute('aCorner')).toBeDefined()
+  })
+
+  it("draws each player's route in his card colour, and the rest in the theme colour", () => {
+    const geometry = buildRouteRibbon({
+      count: 3,
+      wpStart: new Uint16Array([0, 3, 5, 7]),
+      wpX: new Float32Array([0, 10, 20, 0, 5, 0, 5]),
+      wpY: new Float32Array([0, 0, 5, 1, 2, 3, 4]),
+      colors: ['red', null, 'green'],
+    })
+    expect(triangleCount(geometry)).toBe(8)
+    const color = geometry.getAttribute('aColor')
+    const at = (v: number) => [color.getX(v), color.getY(v), color.getZ(v), color.getW(v)]
+    const red = new Color(TOKEN_COLORS.red)
+    const green = new Color(TOKEN_COLORS.green)
+    // Two chords (8 vertices) for the red player, one for the uncoloured one, one for green.
+    for (let v = 0; v < 8; v += 1) {
+      const [r, g, b, a] = at(v)
+      expect([r, g, b].map((n) => n!.toFixed(4))).toEqual(red.toArray().map((n) => n.toFixed(4)))
+      expect(a).toBe(1)
+    }
+    for (let v = 8; v < 12; v += 1) expect(at(v)[3]).toBe(0)
+    for (let v = 12; v < 16; v += 1) {
+      const [r, g, b, a] = at(v)
+      expect([r, g, b].map((n) => n!.toFixed(4))).toEqual(green.toArray().map((n) => n.toFixed(4)))
+      expect(a).toBe(1)
+    }
+  })
+
+  it('draws a compiled play with no card colours entirely in the theme colour', () => {
+    const text = readFileSync('public/plays/trips-right-vs-cover2.json', 'utf8')
+    const parsed = validatePlay(JSON.parse(text) as unknown)
+    if (!parsed.ok) throw new Error('sample play is invalid')
+    const play = compilePlay(parsed.play)
+    expect(play.colors.every((c) => c == null)).toBe(true)
+    const color = buildRouteRibbon(play).getAttribute('aColor')
+    expect(color.count).toBeGreaterThan(0)
+    for (let v = 0; v < color.count; v += 1) expect(color.getW(v)).toBe(0)
+
+    const coloured = structuredClone(parsed.play)
+    for (const p of coloured.players) if (p.team === 'offense') p.color = 'blue'
+    const ribbon = buildRouteRibbon(compilePlay(coloured))
+    expect(triangleCount(ribbon)).toBe(triangleCount(buildRouteRibbon(play)))
+    const tinted = ribbon.getAttribute('aColor')
+    let cased = 0
+    for (let v = 0; v < tinted.count; v += 1) cased += tinted.getW(v)
+    expect(cased).toBeGreaterThan(0)
+    expect(cased).toBeLessThan(tinted.count)
   })
 
   it('sizes an unlit screen-space material on resize and stays inside the triangle budget', () => {
