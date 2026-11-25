@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
+import { ChartImportPage } from '../src/film/ChartImportPage'
 import { FilmPage } from '../src/film/FilmPage'
 import {
   formatDuration,
@@ -21,6 +22,7 @@ describe('film view helpers', () => {
     expect(statusLabel('processing')).toBe('Processing')
     expect(statusLabel('ready')).toBe('Ready')
     expect(statusLabel('failed')).toBe('Upload failed')
+    expect(statusLabel('local')).toBe('Clips on your computer')
   })
 
   it('suggests a title from the file name', () => {
@@ -82,5 +84,21 @@ describe('film page (no backend)', () => {
 
   it('disables uploading in the demo', () => {
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled/)
+  })
+})
+
+describe('chart import page (no backend)', () => {
+  const html = renderToStaticMarkup(
+    createElement(MemoryRouter, { initialEntries: ['/chart'] }, createElement(ChartImportPage)),
+  )
+
+  it('offers the zip and the folder, and says nothing is uploaded', () => {
+    expect(html).toContain('Chart plays')
+    expect(html).toContain('Open a Hudl export')
+    expect(html).toContain('Choose zip')
+    expect(html).toContain('Choose folder')
+    expect(html).toContain('webkitdirectory')
+    expect(html).toContain('never')
+    expect(html).toContain('Example mode.')
   })
 })

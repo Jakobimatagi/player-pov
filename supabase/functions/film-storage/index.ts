@@ -121,11 +121,15 @@ async function loadFilm(user: SupabaseClient, filmId: string | undefined): Promi
   if (!filmId) throw new HttpError(400, 'filmId is required')
   const { data, error } = await user
     .from('film')
-    .select('id, team_id, storage_key, proxy_key, status, size_bytes')
+    .select('id, team_id, source, storage_key, proxy_key, status, size_bytes')
     .eq('id', filmId)
     .maybeSingle()
   if (error) throw new HttpError(400, error.message)
   if (!data) throw new HttpError(404, 'Film not found')
+  // A Hudl export game keeps its clips on the coach's computer; there is nothing stored.
+  if (data.source === 'hudl_export' || !data.storage_key) {
+    throw new HttpError(400, 'This game has no stored video')
+  }
   return data as FilmRow
 }
 

@@ -1,6 +1,8 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type FilmStatus = 'uploading' | 'processing' | 'ready' | 'failed'
+export type FilmStatus = 'uploading' | 'processing' | 'ready' | 'failed' | 'local'
+/** 'hudl_export': clips stay on the coach's computer; nothing is stored. */
+export type FilmSource = 'upload' | 'hudl_export'
 export type FilmSide = 'offense' | 'defense' | 'special' | 'kick'
 
 export type TeamRole = 'head_coach' | 'coach' | 'player'
@@ -470,8 +472,10 @@ export type Database = {
           title: string
           opponent: string | null
           game_date: string | null
-          size_bytes: number
-          storage_key: string
+          source: FilmSource
+          /** Null for a hudl_export film. */
+          size_bytes: number | null
+          storage_key: string | null
           proxy_key: string | null
           duration_ms: number | null
           status: FilmStatus
@@ -485,7 +489,8 @@ export type Database = {
           title: string
           opponent?: string | null
           game_date?: string | null
-          size_bytes: number
+          source?: FilmSource
+          size_bytes?: number | null
           created_by?: string | null
         }
         Update: {
@@ -566,6 +571,28 @@ export type Database = {
           look_id?: string | null
           tags?: Json
         }
+        Relationships: []
+      }
+      film_clip_files: {
+        Row: {
+          clip_id: string
+          team_id: string
+          angle: string
+          file_name: string
+          size_bytes: number
+          sha256: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          clip_id: string
+          team_id: string
+          angle: string
+          file_name: string
+          size_bytes: number
+          sha256: string
+        }
+        Update: Record<string, never>
         Relationships: []
       }
       formation_templates: {

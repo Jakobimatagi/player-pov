@@ -10,7 +10,7 @@ A coach uploads one video file per game and marks plays on it (issue #59). A mar
 | Game film page | `/film` (`src/film/FilmPage.tsx`), in the coach nav under Playbook                            |
 | Browser side   | `src/data/film.ts` (create, resumable upload, playback URL, delete), `src/film/uploadPlan.ts` |
 
-The `/film` page adds, uploads, watches and deletes film. Play marking, the breakdown grid, Chart this play and the player clip view come later and get their scenarios here when they ship. Scenario 9 describes the Hudl export format, which is read in the browser and never uploaded.
+The `/film` page adds, uploads, watches and deletes film. Play marking, the breakdown grid, Chart this play and the player clip view come later and get their scenarios here when they ship. Scenario 9 describes the Hudl export format, which is read in the browser and never uploaded. Scenario 10 is the `/chart` import that saves a game from an export without storing any video.
 
 ## Why R2
 
@@ -37,6 +37,8 @@ v1 does not transcode. The original file is what streams, using HTTP range reque
 | Mark, edit and delete clips                         | Every coach on the team                                                            |
 | Read a clip, its film row and stream the film       | A player, only when the clip links to a published play assigned to them            |
 | Anything on another team's film                     | Nobody                                                                             |
+| Import a Hudl export game, delete it directly       | Same as adding a film; the clips never leave the coach's computer                  |
+| Read clip file names and fingerprints               | Every coach on the team; never players                                             |
 
 Known limit: a player allowed one clip can technically stream the whole game file, because a clip is a time range on it. The app only plays the clip range for them, and they still cannot list film or open any other film.
 
@@ -205,4 +207,28 @@ Hudl clips are read in the coach's browser and never uploaded. Only the breakdow
 
 **Expected**, on the Mountain Ridge vs Corner Canyon export (205 Wide clips, 203 End Zone clips, 205 breakdown rows): 205 plays, angles End Zone and Wide, no clips without a row, no rows without a clip, no duplicates. Plays 45 and 95 have only Wide.
 
-**Next:** the browser import on `/film`. The coach drops the zip, the clips are read locally, each play is charted, and only the metadata and the compiled play go to Supabase.
+## Scenario 10 — Import a Hudl export on `/chart` (#98)
+
+The coach opens **Chart plays** and drops the export zip or its folder (or uses **Choose zip** / **Choose folder**). Nothing video is uploaded. The browser reads the zip, groups the clips into plays, reads the breakdown, and saves only the game, each play's breakdown fields and each clip file's fingerprint.
+
+**Reading the zip** (`src/film/zipReader.ts`) uses no library: the central directory is parsed from the end of the file and each entry is a slice of the picked `File`, so a stored clip costs nothing to open. Deflated entries (the xlsx parts, or a zip made with compression) are inflated with `DecompressionStream('deflate-raw')`. Zip64 is handled, so exports over 4 GB work. A dropped or picked folder skips the zip step. `src/film/exportFiles.ts` hides the difference and reads `breakdown.xlsx` (the first sheet the workbook lists, and the shared strings) with the same reader.
+
+**Per clip** (`src/film/clipFile.ts`, `src/film/hudlImport.ts`), four at a time: the fingerprint is the size plus a SHA-256 of the first and last MiB (the whole file at 2 MiB or less), and the length comes from the MP4 movie header (`moov` → `mvhd`), found by walking the top-level box headers, so only a few KB beyond the fingerprint are read. A clip with no readable header falls back to a `<video>` element; one whose length still can't be read is listed and not saved.
+
+**How it is stored** (migration `20261213000000_film_local_clips.sql`):
+
+- The game is a `film` row with `source = 'hudl_export'` and `status = 'local'`, and no `size_bytes`, `storage_key` or `proxy_key`. It doesn't count toward the storage quota, never touches the film-storage function (which refuses it), and its editor deletes it directly; uploaded film still can't be deleted by a client. The storage columns stay until #104.
+- Each play is one `film_clips` row. Because a play is its own file per angle, `start_ms`/`end_ms` are a time range **inside that play's clips**: 0 to the longest angle's length at import, which charting (#99) can trim. A local game holds each play number once.
+- The clip files are rows of `film_clip_files`: clip, angle, path inside the export, size and SHA-256. We chose a table over a `clip_file` column because a play has a file per angle and later tracking (#100+) works per angle. Staff only; players never see file names.
+
+**Re-opening the same export** looks up a sample of up to 40 fingerprints across the export, takes the game most of them belong to, then matches every play by fingerprint: a matched play is left alone (a new angle is added to it), a new play is added, and a play whose number is already saved from different clips is listed and left alone. A partly saved import finishes when the export is opened again.
+
+**Shown on screen:** plays, clips and angles; clips with no breakdown row (saved with only their play number); breakdown rows with no clip (not saved); two files for one angle and play; breakdown rows that repeat a play number or have none; clips whose length couldn't be read; and, once checked against Supabase, whether the export is already saved and each play's status (Saved, New, Differs from saved).
+
+**Expected**, on the 205-play test export (Wide for every play, End Zone missing on 45 and 95):
+
+1. The first import creates one local game, 205 `film_clips` rows with the breakdown fields, and 408 `film_clip_files` rows, through RLS as a coach (`supabase/tests/film_local.test.sql`, `tests/hudl-import-save.test.ts`).
+2. Opening the same zip again says it is already saved, shows every play as Saved, and writes nothing.
+3. The devtools network tab shows no request carrying video bytes; the largest is a batch of 100 plays' metadata. Without a backend, reading the export makes no requests at all.
+
+**Next:** chart each play beside its clip (#99).

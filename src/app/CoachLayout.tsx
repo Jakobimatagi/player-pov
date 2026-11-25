@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   BookOpen,
   Clapperboard,
+  FileVideo,
   House,
   ListOrdered,
   PenLine,
@@ -58,6 +59,7 @@ function coachSections(): NavSection[] {
         { to: '/', label: 'Home', icon: House, end: true },
         { to: '/playbook', label: 'Playbook', icon: BookOpen },
         { to: '/film', label: 'Game film', icon: Clapperboard },
+        { to: '/chart', label: 'Chart plays', icon: FileVideo },
       ],
     },
     {

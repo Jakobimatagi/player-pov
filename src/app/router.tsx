@@ -7,6 +7,7 @@ import {
   SignupPage,
 } from '../auth/pages'
 import { HomePage, SessionLayout, WatchPage } from './HomeGate'
+import { ChartImportPage } from '../film/ChartImportPage'
 import { FilmPage } from '../film/FilmPage'
 import { PlaybookPage } from '../playbook/PlaybookPage'
 import { PlaySheetPage } from '../playsheet/PlaySheetPage'
@@ -43,6 +44,7 @@ const router = createBrowserRouter([
       { path: '/team/billing', element: <BillingPage /> },
       { path: '/playbook', element: <PlaybookPage /> },
       { path: '/film', element: <FilmPage /> },
+      { path: '/chart', element: <ChartImportPage /> },
       { path: '/plays/:playId', element: <PlaySheetPage /> },
       { path: '/plays/:playId/reps', element: <RepsPage /> },
       { path: '/homework/:assignmentId', element: <HomeworkPage /> },

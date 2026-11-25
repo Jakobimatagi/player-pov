@@ -12,6 +12,8 @@ export function statusLabel(status: FilmStatus): string {
       return 'Ready'
     case 'failed':
       return 'Upload failed'
+    case 'local':
+      return 'Clips on your computer'
   }
 }
 
