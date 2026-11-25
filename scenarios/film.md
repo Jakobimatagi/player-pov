@@ -10,7 +10,7 @@ A coach uploads one video file per game and marks plays on it (issue #59). A mar
 | Game film page | `/film` (`src/film/FilmPage.tsx`), in the coach nav under Playbook                            |
 | Browser side   | `src/data/film.ts` (create, resumable upload, playback URL, delete), `src/film/uploadPlan.ts` |
 
-The `/film` page adds, uploads, watches and deletes film. Play marking, the breakdown grid, Chart this play and the player clip view come later and get their scenarios here when they ship.
+The `/film` page adds, uploads, watches and deletes film. Play marking, the breakdown grid, Chart this play and the player clip view come later and get their scenarios here when they ship. Scenario 9 describes the Hudl export format, which is read in the browser and never uploaded.
 
 ## Why R2
 
@@ -189,3 +189,20 @@ The app owner does this; it is not automated.
 - The trash button asks first (`Delete for good`, `This removes the video and every play marked on it. It cannot be undone.`); confirming removes the row and frees the storage.
 - A `.avi`, a file over 20 GB, or one bigger than the free storage is refused before anything uploads.
 - Signed in as a player, `/film` sends you to Home.
+
+## Scenario 9 — Hudl export format
+
+Hudl clips are read in the coach's browser and never uploaded. Only the breakdown tags, and later the charted play, are saved. Each clip in an export is already one play, so nothing is joined or marked by time.
+
+**Export format.** A zip holds:
+
+- One video per play per angle, named `<Angle> - Clip <number>.mp4` (MOV and M4V also occur), for example `Wide - Clip 001.mp4` and `End Zone - Clip 001.mp4`. Leading zeros don't matter. An angle may be missing for some plays.
+- `breakdown.xlsx`: one row per play. `PLAY #` equals the clip number.
+
+**Breakdown columns** (`src/film/hudlBreakdown.ts`) fill the `film_clips` columns: `ODK` → side (O offense, D defense, K kick; any other letter is kept as the tag `odk`), `QTR`, `DN`, `DIST`, `HASH`, `YARD LN` (Hudl's -50 is stored as 50), `PERSONNEL`, `OFF FORM` → formation, `DEF FRONT` (else `MR FRONT`) → front, `COVERAGE` (else `MR COV (1)`) → coverage, `RESULT`, `GN/LS`. Every other filled column goes into `tags`, keyed in snake case and kept under 4 KB. A value the table's checks would refuse is left blank. The module takes the sheet's XML strings and has no Node-only imports, so it runs in the browser.
+
+**Grouping** (`src/film/hudlExport.ts`) turns the export's file names into plays: clip number → each angle's file. It reports clips with no breakdown row, breakdown rows with no clip, and two files for the same angle and play. Hidden files and `__MACOSX` are skipped. It reads names only.
+
+**Expected**, on the Mountain Ridge vs Corner Canyon export (205 Wide clips, 203 End Zone clips, 205 breakdown rows): 205 plays, angles End Zone and Wide, no clips without a row, no rows without a clip, no duplicates. Plays 45 and 95 have only Wide.
+
+**Next:** the browser import on `/film`. The coach drops the zip, the clips are read locally, each play is charted, and only the metadata and the compiled play go to Supabase.
